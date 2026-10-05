@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  socket-server:
+    build: .
+    container_name: socket-server
+    restart: unless-stopped
+
+    ports:
+      - "3001:3001"
+
+    environment:
+      NODE_ENV: production
+
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules

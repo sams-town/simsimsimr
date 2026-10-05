@@ -1,0 +1,71 @@
+// My Main Component Sass file
+@import "./components/text-group";
+@import "./components/shadow";
+@import "./components/cards";
+@import "./components/modern-label";
+
+// Import our variable overrides.
+// Go here to set custom values for Bootstrap vars
+@import "./abstracts/variables";
+@import "./abstracts/gradient";
+
+// Import Bootstrap functions, vars and mixins
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/mixins";
+
+// Import our map amends
+// Go here to run any Sass map amends on Bootstrap Sass maps
+@import "./abstracts/map-amends";
+
+// Import our utility overrides
+// Go here to amend or set custom utilities using the Bootstrap API
+// @import './utilities/bootstrap-api-utilities';
+@import "./utilities/fonts";
+
+// Bootstrap main import
+@import "~bootstrap/scss/bootstrap";
+
+:root {
+    //   --bs-body-font-family: "Mulish", sans-serif;
+    --c-800: 800;
+    --c-700: 700;
+    --c-600: 600;
+    --c-500: 500;
+    --c-400: 400;
+}
+
+  @font-face {
+    font-family: "DotMatrix";
+    src: url("../../assets/fonts/DOTMATRI.woff") format("woff");
+    // src: url("../../assets/fonts/DOTMATRI.woff") format("woff");
+    font-style: normal;
+    // font-weight: 700;
+  }
+  
+  @font-face {
+    font-family: "DotMatrixBold";
+    src: url("../../assets/fonts/DOTMBold.woff") format("woff");
+    font-style: normal;
+    // font-weight: 700;
+  }
+
+  @font-face {
+    font-family: "InterBold";
+    src: url("../../assets/fonts/Inter-Bold.woff2") format("woff2");
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: "OCRB";
+    src: url("../../assets/fonts/OCRB.woff") format("woff");
+    font-style: normal;
+  }
+  
+.pointer{
+  cursor: pointer;
+}
+
+// * {
+//   font-family: var(--bs-body-font-family);
+// }

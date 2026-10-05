@@ -1,0 +1,3 @@
+KodeDokter,NamaDokter,NamaPasien,NoRekamMedis,NoRegistrasi,NoSEP,NamaTindakan,TanggalTindakan,JenisPelayanan,KodeCaraBayar,NamaCaraBayar,TotalFee
+DK001,Dr. Ahmad Surya,Budi Santoso,RM00001,REG001,SEP001,Konsultasi Spesialis,2026-01-15,Rawat Jalan,BPJS01,BPJS Kesehatan,500000
+DK002,Dr. Siti Nurhaliza,Dewi Lestari,RM00002,REG002,,Operasi Minor,2026-01-16,Rawat Inap,UMUM,Umum / Pribadi,1500000

@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  be-ci-dev:
+    image: registry.gitlab.com/rshbhsimrs/be-ci/be-ci-dev
+    ports:
+    - 5000:80
+    volumes:
+    - /home/r00t/apexa-prod/assets:/var/www/html/assets
+    # - /home/r00t/apexa-prod/be-ci/html:/var/www/html

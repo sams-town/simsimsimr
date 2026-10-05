@@ -1,0 +1,20 @@
+CREATE TABLE public.thb_purchase_order (
+	order_number varchar NULL,
+	supplier_code varchar NULL,
+	supplier_name varchar NULL,
+	nip varchar NULL,
+	"date" timestamptz NULL,
+	total float8 NULL,
+	discount float8 NULL,
+	grand_total float8 NULL,
+	ppn float8 NULL,
+	stamp_duty float8 NULL,
+	invoice_amount float8 NULL,
+	status varchar NULL,
+	"source" varchar NULL,
+	down_payment float8 NULL,
+	down_payment_history jsonb NULL,
+	created_date timestamptz DEFAULT now() NULL,
+	updated_date timestamptz DEFAULT now() NULL,
+	updated_by int4 NULL
+);

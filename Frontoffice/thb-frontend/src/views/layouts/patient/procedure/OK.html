@@ -1,0 +1,459 @@
+<template>
+    <div>
+        <patientMenu selectedMenu="menu6" />
+        <div class="label-head my-16 my-lg-24">
+            <span class="px-16 text-bold-24 text-neutral-700">Riwayat Procedure</span>
+        </div>
+        <!-- ////////  -->
+        <div class="card-body shadow-sm rounded">
+            <div class="row mx-0">
+                <div class="col-12 col-lg">
+                    <div class="row">
+                        <div class="col-12 col-lg-3">
+                            <img src="@/@core/assets/images/pendaftaran/user.png" alt="your-photo"
+                                class="rounded-circle shadow-sm c-img">
+                        </div>
+                        <div class="col-12 col-lg">
+                            <span class="text-bold-18 text-indigo">
+                                <img src="@/@core/assets/icons/nurse/user.svg" alt="user-icon">{{this.regData.norm}}
+                            </span>
+                            <p class="mb-0 mt-12 text-semi-24 text-neutral-800">
+                                <span>({{this.regData.alias_name}}) </span>
+                                <span>{{this.regData.name}}</span>
+                            </p>
+                            <div class="row mx-0 mt-16">
+                                <b-badge class="rounded text-neutral-500 text-uppercase border border-success-200 px-10 py-1" :variant="this.regData.is_new == 'N' ? 'success-200' : 'info-200'">{{ this.regData.is_new == 'N' ? 'Pasien Lama' : 'pasien Baru' }}</b-badge>
+                                <b-badge
+                                    class="rounded text-neutral-500 text-uppercase border border-success-500 px-10 py-1 mx-lg-12 "
+                                    variant="success-200">{{this.regData.health_facility_name}}</b-badge>
+                                <b-badge
+                                    class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1 "
+                                    variant="warning-200">{{this.regData.health_facility_item_name}}</b-badge>
+                                <div v-if="this.regData.registration_insurance">
+                                    <div v-for="list in this.regData.registration_insurance">
+                                        <b-badge v-if="list.is_cob == 1"class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1" variant="warning-200">COB</b-badge>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-neutral-800 mt-8 mt-lg-16">
+                                <span class="text-regular-14 mr-2">Status:</span>
+                                <span class="text-bold-14">Dalam Penanganan Medis</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4 mt-16 mt-lg-0">
+                    <div class="d-flex flex-column align-items-lg-end h-100">
+                        <div class="row mx-0">
+                            <b-button pill variant="outline-indigo" size="sm" class="mr-2">
+                                <b-icon icon="arrow-left" /> <span>Kembali</span>
+                            </b-button>
+                            <administration />
+                        </div>
+                        <div class="mt-2 mt-lg-auto">
+                            <b-button pill variant="outline-indigo" @click="refresh()" size="sm">
+                                <b-icon icon="arrow-clockwise" /> <span>Refresh</span>
+                            </b-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-24">
+            <b-modal v-model="open_modal.procedure" title="Tambah Rincian" hide-footer>
+                <div>
+                    <div class="mt-12">
+                        <label class="c-form-label">Jenis Tindakan</label>
+                        <v-select v-model="type_costing_c_id" aria-readonly="true" @input="onAddTYPE($event)" :options="TypeCostingOptions" :reduce="TypeCostingOptions => TypeCostingOptions.value" label="title" placeholder="-- Pilih Jenis Tindakan --"></v-select>
+                    </div>
+                    <div class="mt-12">
+                        <label class="c-form-label">Tindakan Procedure</label>
+                        <v-select v-model="form_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                    </div>
+                    <div class="mt-12">
+                        <label class="c-form-label">Dokter/Asisten Operator</label>
+                        <v-select v-model="form_transaction.type" aria-readonly="true" :options="OptionsType" :reduce="OptionsType => OptionsType.value" label="title" placeholder="-- Pilih Dokter/Asisten Operator --"></v-select>
+                    </div>
+                    <template v-if="form_transaction.type === 1">
+                        <div class="mt-12">
+                            <label class="c-form-label">Dokter</label>
+                            <v-select v-model="form_transaction.doctor_in_charge_id" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Dokter --"></v-select>
+                        </div>
+                    </template>
+                    <template v-if="form_transaction.type === 2">
+                        <div class="mt-12">
+                            <label class="c-form-label">Anestesi 1</label>
+                            <v-select v-model="form_transaction.anestesi_in_charge_id_1" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Anestesi 1 --"></v-select>
+                        </div>
+                        <div class="mt-12">
+                            <label class="c-form-label">Anestesi 2</label>
+                            <v-select v-model="form_transaction.anestesi_in_charge_id_2" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Anestesi 2 --"></v-select>
+                        </div>
+                    </template>
+                    <template v-if="form_transaction.type === 3">
+                        <div class="mt-12">
+                            <label class="c-form-label">Asisten 1</label>
+                            <v-select v-model="form_transaction.operator_in_charge_id_1" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Asisten 1 --"></v-select>
+                        </div>
+                        <div class="mt-12">
+                            <label class="c-form-label">Asisten 2</label>
+                            <v-select v-model="form_transaction.operator_in_charge_id_2" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Asisten 2 --"></v-select>
+                        </div>
+                        <div class="mt-12">
+                            <label class="c-form-label">Penata</label>
+                            <v-select v-model="form_transaction.operator_in_charge_id_2" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Penata --"></v-select>
+                        </div>
+                        <div class="mt-12">
+                            <label class="c-form-label">Instrumen</label>
+                            <v-select v-model="form_transaction.operator_in_charge_id_3" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Instrumen --"></v-select>
+                        </div>
+                        <div class="mt-12">
+                            <label class="c-form-label">Sirkuler</label>
+                            <v-select v-model="form_transaction.operator_in_charge_id_4" aria-readonly="true" :options="OptionsDoctor" :reduce="OptionsDoctor => OptionsDoctor.value" label="title" placeholder="-- Pilih Sirkuler --"></v-select>
+                        </div>
+                    </template>
+                    <div class="mt-12">
+                        <label class="c-form-label">Jumlah</label>
+                        <b-form-input type="number" v-model="form_transaction.var_2" />
+                    </div>
+                    <div class="mt-12">
+                        <label class="c-form-label">Keterangan</label>
+                        <b-textarea v-model="form_transaction.notes" rows="3"></b-textarea>
+                    </div>
+                    <div class="d-flex justify-content-end mt-24">
+                        <b-button variant="indigo-500" @click.prevent="validationFormTransaction" class="px-3">Save</b-button>
+                    </div>
+                </div>
+            </b-modal>
+        </div>
+        <div class="mt-32">
+        <b-button @click="openModalTransaction('add',NULL)" pill variant="outline-neutral-400" size="sm" class="px-16 mb-20 ml-lg-auto">
+            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+        </b-button>
+        <div class="card-body mt-32 border rounded-lg">
+            <!-- <p class="text-regular-14">Tindakan Dokter dari Kajian Dokter : <span class="font-weight-bold">{{ result.employee_doctor_name }}</span></p> -->
+            <!-- <p class="text-regular-14">Waktu Kajian : <span class="font-weight-bold">{{ result.date_added }}</span></p> -->
+            <div class="mt-16 mt-lg-24">
+                <b-table-simple bordered hover resposive>
+                    <b-thead>
+                        <b-tr>
+                            <b-th>Tanggal & Jam</b-th>
+                            <b-th>Tindakan</b-th>
+                            <b-th>Dokter</b-th>
+                            <b-th>Keterangan</b-th>
+                            <b-th>Harga</b-th>
+                            <b-th>Aksi</b-th>
+                        </b-tr>
+                    </b-thead>
+                    <b-tbody>
+                        <template v-for="(itemsResult,i) in itemsTransaction" >
+                            <b-tr>
+                                <b-td>{{ itemsResult.date_added }}</b-td>
+                                <b-td>{{ itemsResult.costing_name }}</b-td>
+                                <b-td>{{ itemsResult.doctor_in_charge_name }}</b-td>
+                                <b-td>{{ itemsResult.notes }}</b-td>
+                                <b-td>{{ itemsResult.var_1 | currency}}x{{itemsResult.var_2}}&nbsp;&nbsp;{{ itemsResult.var_3 | currency }}</b-td>
+                                <b-td>
+                                    <b-button @click="openModalTransaction('edit', itemsResult)" size="sm" variant="warning-500" class="mr-2">
+                                        <feather-icon icon="EditIcon" />
+                                    </b-button>
+                                    <b-button @click="rowOnDelete(itemsResult.id)" size="sm" variant="danger-700">
+                                        <feather-icon icon="TrashIcon" />
+                                    </b-button>
+                                </b-td>
+                            </b-tr>
+                        </template>
+                    </b-tbody>
+                </b-table-simple>
+                <b-modal v-model="open_modal.add_list" title="Tambah Rincian" hide-footer>
+                    <div>
+                        <div>
+                            <label class="c-form-label">Tindakan Dokter</label>
+                            <b-form-select></b-form-select>
+                        </div>
+                        <div class="mt-12">
+                            <label class="c-form-label">Keterangan</label>
+                            <b-textarea rows="3"></b-textarea>
+                        </div>
+                        <div class="d-flex justify-content-end mt-24">
+                            <b-button variant="indigo-500" class="px-3">Save</b-button>
+                        </div>
+                    </div>
+                </b-modal>
+                <b-modal v-model="open_modal.edit_list" title="Ubah Rincian" hide-footer>
+                    <div>
+                        <div>
+                            <label class="c-form-label">Tindakan Dokter</label>
+                            <b-form-select></b-form-select>
+                        </div>
+                        <div class="d-flex justify-content-end mt-24">
+                            <b-button variant="indigo-500" class="px-3">Save</b-button>
+                        </div>
+                    </div>
+                </b-modal>
+                <b-modal v-model="open_modal.remove_list" title="Konfirmasi Hapus" hide-footer>
+                    <div>
+                        <p>Apakah Anda yakin ingin menghapus data?</p>
+                        <div class="d-flex justify-content-end mt-24">
+                            <b-button variant="danger-700" class="px-3 mr-2">Ya, Hapus</b-button>
+                            <b-button @click="open_modal.remove_list = false" variant="outline-secondary" class="px-3">Close</b-button>
+                        </div>
+                    </div>
+                </b-modal>
+            </div>
+        </div>
+        </div>
+    </div>
+</template>
+<script>
+import { mapState } from 'vuex'
+import patientMenu from '@/@core/components/tab-menu/patientMenu.vue';
+import administration from '@/views/layouts/patient/doctor/administration.vue';
+// import ModernLabel from '@/@core/components/label/ModernLabel.vue';
+import ToastificationContent from '@core/components/toastification/ToastificationContent.vue'
+import router from '@/router/index.js'
+import vSelect from 'vue-select'
+
+export default {
+    name: 'DoctorStudies',
+    components: {
+        patientMenu, administration, vSelect
+    },
+    data() {
+        return {
+            type_costing_c_id:16,
+            open_modal: {
+                procedure: false,
+                add_list: false,
+                edit_list: false,
+                remove_list: false,
+            },
+            OptionsType:[
+                {value:1,title:'Dokter'},
+                {value:2,title:'Anestesi'},
+                {value:3,title:'Asisten Operator'}
+            ],
+            userData: JSON.parse(localStorage.getItem('userData')),
+            regData: {},
+            doctor: {
+                fields: [
+                    { key: 'tanggal', label: 'Tanggal & Jam' },
+                    { key: 'tindakan', label: 'Tindakan Dokter' },
+                    { key: 'notes', label: 'Keterangan' },
+                    { key: 'action', label: 'Aksi' }
+                ],
+                items: []
+            },
+            form_transaction: {
+                id:'',
+                view:'add',
+                costing_id:'',
+                type:1,
+                operator_in_charge_id_1:'',
+                anestesi_in_charge_id_1:'',
+                anestesi_in_charge_id_2:'',
+                operator_in_charge_id_2:'',
+                operator_in_charge_id_2:'',
+                operator_in_charge_id_3:'',
+                operator_in_charge_id_4:'',
+                doctor_in_charge_id:'',
+                registration_destination_id:'',
+                soap_id:'',
+                notes:'',
+                var_1:'',
+                var_2:1,
+                var_3:''
+            }
+        }
+    },
+    filters:{
+        currency(value) {
+            return new Intl.NumberFormat("en-US", { style: "currency", currency: "IDR" }).format(value)
+        }
+    },
+    computed: {
+        ...mapState({ 
+            items: state => state.soap.items, 
+            itemsTransaction: state => state.soap.itemstransaction, 
+            TypeCostingOptions: state => state.helper.options.typecostingc,
+            fieldsTransaction: state => state.soap.fieldstransaction, 
+            OptionsDoctor: state => state.employee.options.employee,
+            OptionsCosting: state => state.costing.options.costing
+        })
+    },
+    methods: {
+        onAddTYPE (event) {
+            const inpatient_id = "40f06534-07ec-4221-ad9d-dea08196079f"
+            const inpatient_item_id = "d158a64e-6246-444a-97b7-8d0a2d90e53a"
+            let company_insurance_id = "e5a1e978-af77-4901-9ef8-4ebaeee77dfa"
+            let service_class_id = "e5a1e978-af77-4901-9ef8-4ebaeee77dfa"
+            let paramsInsuranceServiceClassDoctor = {}
+
+            console.log(this.regData.registration_insurance[0].company_id)
+
+            if (this.regData.registration_insurance[0].company_id === '1a055e0f-1b9d-42d2-bb84-7d8bf82fc4b8') {
+                company_insurance_id = this.regData.registration_insurance[0].company_id
+                service_class_id = this.regData.registration_insurance[0].service_class_id
+            } else if (this.regData.registration_insurance[0].company_id === 'bb0d633f-99e1-4990-901b-0417a14e3cb6') {
+                company_insurance_id = this.regData.registration_insurance[0].company_id
+                service_class_id = this.regData.registration_insurance[0].service_class_id
+            } else {
+                company_insurance_id = "e5a1e978-af77-4901-9ef8-4ebaeee77dfa"
+                service_class_id = this.regData.registration_insurance[0].service_class_id
+            }
+            // list.is_primary === 1 && list.company_id === '1a055e0f-1b9d-42d2-bb84-7d8bf82fc4b8'"
+
+            if (this.regData.health_facility_id === inpatient_id) {
+                paramsInsuranceServiceClassDoctor = {
+                    classification_one_type_id: this.type_costing_c_id,
+                    company_insurance_id: company_insurance_id,
+                    service_class_id: service_class_id ? service_class_id : this.regData.service_class_id
+                }
+            } else {
+                paramsInsuranceServiceClassDoctor = {
+                    classification_one_type_id: this.type_costing_c_id,
+                    company_insurance_id: company_insurance_id,
+                    health_facility_item_id: this.regData.health_facility_item_id
+                }
+            }
+            console.log(paramsInsuranceServiceClassDoctor)
+            this.$store.dispatch('costing/getParam', paramsInsuranceServiceClassDoctor)
+        },
+        refresh () {
+            router.go(router.currentRoute)
+        },
+        getData (id) {
+            this.$store.dispatch('registration/getById', id).then(data => {
+                this.regData = data[0]
+                this.onAddTYPE({title:'Rawat Inap',value:16})
+
+                // if (this.regData.health_facility_id === "40f06534-07ec-4221-ad9d-dea08196079f") {
+                //     this.$store.dispatch('costing/getParam', {type_costing_id:3,service_class_id:this.regData.service_class_id,health_facility_item_id:'d158a64e-6246-444a-97b7-8d0a2d90e53a'})
+                // } else {
+                //     this.$store.dispatch('costing/getParam', {type_costing_id:3,service_class_id:this.regData.service_class_id})
+                // }
+
+
+                console.log(data[0])
+                this.$store.dispatch('soap/getByIdTransaction', this.regData.registration_id)
+                // this.form_nurse.employee_nurse_id = this.userData.employee_id
+                // this.form_nurse.registration_destination_id = id
+                // this.show = false
+            })
+        },
+        validationFormTransaction (id) {
+            // this.$refs.simpleRules.validate()
+            // .then(success => {
+            //     if (success) {
+                const formData = {
+                    id:this.form_transaction.id,
+                    view:this.form_transaction.view,
+                    costing_id:this.form_transaction.costing_id.value,
+                    soap_id:this.form_transaction.soap_id,
+                    doctor_in_charge_id:this.form_transaction.doctor_in_charge_id,
+                    registration_destination_id:this.form_transaction.registration_destination_id,
+                    notes:this.form_transaction.notes,
+                    var_1:this.form_transaction.costing_id.costing,
+                    var_2:this.form_transaction.var_2,
+                    var_3:this.form_transaction.costing_id.costing*this.form_transaction.var_2
+                }
+                this.$store.dispatch('soap/formPostPutTransaction', formData)
+                .then(res => {
+                    this.modalShow = false
+                    this.open_modal.procedure = !this.open_modal.procedure
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.$store.dispatch('soap/getById', this.$route.params.id)
+                    this.$store.dispatch('soap/getByIdTransaction', this.regData.registration_id)
+                }, 
+                err => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                })
+                // } else {
+                // this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                // }
+            // })
+        },
+        rowOnDelete (id) {
+            this.$bvModal
+                .msgBoxConfirm('Please confirm that you want to delete everything.', {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', id)
+                .then(response => {
+                    if (response.status === 200) {
+                    this.$store.dispatch('soap/getById', this.$route.params.id)
+                    this.$store.dispatch('soap/getByIdTransaction', this.regData.registration_id)
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        openModalTransaction (view,id) {
+            if (view === 'add') {
+                this.open_modal.procedure = !this.open_modal.procedure
+                this.form_transaction.soap_id = null
+                this.form_transaction.registration_destination_id = this.regData.registration_destination_id
+                this.form_transaction.view = view
+            } else {
+                this.open_modal.procedure = !this.open_modal.procedure
+                this.form_transaction.id = id.id
+                this.form_transaction.view = view
+                this.form_transaction.costing_id = {
+                    value: id.costing_id,
+                    title: id.costing_name,
+                    costing: id.var_2
+                }
+                this.form_transaction.doctor_in_charge_id = id.doctor_in_charge_id
+                this.form_transaction.notes = id.notes
+                this.form_transaction.var_1 = id.var_1
+            }
+        },
+        notification (a,b,c,d) {
+            this.$toast({
+                component: ToastificationContent,
+                employee: 'top-right',
+                props: { title: a, icon: b, variant: c, text: d}
+            })
+        },
+    },
+    mounted () {
+        this.$store.dispatch('employee/getParamAll')
+        this.$store.dispatch('helper/getParam', 'costing_c_one')
+        // this.$store.dispatch('costing/getParam', 3)
+        this.$store.dispatch('soap/getById', this.$route.params.id)
+        if (this.$route.params.id) {
+            console.log(this.items)
+            // this.show = true
+            this.id = this.$route.params.id
+            this.getData(this.$route.params.id)
+        }
+    }
+}
+</script>
+<style lang="scss">
+@import '@core/scss/vue/libs/vue-select.scss';
+</style>
+<style scoped>
+@import '../../../../@core/css/utility.css';
+
+.label-head::before {
+    content: '';
+    border-left: 6px solid #648DE1;
+}
+
+.c-img {
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    max-width: 150px;
+    max-height: 150px;
+    border: 10px solid white;
+}
+</style>

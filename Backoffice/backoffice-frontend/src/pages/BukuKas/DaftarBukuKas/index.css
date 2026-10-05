@@ -1,0 +1,14 @@
+.bukukas :is([dir="ltr"] table thead tr th),.bukukas :is([dir="ltr"] table tfoot tr th), :is([dir="ltr"] table tbody tr td) {
+    text-align: left !important;
+}
+
+
+.yellow-bullet {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: purple !important;
+    border-radius: 50%;
+    margin-right: 8px; /* Adjust spacing as needed */
+}
+

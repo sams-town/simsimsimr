@@ -1,0 +1,81 @@
+-- ============================================================================
+-- RUNBOOK - perbaikan journal_no duplikat.  (file ini hanya catatan, bukan SQL)
+--
+-- Isi file ini dulunya satu script panjang. DIPECAH karena secara struktural
+-- tidak bisa dijalankan sekaligus: ada BEGIN tanpa COMMIT (transaksi
+-- menggantung dan menyeret statement berikutnya) DAN ada CREATE INDEX
+-- CONCURRENTLY yang justru tidak boleh berada di dalam transaksi.
+--
+-- Semua file di bawah aman dijalankan utuh dengan psql:
+--   psql -X -v ON_ERROR_STOP=1 -P pager=off -f <file>
+-- Jangan tambahkan flag -1 / --single-transaction (merusak langkah 4).
+-- ============================================================================
+--
+-- MASALAHNYA
+--   journal_no bertipe teks dan generator lama mengambil nomor terakhir dengan
+--   ORDER BY journal_no DESC. Begitu satu bulan tembus 9999,
+--   'JRN/2026/08/9999' > 'JRN/2026/08/10050' secara teks, sehingga counter
+--   mentok: scheduler mengulang dari 10000 tiap run, dan sisi aplikasi memberi
+--   nomor identik ke semua transaksi. Sepanjang 2026 terkumpul 186.200 baris
+--   bernomor kembar - 57% dari seluruh jurnal.
+--
+--   Saldo TIDAK terpengaruh. journal_no cuma label; tidak ada transaksi yang
+--   terinsert dobel (semua transaction_no unik).
+--
+--
+-- URUTAN - JANGAN DIBALIK
+--
+--   1. journal_no_1_preflight.sql     read-only + buat tabel log + DRY RUN
+--        Wajib dilihat: bagian 1e, panjang_baru HARUS 17 untuk nomor 5 digit.
+--        Kalau muncul 16 berarti nomor terpotong - HENTIKAN.
+--
+--   2. journal_no_2_renumber.sql      MENGUBAH DATA
+--        Baris tertua tiap nomor kembar mempertahankan nomornya; sisanya dapat
+--        nomor mulai MAX bulan itu + 1. Satu statement, atomik. Nomor lama ->
+--        baru tercatat di journal_no_renumber_log.
+--        Sebaiknya scheduler dihentikan dulu.
+--
+--   3. journal_no_3_counter.sql       SEBELUM deploy
+--        Buat & seed mst_journal_counter. Kode baru membaca tabel ini; kalau
+--        belum ada, setiap pembuatan jurnal error.
+--
+--   4. DEPLOY backend + scheduler versi baru.
+--        Jarak antara langkah 2 dan 4 sependek mungkin: kode lama masih
+--        memproduksi duplikat baru setiap run.
+--
+--   5. journal_no_4_unique_index.sql  SETELAH deploy
+--        Kode lama akan langsung melanggar unique index ini, makanya terakhir.
+--        Kalau 4a menemukan duplikat baru, ulangi langkah 2 dulu.
+--
+--
+-- KALAU PERLU MUNDUR
+--   journal_no_0_restore.sql mengembalikan journal_no ke nilai sebelum
+--   renumber, berdasarkan journal_no_renumber_log. Eksak - log menyimpan
+--   journal_no_lama untuk setiap transaction_id yang tersentuh.
+--   JANGAN TRUNCATE log sebelum yakin hasil renumber benar.
+--
+--
+-- CATATAN
+--   * trx_journal.journal_no sengaja TIDAK disentuh dan dinyatakan tidak
+--     dipakai: aplikasi tidak pernah mengisinya, scheduler sudah dihentikan
+--     menulis ke sana, dan semua jalur baca mengambilnya lewat join ke
+--     trx_transaction. Opsi mengosongkan/menghapus kolomnya ada di bagian
+--     bawah file ini.
+--   * JANGAN memakai LPAD(x, 4, '0') untuk merakit nomor. Di PostgreSQL LPAD
+--     MEMOTONG string yang lebih panjang dari panjang target, jadi 12092
+--     tersimpan sebagai '1209'. Pakai:
+--         CASE WHEN n < 10000 THEN LPAD(n::text,4,'0') ELSE n::text END
+--     Padding di C# (D4) dan Python (f"{n:04d}") aman - itu lebar minimum.
+-- ============================================================================
+
+
+-- ----------------------------------------------------------------------------
+-- OPSIONAL - pensiunkan trx_journal.journal_no.
+-- Jalankan hanya kalau sudah yakin tidak ada yang memakainya.
+-- ----------------------------------------------------------------------------
+
+-- Kosongkan supaya tidak ada yang memakai nilai basi:
+-- UPDATE public.trx_journal SET journal_no = NULL WHERE journal_no IS NOT NULL;
+
+-- Setelah beberapa waktu tanpa error, kolomnya boleh dibuang:
+-- ALTER TABLE public.trx_journal DROP COLUMN journal_no;

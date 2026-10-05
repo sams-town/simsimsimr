@@ -1,0 +1,1 @@
+<pre>API ZEEMARR <?php echo VERSION ?> <br><strong>{elapsed_time}</strong> seconds.</pre>

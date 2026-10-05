@@ -1,0 +1,407 @@
+<template>
+  <aside id="leftsidebar" class="sidebar d-none d-md-block">
+    <div class="tab-content">
+      <div class="menu">
+        <ul class="list">
+          <li>
+            <div class="user-info m-b-20 p-b-15">
+              <div class="detail m-20">
+                <h4>{{ userData.institute_branch.name }}</h4>
+              </div>
+              <div class="image"><a href="profile.html"><img src="../assets/images/profile_av.jpg" alt="User"></a></div>
+              <div class="detail">
+                <h4>{{ userData.employee_name }}</h4>
+                <small>{{ userData.user_group.name }}</small>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="menu">
+        <div class="list all_menus">
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu1 }">
+            <router-link :to="{ name: 'DashboardView' }">
+              <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu1 ? 'text-neutral-100' : 'text-neutral-700'">Dashboard</span>
+            </router-link>
+          </li>
+          <template v-if="userData.user_group.name === 'Admisi' || userData.user_group.name === 'Super User'">
+            <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu2 }">
+              <router-link :to="{ name: 'PatientListView' }">
+                <img src="@/@core/assets/icons/sidebar/registration.svg" alt="">
+                <span class="text-bold-14" :class="menus.menu2 ? 'text-neutral-100' : 'text-neutral-700'">Pendaftaran</span>
+              </router-link>
+            </li>
+          </template>
+          <template v-if="userData.user_group.name === 'Super User'">
+          <li class="rounded">
+            <!-- <div @click="toggleSecondLevel('master')" class="firstLevel rounded box d-flex" :class="{ 'bg-indigo': menus.menu16 }"> -->
+            <div @click="toggleSecondLevel('master')" class="firstLevel rounded box d-flex"
+              :class="{ 'bg-primary-400': active.firstLevel === 'master' && active.secondLevelVisible }">
+              <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+              <div class="d-flex justify-content-between w-100">
+                <!-- <span class="text-bold-14" :class="menus.menu16 ? 'text-neutral-100' : 'text-neutral-700'">Master</span> -->
+                <span class="text-bold-14 text-neutral-700">Master</span>
+                <feather-icon
+                  :icon="active.firstLevel === 'master' && active.secondLevelVisible ? 'ChevronUpIcon' : 'ChevronDownIcon'"
+                  size="20" class="text-neutral-900" />
+              </div>
+            </div>
+            <div v-if="active.firstLevel === 'master' && active.secondLevelVisible" :class="active.secondLevelVisible ? 'bg-primary-100' : ''">
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu1 }">
+                <router-link :to="{ name: 'MasterRoomView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Kamar</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu2 }">
+                <router-link :to="{ name: 'MasterPatientView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Pasien</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu3 }">
+                <router-link :to="{ name: 'MasterICD10View' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">ICD10</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu11 }">
+                <router-link :to="{ name: 'MasterICD9cmView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">ICD9CM</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu4 }">
+                <router-link :to="{ name: 'MasterPositionView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Jabatan</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu5 }">
+                <router-link :to="{ name: 'MasterEmployeeView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Pegawai</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu6 }">
+                <router-link :to="{ name: 'MasterCatalogView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Katalog</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu7 }">
+                <router-link :to="{ name: 'MasterDepoView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Depo</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu8 }">
+                <router-link :to="{ name: 'MasterHelperView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Helper</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu9 }">
+                <router-link :to="{ name: 'MasterHealthFacilityView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Fasilitas Kesehatan</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu10 }">
+                <router-link :to="{ name: 'MasterHealthFacilityItemView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Sub Fasilitas Kesehatan</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu12 }">
+                <router-link :to="{ name: 'MasterCompanyView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Company</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu13 }">
+                <router-link :to="{ name: 'MasterExitView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Exit</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu14 }">
+                <router-link :to="{ name: 'MasterGeneralView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">General</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu17 }">
+                <router-link :to="{ name: 'MasterPaymentMethodView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Cara Bayar</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu18 }">
+                <router-link :to="{ name: 'MasterLetterView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Letter</span>
+                </router-link>
+              </li>
+            </div>
+          </li>
+          <li class="rounded">
+            <div @click="toggleSecondLevel('backoffice')" class="firstLevel rounded box d-flex"
+              :class="{ 'bg-indigo': menus.menu22 ? 'bg-primary-400' : active.firstLevel === 'backoffice' && active.secondLevelVisible }">
+              <!-- <div @click="toggleSecondLevel('backoffice')" class="firstLevel rounded box d-flex" :class="{ 'bg-primary-400': active.firstLevel === 'backoffice' && active.secondLevelVisible }"> -->
+              <img src="@/@core/assets/icons/sidebar/payment.svg" alt="">
+              <div class="d-flex justify-content-between w-100">
+                <span class="text-bold-14"
+                  :class="menus.menu22 ? 'text-neutral-100' : 'text-neutral-700'">Backoffice</span>
+                <!-- <span class="text-bold-14 text-neutral-700">Backoffice</span> -->
+                <feather-icon
+                  :icon="active.firstLevel === 'backoffice' && active.secondLevelVisible || menus.menu22 ? 'ChevronUpIcon' : 'ChevronDownIcon'"
+                  size="20" class="text-neutral-900" />
+              </div>
+            </div>
+            <div v-if="active.firstLevel === 'backoffice' && active.secondLevelVisible || menus.menu22"
+              :class="active.secondLevelVisible || menus.menu22 ? 'bg-primary-100' : 'active'">
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu221 }">
+                <router-link :to="{ name: 'BackofficeCoaView' }">
+                  <img src="@/@core/assets/icons/sidebar/payment.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Mapping COA</span>
+                </router-link>
+              </li>
+            </div>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu15 }">
+            <router-link :to="{ name: 'QueueNurseView' }">
+              <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu15 ? 'text-neutral-100' : 'text-neutral-700'">Work List</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu3 }">
+            <router-link :to="{ name: 'PatientPaymentListView' }">
+              <img src="@/@core/assets/icons/sidebar/payment.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu3 ? 'text-neutral-100' : 'text-neutral-700'">List
+                Pembayaran</span>
+            </router-link>
+          </li>
+          <li></li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu4 }">
+            <router-link :to="{ name: 'AmbulanceListView' }">
+              <img src="@/@core/assets/icons/sidebar/logistic.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu4 ? 'text-neutral-100' : 'text-neutral-700'">Data
+                Ambulan</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu5 }">
+            <router-link :to="{ name: 'NutritionListView' }">
+              <img src="@/@core/assets/icons/sidebar/registration.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu5 ? 'text-neutral-100' : 'text-neutral-700'">Gizi</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu6 }">
+            <router-link :to="{ name: 'BpjsMemberCheckView' }">
+              <img src="@/@core/assets/icons/sidebar/rates.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu6 ? 'text-neutral-100' : 'text-neutral-700'">BPJS</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu7 }">
+            <router-link :to="{ name: 'LaboratoryListView' }">
+              <img src="@/@core/assets/icons/sidebar/laboratory.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu7 ? 'text-neutral-100' : 'text-neutral-700'">Laboratorium</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu8 }">
+            <router-link :to="{ name: 'RadiologyListView' }">
+              <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu8 ? 'text-neutral-100' : 'text-neutral-700'">Radiologi</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu9 }">
+            <router-link :to="{ name: 'InpatientWardView' }">
+              <img src="@/@core/assets/icons/sidebar/rates.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu9 ? 'text-neutral-100' : 'text-neutral-700'">Rawat Inap</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu10 }">
+            <router-link :to="{ name: 'PharmacyPlanningView' }">
+              <img src="@/@core/assets/icons/sidebar/pharmacy.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu10 ? 'text-neutral-100' : 'text-neutral-700'">Farmasi</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu11 }">
+            <router-link :to="{ name: 'LogisticPlanningView' }">
+              <img src="@/@core/assets/icons/sidebar/logistic.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu11 ? 'text-neutral-100' : 'text-neutral-700'">Logistik</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu12 }">
+            <router-link :to="{ name: 'MasterCostingView' }">
+              <img src="@/@core/assets/icons/sidebar/rates.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu12 ? 'text-neutral-100' : 'text-neutral-700'">Tarif</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu13 }">
+            <router-link :to="{ name: 'CodingDiagnosaView' }">
+              <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu13 ? 'text-neutral-100' : 'text-neutral-700'">Coding
+                Diagnosa</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu14 }">
+            <router-link :to="{ name: 'PhysiotherapyExCheckupView' }">
+              <img src="@/@core/assets/icons/sidebar/registration.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu14 ? 'text-neutral-100' : 'text-neutral-700'">Fisioterapi</span>
+            </router-link>
+          </li>
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu17 }">
+            <router-link :to="{ name: 'LinenHandoverView' }">
+              <img src="@/@core/assets/icons/sidebar/registration.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu17 ? 'text-neutral-100' : 'text-neutral-700'">Linen</span>
+            </router-link>
+          </li>
+          <!-- menu system -->
+          <li class="rounded">
+            <div @click="toggleSecondLevel('system')" class="firstLevel rounded box" :class="{ 'bg-indigo': menus.menu20 }">
+              <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+              <span class="text-bold-14" :class="menus.menu20 ? 'text-neutral-100' : 'text-neutral-700'">System</span>
+            </div>
+            <div v-if="active.firstLevel === 'system' && active.secondLevelVisible">
+              <!-- sub menu system -->
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu15 }">
+                <router-link :to="{ name: 'ModuleView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">Module</span>
+                </router-link>
+              </li>
+              <li class="rounded pl-3 secondLevel" :class="{ 'bg-orange-200': submenus.submenu16 }">
+                <router-link :to="{ name: 'ModuleItemView' }">
+                  <img src="@/@core/assets/icons/sidebar/dashboard.svg" alt="">
+                  <span class="text-bold-14 text-neutral-700">SubModule</span>
+                </router-link>
+              </li>
+              <!-- end sub menu system -->
+            </div>
+          </li>
+          <!-- end menu system -->
+          <li class="firstLevel rounded" :class="{ 'bg-indigo': menus.menu21 }">
+            <router-link :to="{ name: 'CssdView' }">
+              <feather-icon icon="CpuIcon" size="24" :class="menus.menu21 ? 'text-warning-200' : 'text-primary-500'" />
+              <span class="text-bold-14" :class="menus.menu21 ? 'text-neutral-100' : 'text-neutral-700'">CSSD</span>
+            </router-link>
+          </li>
+          <!-- /////////////////////////// -->
+          <!-- <li class="firstLevel">
+              <router-link :to="{ name: 'CanvasView' }" class="d-flex">
+                <img src="@/@core/assets/icons/sidebar/registration.svg" alt="">
+                <span class="text-bold-14 text-neutral-700">Canvasing</span>
+                <b-icon icon="chevron-down" class="ml-auto my-auto"></b-icon>
+              </router-link>
+            </li> -->
+          </template>
+        </div>
+      </div>
+    </div>
+  </aside>
+</template>
+<script>
+export default {
+  name: 'SideBar',
+  data() {
+    return {
+      userData: JSON.parse(localStorage.getItem('userData')),
+      menus: {
+        menu1: false,
+        menu2: false,
+        menu3: false,
+        menu4: false,
+        menu5: false,
+        menu6: false,
+        menu7: false,
+        menu8: false,
+        menu9: false,
+        menu10: false,
+        menu11: false,
+        menu12: false,
+        menu13: false,
+        menu14: false,
+        menu15: false,
+        menu16: false,
+        menu17: false,
+        menu18: false,
+        menu19: false,
+        menu20: false,
+        menu21: false,
+        menu22: false,
+      },
+      submenus: {
+        submenu1: false,
+        submenu2: false,
+        submenu3: false,
+        submenu4: false,
+        submenu5: false,
+        submenu6: false,
+        submenu7: false,
+        submenu8: false,
+        submenu9: false,
+        submenu10: false,
+        submenu11: false,
+        submenu12: false,
+        submenu13: false,
+        submenu14: false,
+        submenu15: false,
+        submenu16: false,
+        submenu17: false,
+        submenu18: false,
+        submenu221: false,
+      },
+      active: {
+        firstLevel: null,
+        secondLevelVisible: false
+      },
+    }
+  },
+  props: {
+    selected_sidebar: {
+      type: String,
+      default: 'menu1'
+    },
+    selected_sidebar_submenu: {
+      type: String,
+      default: 'submenu0'
+    }
+  },
+  mounted() {
+    // console.log(this.selected_sidebar);
+    if (this.menus.hasOwnProperty(this.selected_sidebar)) {
+      this.menus[this.selected_sidebar] = true;
+    }
+    if (this.submenus.hasOwnProperty(this.selected_sidebar_submenu)) {
+      this.submenus[this.selected_sidebar_submenu] = true;
+    }
+  },
+  methods: {
+    toggleSecondLevel(menu) {
+      if (this.active.firstLevel === menu && this.active.secondLevelVisible) {
+        this.active.secondLevelVisible = false;
+      } else {
+        this.active.firstLevel = menu;
+        this.active.secondLevelVisible = true;
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+li.firstLevel:hover,
+.firstLevel:hover {
+  background-color: #e3fcfc;
+}
+
+.secondLevel:hover {
+  background-color: #ffebd5;
+}
+
+.box:hover {
+  cursor: pointer;
+}
+</style>

@@ -1,0 +1,2366 @@
+{
+  "settings": "Settings",
+  "profile": "Profile",
+  "preferences": "Preferences",
+  "default_accounts": "Default Accounts",
+  "report": "Report",
+  "logout": "Logout",
+  "opening_balance": {
+    "title": "Opening Balance",
+    "subtitle": "Enter opening balance per account as the starting point of balance calculation.",
+    "add_new": "Add Opening Balance",
+    "filter_coa": "Filter Account (COA)",
+    "filter_date": "Filter Cut-off Date",
+    "select_coa": "Select Account (COA)",
+    "coa_required": "Account (COA) is required",
+    "form_hint": "The opening balance is written as the starting checkpoint of the account balance. The sign follows the account's normal position.",
+    "create_title": "Add Opening Balance",
+    "edit_title": "Edit Opening Balance",
+    "view_title": "Opening Balance Detail",
+    "delete_title": "Delete Opening Balance",
+    "delete_confirm": "Are you sure you want to delete this opening balance?",
+    "table": {
+      "coa": "Account",
+      "normal": "Position",
+      "as_of": "Cut-off Date",
+      "amount": "Amount",
+      "note": "Note",
+      "created_by": "Created By"
+    }
+  },
+  "period_closing": {
+    "title": "Period Closing",
+    "subtitle": "Close accounting period (monthly/yearly). A closed period is locked from journal changes.",
+    "close_action": "Close Period",
+    "reopen_action": "Reopen",
+    "filter_year": "Year",
+    "filter_status": "All Status",
+    "status_closed": "Closed",
+    "status_reopened": "Reopened",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "all_branch": "All Branches",
+    "type": "Period Type",
+    "year": "Year",
+    "month": "Month",
+    "close_hint": "Locks the period from journal changes and records closing history. Can be reopened.",
+    "generate_closing": "Generate Closing Entry",
+    "if_on": "If checked",
+    "if_off": "If unchecked",
+    "closing_on_desc": "The system creates a closing entry that zeroes revenue & expense accounts for the period and moves net profit/loss to Retained Earnings. Impact: the Profit & Loss report for that period becomes zero after closing (profit moved to equity). Follows formal closing practice. Requires COA_RETAINED_EARNINGS configuration.",
+    "closing_off_desc": "Only locks the period and records history. Current-year profit is still computed automatically on the Balance Sheet without a closing entry. Recommended for monthly closing.",
+    "reopen_hint": "The period will be reopened; the closing entry (if any) will be voided.",
+    "reopen_note": "Reason / Note",
+    "table": {
+      "type": "Type",
+      "period": "Period",
+      "branch": "Branch",
+      "closing_entry": "Closing Entry",
+      "status": "Status",
+      "closed_by": "Closed By",
+      "note": "Note"
+    }
+  },
+  "menu": {
+    "khanza_sync": "Khanza Sync",
+    "dashboard": "Dashboard",
+    "master": "Master Data",
+    "users": "Users",
+    "department": "Department",
+    "bpjs_cost": "BPJS Cost",
+    "cost_center": "Profit & Cost Center",
+    "account_group": "Account Group",
+    "account_type": "Account Type",
+    "coa": "Chart of Account",
+    "coa_mapping": "COA Mapping",
+    "bank": "Bank",
+    "contact": "Contact",
+    "user_management": "User Management",
+    "penerimaan": "Revenue",
+    "revenue_list": "Revenue List",
+    "pengeluaran": "Expense",
+    "expense_list": "Expense List",
+    "general_ledger": "General Ledger",
+    "history": "History",
+    "summary": "Summary",
+    "account_payable": "Account Payable",
+    "purchase_order": "Purchase Order",
+    "invoice_exchange": "Invoice Exchange",
+    "ap_list": "AP List",
+    "ap_payment": "AP Payment",
+    "aging_report": "Aging Report",
+    "medical_service": "Medical Service",
+    "account_receivable": "Account Receivable",
+    "ar_list": "AR List",
+    "ar_payment": "AR Payment",
+    "journal": "Journal",
+    "trial_journal": "Trial Journal",
+    "general_journal": "General Journal",
+    "report": "Report",
+    "journal_report": "Journal Report",
+    "ledger_report": "Ledger Report",
+    "balance_sheet": "Balance Sheet",
+    "profit_loss": "Profit & Loss",
+    "trial_balance": "Trial Balance",
+    "khanza_downloader": "Khanza Journal",
+    "settings": "Settings",
+    "buku_kas": "Cash Book",
+    "buku_kas_list": "Cash & Bank List",
+    "transfer_list": "Transfer List",
+    "opening_balance": "Opening Balance",
+    "period_closing": "Period Closing",
+    "transaction_label": "Transaction",
+    "jasa_medis": "Medical Service",
+    "posting_jasa_medis": "Medical Service Posting",
+    "payment_voucher": "Payment Voucher",
+    "settlement": "Settlement",
+    "piutang_usaha": "Account Receivable",
+    "posting_ar": "AR Posting",
+    "payment_voucher_ar": "AR Payment Voucher",
+    "combined_voucher_ar": "Combined Voucher",
+    "settlement_ar": "AR Settlement",
+    "cash_account": "Cash Account",
+    "ending_balance": "Ending Balance",
+    "petty_cash": "Petty Cash",
+    "petty_cash_dashboard": "Dashboard",
+    "petty_cash_unit": "Petty Cash Unit",
+    "petty_cash_request": "Request",
+    "petty_cash_settlement": "Settlement",
+    "petty_cash_topup": "Top Up",
+    "petty_cash_ledger": "Cash Book"
+  },
+  "users_page": {
+    "title": "Users",
+    "subtitle": "Manage user and access",
+    "list": "List",
+    "filter_role": "All Role",
+    "filter_status": "All Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "create_title": "Create User",
+    "edit_title": "Edit User",
+    "form": {
+      "name": "Name",
+      "enter_name": "Enter Name",
+      "email": "Email",
+      "enter_email": "Enter Email",
+      "password": "Password",
+      "enter_password": "Enter Password",
+      "role": "Role",
+      "select_role": "Select Role",
+      "status": "Status"
+    },
+    "table": {
+      "name": "NAME",
+      "email": "EMAIL",
+      "role": "ROLE",
+      "status": "STATUS"
+    }
+  },
+  "master": {
+    "title": "Master Data",
+    "coa": {
+      "title": "Chart of Account",
+      "subtitle": "Manage chart of accounts",
+      "list": "List",
+      "create_title": "Create Chart of Account",
+      "edit_title": "Edit Chart of Account",
+      "form": {
+        "account_no": "Account No",
+        "enter_account_no": "Enter Account No",
+        "account_name": "Account Name",
+        "enter_account_name": "Enter Name",
+        "account_type": "Account Type",
+        "enter_account_type": "Enter Account Type",
+        "account_group": "Account Group",
+        "enter_account_group": "Enter Account Group",
+        "parent_account": "Parent Account",
+        "enter_parent": "Enter Parent",
+        "none": "None",
+        "status": "Status",
+        "active": "Active",
+        "inactive": "InActive",
+        "normal_position": "Normal Position",
+        "normal_credit": "Credit (C)",
+        "normal_debit": "Debit (D)",
+        "normal_position_hint": "Determines balance sign: Credit = (credit - debit), Debit = (debit - credit)."
+      },
+      "table": {
+        "account_no": "ACCOUNT NO",
+        "normal_position": "NORMAL POSITION",
+        "account_name": "ACCOUNT NAME",
+        "account_group": "ACCOUNT GROUP",
+        "account_type": "ACCOUNT TYPE",
+        "action": "ACTION",
+        "all_account_groups": "All Account Groups",
+        "all_type": "All Type"
+      }
+    },
+    "account_type": "Account Type",
+    "account_type_page": {
+      "title": "Account Type",
+      "subtitle": "Manage account types",
+      "list": "List",
+      "create_title": "Create Account Type",
+      "edit_title": "Edit Account Type",
+      "form": {
+        "name": "Account Type Name",
+        "enter_name": "Enter Account Type Name"
+      },
+      "table": {
+        "name": "ACCOUNT TYPE NAME"
+      }
+    },
+    "coa_mapping_page": {
+      "title": "COA Mapping",
+      "subtitle": "Manage chart of account mappings between systems",
+      "list": "List",
+      "create_title": "Create COA Mapping",
+      "edit_title": "Edit COA Mapping",
+      "form": {
+        "coa_source": "Source COA Code (Khanza)",
+        "enter_coa_source": "Enter Source COA Code",
+        "coa_source_name": "Source COA Name",
+        "enter_coa_source_name": "Enter Source COA Name",
+        "coa_dest": "Destination COA",
+        "select_coa_dest": "Select Destination COA"
+      },
+      "table": {
+        "coa_source": "SOURCE COA CODE",
+        "coa_source_name": "SOURCE COA NAME",
+        "coa_dest": "DEST COA CODE",
+        "coa_dest_name": "DEST COA NAME"
+      }
+    },
+    "account_group": "Account Group",
+    "account_group_page": {
+      "title": "Account Group",
+      "subtitle": "Manage account groups",
+      "list": "List",
+      "create_title": "Create Account Group",
+      "edit_title": "Edit Account Group",
+      "form": {
+        "name": "Account Group Name",
+        "enter_name": "Enter Account Group Name"
+      },
+      "table": {
+        "name": "ACCOUNT GROUP NAME"
+      }
+    },
+    "department": "Department",
+    "department_page": {
+      "title": "Department",
+      "subtitle": "Manage departments",
+      "list": "List",
+      "create_title": "Create Department",
+      "edit_title": "Edit Department",
+      "form": {
+        "name": "Department Name",
+        "enter_name": "Enter Department Name"
+      },
+      "table": {
+        "name": "DEPARTMENT NAME"
+      }
+    },
+    "bpjs_cost": "BPJS Cost",
+    "bpjs_cost_page": {
+      "title": "BPJS Cost",
+      "subtitle": "Manage BPJS procedure cost reference",
+      "list": "List",
+      "create_title": "Create BPJS Cost",
+      "edit_title": "Edit BPJS Cost",
+      "form": {
+        "procedure": "Procedure",
+        "enter_procedure": "Enter Procedure Name",
+        "cost": "Cost",
+        "enter_cost": "Enter Cost"
+      },
+      "table": {
+        "procedure": "PROCEDURE",
+        "cost": "COST"
+      }
+    },
+    "cost_center": "Profit & Cost Center",
+    "cost_center_page": {
+      "title": "Profit & Cost Center",
+      "subtitle": "Manage profit & cost centers",
+      "list": "List",
+      "create_title": "Create Cost Center",
+      "edit_title": "Edit Cost Center",
+      "form": {
+        "code": "Cost Center Code",
+        "enter_code": "Enter Cost Center Code",
+        "name": "Cost Center Name",
+        "enter_name": "Enter Cost Center Name",
+        "department": "Department",
+        "select_department": "Select Department",
+        "all_department": "All Department"
+      },
+      "table": {
+        "code": "COST CENTER CODE",
+        "name": "COST CENTER NAME",
+        "department": "DEPARTMENT"
+      }
+    },
+    "contact": "Contact",
+    "contact_page": {
+      "title": "Contact",
+      "list_title": "Contact List",
+      "subtitle": "Manage your contacts",
+      "list": "List",
+      "add_new": "Add Contact",
+      "create_title": "Create Contact",
+      "edit_title": "Edit Contact",
+      "form": {
+        "category": "Category",
+        "ref_code": "Ref Code",
+        "name": "Name",
+        "enter_name": "Enter Name",
+        "enter_ref_code": "Enter Ref Code",
+        "email": "Email",
+        "enter_email": "Enter Email",
+        "phone": "Phone Number",
+        "enter_phone": "Enter Phone Number",
+        "address": "Address",
+        "enter_address": "Enter Address",
+        "province": "Province",
+        "city": "City",
+        "select_category": "Select Category",
+        "select_province": "Select Province",
+        "select_city": "Select City",
+        "bank_info": "Bank Information",
+        "add_bank": "Add Bank",
+        "no_bank_data": "No bank data",
+        "bank_table": {
+          "bank_name": "Bank Name",
+          "account_name": "Account Name",
+          "account_no": "Account Number",
+          "action": "Action",
+          "select_bank": "Select Bank",
+          "enter_account_name": "Enter Account Name",
+          "enter_account_no": "Enter Account Number"
+        },
+        "due_date": "Due Date"
+      },
+      "table": {
+        "ref_code": "Ref Code",
+        "name": "Contact Name",
+        "email": "Email",
+        "phone": "Phone",
+        "category": "Category"
+      }
+    },
+    "bank": "Bank",
+    "bank_page": {
+      "title": "Bank",
+      "subtitle": "Manage bank data",
+      "list": "List",
+      "add_new": "Add Bank",
+      "create_title": "Create Bank",
+      "edit_title": "Edit Bank",
+      "delete_title": "Delete Bank",
+      "form": {
+        "code": "Bank Code",
+        "enter_code": "Enter Bank Code",
+        "name": "Bank Name",
+        "enter_name": "Enter Bank Name"
+      },
+      "table": {
+        "code": "BANK CODE",
+        "name": "BANK NAME"
+      }
+    }
+  },
+  "transaction": {
+    "general_journal": "General Journal",
+    "journal_detail": "Journal Detail",
+    "revenue_list": "Revenue List",
+    "expense_list": "Expense List",
+    "transfer_list": "Transfer List",
+    "general_journal_page": {
+      "title": "General Journal",
+      "subtitle": "Manage general journal entries",
+      "add_new": "Add New Journal",
+      "download_template": "Download Template",
+      "import_excel": "Import Excel",
+      "import_success": "Successfully imported journal",
+      "import_error_title": "Import Failed",
+      "import_confirm_title": "Import Confirmation",
+      "import_confirm_message": "Are you sure you want to import this file?",
+      "import_error_message": "There are errors in the import file:",
+      "import_fix_hint": "Please fix the file and try again.",
+      "filter_status": "Status",
+      "status_publish": "Published",
+      "status_pending": "Pending",
+      "status_void": "Void",
+      "delete_title": "Delete Journal",
+      "delete_confirm": "Are you sure you want to delete this journal?",
+      "void_title": "Void Journal",
+      "void_confirm": "Are you sure you want to void this journal?",
+      "table": {
+        "transaction_no": "TRANSACTION NO",
+        "date": "DATE",
+        "description": "DESCRIPTION",
+        "total": "TOTAL",
+        "status": "STATUS",
+        "action": "ACTION"
+      },
+      "create_title": "Create General Journal",
+      "edit_title": "Edit General Journal",
+      "detail_title": "Journal Detail",
+      "form": {
+        "transaction_no": "Transaction No",
+        "enter_transaction_no": "Auto if empty (e.g., JE-001)",
+        "date": "Transaction Date",
+        "select_date": "Select Date",
+        "description": "Description",
+        "enter_description": "Example: Month-end stock adjustment...",
+        "journal_info": "Journal Information",
+        "journal_details": "Journal Details",
+        "add_account": "Add Account",
+        "account": "Account",
+        "line_description": "Line Description",
+        "enter_line_description": "Description...",
+        "debit": "Debit (Rp)",
+        "credit": "Credit (Rp)",
+        "total": "Total:",
+        "unbalanced": "Journal Unbalanced!",
+        "difference": "Difference: Rp",
+        "no_details": "No journal details yet",
+        "click_add": "Click \"Add Account\" to start",
+        "read_only": "Read Only Mode",
+        "read_only_msg": "Data cannot be modified because status is: ",
+        "update_journal": "Update Journal",
+        "save_journal": "Save Journal",
+        "save_confirm_title": "Confirm Save",
+        "save_confirm_msg": "Ensure journal data is correct. Continue to save?",
+        "fix_errors": "Please fix the following errors:",
+        "subtitle_create": "Fill form to record manual journal transaction.",
+        "subtitle_edit": "Update general journal information.",
+        "cancel_journal": "Void Journal",
+        "create_title": "Create General Journal",
+        "detail_title": "Journal Detail"
+      },
+      "validation": {
+        "date_required": "Transaction date is required",
+        "date_invalid": "Invalid transaction date",
+        "desc_required": "Description is required",
+        "line_desc_required": "Line description is required",
+        "debit_credit_required": "Each line must have Debit or Credit value",
+        "details_required": "Journal details are required",
+        "min_lines": "Minimum 2 journal lines (Debit & Credit) required",
+        "balanced": "Journal unbalanced (Total Debit must equal Total Credit)"
+      },
+      "view": {
+        "title": "Journal Detail",
+        "subtitle": "Journal detail information #{{no}}",
+        "general_info": "General Information",
+        "transaction_no": "Transaction No",
+        "journal_no": "Journal No",
+        "date": "Transaction Date",
+        "type": "Transaction Type",
+        "description": "Description",
+        "no_description": "No description.",
+        "journal_details": "Journal Details",
+        "account_name": "Account Name",
+        "line_desc": "Description",
+        "debit": "Debit",
+        "credit": "Credit",
+        "total": "Total",
+        "summary": "Summary",
+        "total_debit": "Total Debit",
+        "total_credit": "Total Credit",
+        "balanced": "✓ Journal Balanced",
+        "unbalanced": "✕ Journal Unbalanced",
+        "unknown": "Unknown"
+      }
+    }
+  },
+  "ar": {
+    "invoice_list": "Invoice List",
+    "payment": "Payment",
+    "aging_report": "Aging Report",
+    "invoice_exchange": "Invoice Exchange",
+    "penerimaan_piutang_page": {
+      "title": "Receivable Collection",
+      "subtitle": "Process receivable payments from created vouchers",
+      "filter": {
+        "payer": "Payer...",
+        "status": "Status...",
+        "status_value": {
+          "all": "All Status",
+          "final": "Final Voucher (Unpaid)",
+          "paid": "Paid"
+        },
+        "period": "Period..."
+      },
+      "table": {
+        "payer_code": "PAYER CODE",
+        "insurance_name": "INSURANCE NAME",
+        "voucher_no": "VOUCHER NO",
+        "voucher_date": "VOUCHER DATE",
+        "item_count": "COUNT",
+        "total_amount": "TOTAL AMOUNT",
+        "status": "STATUS",
+        "action": "ACTION",
+        "pay": "Pay",
+        "detail": "Detail"
+      }
+    },
+    "daftar_piutang_page": {
+      "title": "Receivable List",
+      "subtitle": "Select items to post",
+      "filter": {
+        "insurance": "Insurance",
+        "all_insurance": "All Insurance",
+        "service": "Service",
+        "all_service": "All Services",
+        "status": "Status",
+        "all_status": "All Status",
+        "period": "Select Period"
+      },
+      "table": {
+        "date": "TRANSACTION DATE",
+        "insurance": "INSURANCE",
+        "service_type": "SERVICE TYPE",
+        "amount": "AMOUNT",
+        "status": "STATUS",
+        "action": "ACTION"
+      },
+      "action": {
+        "selected": "item(s) selected",
+        "post": "Post",
+        "unpost": "Unpost",
+        "export": "Export"
+      },
+      "modal": {
+        "post_title": "Confirm Post",
+        "post_message": "You are about to post {{count}} items. Continue?",
+        "post_btn": "Yes, Post",
+        "unpost_title": "Confirm Unpost",
+        "unpost_message": "You are about to unpost {{count}} items. Continue?",
+        "unpost_btn": "Yes, Unpost"
+      },
+      "toast": {
+        "no_post_item": "No items to post",
+        "post_success": "{{count}} items posted successfully",
+        "post_failed": "Failed to post items",
+        "no_unpost_item": "No items to unpost",
+        "unpost_success": "{{count}} items unposted successfully",
+        "unpost_failed": "Failed to unpost items",
+        "export_failed": "Failed to export data",
+        "change_payer_success": "Payer changed successfully",
+        "change_payer_failed": "Failed to change payer"
+      },
+      "change_payer": {
+        "title": "Change Payer",
+        "current_payer": "Current Payer",
+        "new_payer": "New Payer",
+        "new_payer_placeholder": "Select new payer...",
+        "reason": "Reason for Change",
+        "reason_placeholder": "Enter reason for payer change...",
+        "save": "Save",
+        "history": "Change History",
+        "change_number": "Change #{{number}}",
+        "reason_label": "Reason",
+        "btn_change": "Payer"
+      }
+    },
+    "tagihan_piutang_page": {
+      "title": "Receivable Voucher",
+      "subtitle": "List of payers with Posting status ready for voucher creation",
+      "filter": {
+        "payer": "Payer...",
+        "status": "Status...",
+        "status_value": {
+          "posting": "Posting",
+          "final": "Final Receivable Voucher",
+          "paid": "Paid"
+        },
+        "period": "Posting Period..."
+      },
+      "table": {
+        "payer_code": "PAYER CODE",
+        "insurance_name": "INSURANCE NAME",
+        "item_count": "ITEM COUNT",
+        "total_amount": "TOTAL AMOUNT",
+        "status": "STATUS",
+        "action": "ACTION",
+        "detail": "Detail",
+        "no_data": "No data with Posting status"
+      }
+    }
+  },
+  "ap": {
+    "invoice_list": "Account Payable List",
+    "aging_report": "Aging Report",
+    "list": {
+      "title": "Account Payable List",
+      "subtitle": "Manage all supplier payables with aging information",
+      "filter": {
+        "all_status": "All Status",
+        "unpaid": "Unpaid",
+        "paid": "Paid",
+        "select_supplier": "Select Supplier",
+        "all_suppliers": "All Suppliers",
+        "due_date": "Select Due Date"
+      },
+      "table": {
+        "supplier": "SUPPLIER",
+        "po_no": "PO NUMBER",
+        "invoice_no": "INVOICE NUMBER",
+        "due_date": "DUE DATE",
+        "total": "TOTAL",
+        "outstanding": "OUTSTANDING",
+        "aging": "AGING",
+        "status": "STATUS"
+      },
+      "paid_manual": "Paid (Manual)"
+    },
+    "payment": {
+      "title": "Payment",
+      "detail_title": "Payment Detail",
+      "info": "Invoice Information",
+      "supplier": "Supplier",
+      "invoice_no": "Invoice No",
+      "po_no": "PO No",
+      "due_date": "Due Date",
+      "amount": "Invoice Amount",
+      "aging": "Aging",
+      "dp_list": "Down Payment History",
+      "no_dp": "No Down Payment history",
+      "total_dp": "Total DP",
+      "history_list": "Payment History",
+      "no_history": "No Payment History",
+      "payment_form": {
+        "total_pay": "Total Pay (IDR)"
+      }
+    }
+  },
+  "report_page": {
+    "balance_sheet": "Balance Sheet",
+    "profit_loss": "Profit & Loss",
+    "trial_balance": "Trial Balance",
+    "general_ledger": "General Ledger",
+    "ledger_summary": "Ledger Summary"
+  },
+  "journal_report": {
+    "title": "Journal Report",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "title": "Journal Report",
+      "list": "List"
+    },
+    "search_placeholder": "Search...",
+    "period_placeholder": "Select Period",
+    "export_block": "Export Block",
+    "export_list": "Export List",
+    "toast": {
+      "export_failed": "Failed to export."
+    },
+    "table": {
+      "date": "Transaction Date:",
+      "posting_date": "Posting Date:",
+      "ref": "Ref:",
+      "account_code": "ACCOUNT CODE",
+      "account_name": "ACCOUNT NAME",
+      "description": "DESCRIPTION",
+      "debit": "DEBIT",
+      "credit": "CREDIT",
+      "total": "Total",
+      "no_data": "Data Not Found"
+    },
+    "status": {
+      "published": "Published",
+      "pending": "Pending"
+    }
+  },
+  "journal_ledger": {
+    "title": "Journal Ledger",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "title": "Journal Ledger",
+      "list": "List"
+    },
+    "labels": {
+      "opening": "OPENING",
+      "closing": "CLOSING"
+    },
+    "table": {
+      "date": "DATE",
+      "journal_no": "JOURNAL NO",
+      "ref_no": "REF NO",
+      "description": "DESCRIPTION",
+      "debit": "DEBIT",
+      "credit": "CREDIT",
+      "balance": "BALANCE"
+    },
+    "pagination": {
+      "showing_entries": "Showing {{from}} to {{to}} of {{totalRecords}} entries",
+      "showing_accounts": "Showing Accounts {{start}} to {{end}} of {{total}}",
+      "page_of": "Page {{page}} of {{pages}}"
+    },
+    "tooltip": {
+      "download": "Download Ledger (Select Account First)"
+    },
+    "button": {
+      "refresh": "Refresh"
+    },
+    "placeholder": {
+      "period": "Select Period",
+      "select_account": "Select Account (Optional)"
+    },
+    "empty_state": "No records found."
+  },
+  "balance_sheet_page": {
+    "title": "Balance Sheet",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "report": "Report",
+      "title": "Balance Sheet"
+    },
+    "subtitle": "Financial Report",
+    "filter_period": "Filter Period",
+    "export": "Export",
+    "exporting": "Exporting...",
+    "download_excel": "Download Excel",
+    "metrics": {
+      "total_assets": "Total Assets",
+      "total_liabilities": "Total Liabilities",
+      "total_equity": "Total Equity"
+    },
+    "table": {
+      "title": "Balance Sheet Details",
+      "subtitle": "Detailed financial positions",
+      "description": "DESCRIPTION",
+      "amount": "AMOUNT (IDR)",
+      "no_data": "No data for this period"
+    }
+  },
+  "profit_loss_page": {
+    "title": "Profit & Loss",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "report": "Report",
+      "title": "Profit & Loss"
+    },
+    "subtitle": "Financial Report",
+    "filter_period": "Filter Period",
+    "export": "Export",
+    "exporting": "Exporting...",
+    "download_excel": "Download Excel",
+    "metrics": {
+      "gross_profit": "Total Gross Profit",
+      "operating_profit": "Total Operating Profit",
+      "net_profit": "Total Net Profit"
+    },
+    "table": {
+      "title": "Profit & Loss Details",
+      "subtitle": "Income and expenses details",
+      "description": "DESCRIPTION",
+      "amount": "AMOUNT (IDR)",
+      "no_data": "No data for this period"
+    }
+  },
+  "profile_settings": {
+    "title": "Profile Settings",
+    "display_name": "Display Name",
+    "enter_display_name": "Enter display name",
+    "email": "Email",
+    "enter_email": "example@email.com",
+    "phone": "Phone Number",
+    "enter_phone": "08xxxxxxxxxx",
+    "change_password": "Change Password",
+    "current_password": "Current Password",
+    "enter_current_password": "Enter current password",
+    "new_password": "New Password",
+    "enter_new_password": "Enter new password",
+    "confirm_password": "Confirm Password",
+    "enter_confirm_password": "Repeat new password",
+    "profile_picture": "Profile Picture",
+    "upload_photo": "Upload Photo",
+    "delete_photo": "Delete Photo",
+    "photo_guideline": "JPG, PNG, GIF, WEBP max 2MB",
+    "save_profile": "Save Profile",
+    "saving": "Saving..."
+  },
+  "preferences_settings": {
+    "title": "Preferences",
+    "language": "Language",
+    "language_id": "Bahasa Indonesia",
+    "language_en": "English",
+    "date_format": "Date Format",
+    "timezone": "Timezone",
+    "currency": "Currency"
+  },
+  "default_account_settings": {
+    "title": "Default Accounts",
+    "cash_account": "Default Cash Account",
+    "ar_account": "Default AR Account",
+    "ap_account": "Default AP Account",
+    "revenue_account": "Default Revenue Account",
+    "expense_account": "Default Expense Account"
+  },
+  "common": {
+    "add_new": "Add New",
+    "action": "Action",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "download": "Download",
+    "upload": "Upload",
+    "print": "Print",
+    "refresh": "Refresh",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "loading": "Loading...",
+    "no_data": "No data available",
+    "select": "Select",
+    "all": "All",
+    "select_all": "Select All",
+    "actions": "Actions",
+    "pagination_text": "Showing {{from}} to {{to}} of {{totalRecords}} entries",
+    "view_mode": "View Mode",
+    "edit_mode": "Edit Mode",
+    "status": "Status",
+    "date": "Date",
+    "amount": "Amount",
+    "total": "Total",
+    "description": "Description",
+    "notes": "Notes",
+    "created_at": "Created At",
+    "updated_at": "Updated At",
+    "created_by": "Created By",
+    "create": "Create",
+    "list": "List",
+    "no_data_available": "No data available",
+    "update": "Update",
+    "view": "View",
+    "no_records": "No records found",
+    "riwayat": {
+      "title": "History",
+      "empty": "No history recorded for this transaction yet.",
+      "error": "Failed to load history.",
+      "unknown_user": "Unknown",
+      "backfill": "Legacy data"
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Published",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "paid_watermark": "PAID"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email_invalid": "Invalid email address",
+    "password_min": "Password must be at least 6 characters",
+    "password_mismatch": "Passwords do not match",
+    "amount_positive": "Amount must be greater than 0",
+    "file_size_max": "Max file size 2MB",
+    "file_type_image": "File format must be JPEG, PNG, GIF, or WEBP",
+    "number_only": "Numbers only allowed"
+  },
+  "messages": {
+    "save_success": "Data saved successfully",
+    "save_error": "Failed to save data",
+    "delete_success": "Data deleted successfully",
+    "delete_error": "Failed to delete data",
+    "delete_confirm": "Are you sure you want to delete this item?",
+    "confirmation": "Confirmation",
+    "save_confirm": "Are you sure you want to save this data?",
+    "update_confirm": "Are you sure you want to update this data?",
+    "delete_warning": "You will lose your data!",
+    "update_success": "Data updated successfully",
+    "update_error": "Failed to update data",
+    "password_changed": "Password changed successfully",
+    "password_error": "Failed to change password",
+    "profile_updated": "Profile updated successfully",
+    "upload_photo_success": "Profile picture uploaded successfully",
+    "upload_photo_error": "Failed to upload photo",
+    "delete_photo_info": "Photo will be deleted when saving profile",
+    "delete_photo_success": "Profile picture deleted successfully",
+    "delete_photo_error": "Failed to delete photo",
+    "password_mismatch": "New passwords do not match",
+    "password_min_length": "Password must be at least 6 characters",
+    "password_change_success": "Password changed successfully",
+    "password_change_error": "Failed to change password",
+    "something_went_wrong": "Something went wrong"
+  },
+  "auth": {
+    "login": "Login",
+    "title": "Login Backoffice",
+    "welcome_title": "Welcome Back",
+    "welcome_desc": "Sign in to access your hospital finance dashboard",
+    "register": "Register",
+    "email": "Email Address",
+    "email_placeholder": "Enter your email",
+    "password": "Password",
+    "password_placeholder": "Enter your password",
+    "remember_me": "Remember Me",
+    "forgot_password": "Forgot Password?",
+    "sign_in": "Sign In",
+    "login_error": "Email or password is incorrect",
+    "system_name": "RS THB Backoffice System",
+    "copyright": "© 2024 All rights reserved",
+    "features": {
+      "integrated_accounting": "Integrated Accounting",
+      "realtime_report": "Real-time Reports",
+      "cash_flow": "Cash Flow Management",
+      "security": "Guaranteed Security"
+    }
+  },
+  "dashboard": {
+    "title": "Executive Dashboard",
+    "subtitle": "Real-time financial performance and operational metrics",
+    "loading": "Loading dashboard...",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "overview": "Overview"
+    },
+    "date_range": {
+      "to": "to"
+    },
+    "metrics": {
+      "total_revenue": "Total Revenue",
+      "outpatient": "Outpatient",
+      "inpatient": "Inpatient",
+      "igd": "ER",
+      "polyclinic": "Polyclinic",
+      "pharmacy": "Pharmacy",
+      "laboratory": "Laboratory",
+      "radiology": "Radiology",
+      "physiotherapy": "Physiotherapy",
+      "today": "Today",
+      "this_month": "This Month",
+      "vs_last_month": "vs Last Month",
+      "department_performance": "Department Performance"
+    },
+    "charts": {
+      "monthly_revenue_trend": "Monthly Revenue Trend",
+      "income_vs_expense": "Income vs Expense (Last 12 Months)",
+      "revenue": "Revenue",
+      "expense": "Expense",
+      "revenue_sources": "Revenue Sources",
+      "distribution_by_dept": "Distribution by Department",
+      "total": "Total",
+      "payment_methods": "Payment Methods",
+      "payer_distribution": "Payer Class Distribution"
+    },
+    "tables": {
+      "top_revenue_accounts": "Top Revenue Accounts",
+      "highest_revenue_coa": "Highest revenue generating COA",
+      "view_all": "View All",
+      "coa_code": "COA Code",
+      "account_name": "Account Name",
+      "group": "Group"
+    }
+  },
+  "table": {
+    "no": "No",
+    "action": "Action",
+    "showing": "Showing",
+    "of": "of",
+    "entries": "entries",
+    "rows_per_page": "Rows per page"
+  },
+  "finance": {
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance",
+    "revenue": "Revenue",
+    "expense": "Expense",
+    "profit": "Profit",
+    "loss": "Loss",
+    "asset": "Asset",
+    "liability": "Liability",
+    "equity": "Equity",
+    "net_profit": "Net Profit",
+    "gross_profit": "Gross Profit",
+    "total_assets": "Total Assets",
+    "total_liabilities": "Total Liabilities",
+    "total_equity": "Total Equity"
+  },
+  "general_ledger": {
+    "history": {
+      "title": "General Ledger History",
+      "subtitle": "View all journal transaction history",
+      "select_account": "Select Account",
+      "select_date_range": "Select Date Range",
+      "total_debit": "Total Debit",
+      "total_credit": "Total Credit",
+      "table": {
+        "date": "DATE",
+        "journal_no": "JOURNAL NO",
+        "trans_no": "TRANS NO",
+        "account": "ACCOUNT",
+        "description": "DESCRIPTION",
+        "debit": "DEBIT",
+        "credit": "CREDIT"
+      }
+    },
+    "summary": {
+      "title": "General Ledger Summary",
+      "subtitle": "View account balances and periodic movements",
+      "filter_account": "Filter by Account...",
+      "table": {
+        "account": "ACCOUNT",
+        "beginning_balance": "BEGINNING BALANCE",
+        "debit": "DEBIT",
+        "credit": "CREDIT",
+        "net_change": "NET CHANGE",
+        "ending_balance": "ENDING BALANCE"
+      }
+    }
+  },
+  "buku_kas": {
+    "list_page": {
+      "title": "Cash Book List",
+      "subtitle": "List of cash and bank accounts with balance details",
+      "search_placeholder": "Search account...",
+      "download_excel": "Download Excel",
+      "view_detail": "View Detail",
+      "table": {
+        "account_code": "ACCOUNT CODE",
+        "type": "TYPE",
+        "account_name": "ACCOUNT NAME",
+        "balance": "BALANCE",
+        "action": "ACTION"
+      }
+    },
+    "detail_page": {
+      "title": "Cash Book Detail",
+      "subtitle": "Cash/bank account transaction details",
+      "account_info": "Account Information",
+      "transaction_list": "Transaction List",
+      "transaction_history": "Transaction History",
+      "debit_credit_list": "List of debit and credit mutations",
+      "balance_as_of": "Balance as of",
+      "no_transactions": "No transactions",
+      "table": {
+        "date": "DATE",
+        "transaction_no": "TRANSACTION NO",
+        "journal_no": "JOURNAL NO",
+        "description": "DESCRIPTION",
+        "reference": "REFERENCE",
+        "debit": "DEBIT",
+        "credit": "CREDIT",
+        "balance": "BALANCE"
+      }
+    },
+    "form_page": {
+      "title": "Add Transaction",
+      "edit_title": "Edit Transaction",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "type": "Type",
+      "debit": "Debit (In)",
+      "credit": "Credit (Out)"
+    },
+    "transfer_page": {
+      "title": "Transfer List",
+      "subtitle": "Manage fund transfers between cash and bank accounts",
+      "search_placeholder": "Search transaction...",
+      "add_new": "Add",
+      "export": "Export",
+      "exporting": "Exporting...",
+      "filter": {
+        "all_status": "All Status",
+        "publish": "Publish",
+        "pending": "Pending",
+        "void": "Void"
+      },
+      "table": {
+        "transaction_no": "TRANSACTION NO",
+        "date": "DATE",
+        "from": "FROM (SENDER)",
+        "to": "TO (RECEIVER)",
+        "amount": "AMOUNT",
+        "status": "STATUS",
+        "action": "ACTION"
+      },
+      "actions": {
+        "view": "View",
+        "delete": "Delete",
+        "void": "Void"
+      },
+      "modal": {
+        "delete_title": "Delete Transaction",
+        "void_title": "Void Transaction",
+        "delete_message": "Are you sure you want to delete this transaction? This action cannot be undone.",
+        "void_message": "Are you sure you want to void this transaction? This action cannot be undone."
+      }
+    },
+    "transfer_form": {
+      "create_title": "Create New Transfer",
+      "update_title": "Update Transfer",
+      "detail_title": "Transfer Detail",
+      "create_subtitle": "Fill the form to record fund transfer between accounts.",
+      "update_subtitle": "Update fund transfer information.",
+      "back": "Back",
+      "cancel": "Cancel",
+      "transaction_info": "Transaction Information",
+      "transaction_no": "Transaction No",
+      "transaction_no_hint": "Auto if empty (e.g., BTU-0001)",
+      "optional": "Optional",
+      "transaction_date": "Transaction Date",
+      "select_date": "Select Date",
+      "from_account": "From Account (Sender)",
+      "to_account": "To Account (Receiver)",
+      "select_account": "Select Account",
+      "select_from_account": "Select From Account...",
+      "select_to_account": "Select To Account...",
+      "amount": "Amount (Rp)",
+      "description": "Description",
+      "description_hint": "Example: Operational fund transfer...",
+      "in_words": "In words:",
+      "rupiah": "rupiah",
+      "read_only": "Read Only Mode",
+      "read_only_msg": "Data cannot be modified because status is:",
+      "save_transfer": "Save Transfer",
+      "update_transfer": "Update Transfer",
+      "processing": "Processing...",
+      "validation": {
+        "date_required": "Date is required",
+        "from_required": "From account is required",
+        "to_required": "To account is required",
+        "amount_required": "Amount is required",
+        "description_required": "Description is required"
+      },
+      "modal": {
+        "confirm_title": "Confirmation",
+        "save_message": "Are you sure you want to save this data?",
+        "update_message": "Are you sure you want to update this data?"
+      }
+    },
+    "view_page": {
+      "title": "Transfer Detail",
+      "subtitle": "Transfer transaction detail information.",
+      "back": "Back",
+      "edit": "Edit",
+      "transaction_info": "Transaction Information",
+      "transaction_no": "Transaction No.",
+      "transaction_date": "Transaction Date",
+      "from_account": "Source Account (Sender)",
+      "to_account": "Target Account (Receiver)",
+      "amount": "Amount (Rp)",
+      "description": "Description"
+    }
+  },
+  "penerimaan": {
+    "list_page": {
+      "title": "Revenue List",
+      "subtitle": "Manage all cash and bank revenue transactions",
+      "search_placeholder": "Search transaction...",
+      "add_new": "Add",
+      "export": "Export",
+      "export_excel": "Export Excel",
+      "export_flat": "Export Flat",
+      "exporting": "Exporting...",
+      "filter": {
+        "all_status": "All Status",
+        "publish": "Publish",
+        "pending": "Pending",
+        "void": "Void"
+      },
+      "table": {
+        "transaction_no": "TRANSACTION NO",
+        "journal_no": "JOURNAL NO",
+        "date": "DATE",
+        "account": "ACCOUNT",
+        "amount": "AMOUNT",
+        "status": "STATUS",
+        "action": "ACTION"
+      },
+      "actions": {
+        "view": "View",
+        "delete": "Delete",
+        "void": "Void"
+      },
+      "modal": {
+        "delete_title": "Delete Transaction",
+        "void_title": "Void Transaction",
+        "delete_message": "Are you sure you want to delete this transaction? This action cannot be undone.",
+        "void_message": "Are you sure you want to void this transaction? This action cannot be undone."
+      }
+    },
+    "form_page": {
+      "create_title": "Create New Revenue",
+      "update_title": "Update Revenue",
+      "detail_title": "Revenue Detail",
+      "create_subtitle": "Fill the form to record a new revenue.",
+      "update_subtitle": "Update revenue transaction information.",
+      "transaction_info": "Transaction Information",
+      "detail_info": "Revenue Details",
+      "add_detail": "Add Item",
+      "back": "Back",
+      "cancel": "Cancel",
+      "save": "Save Revenue",
+      "update": "Update Revenue",
+      "processing": "Processing...",
+      "transaction_no": "Transaction No.",
+      "transaction_no_optional": "(Optional)",
+      "transaction_no_hint": "Auto-generated if empty (e.g., TRX-001)",
+      "transaction_date": "Transaction Date",
+      "target_account": "Target Account (Cash/Bank)",
+      "description": "Description / Memo",
+      "description_hint": "Example: Receipt payment for invoice #INV-2023-001",
+      "revenue_account": "Revenue Account",
+      "item_description": "Item Description",
+      "amount": "Amount (Rp)",
+      "total_receipt": "Total Revenue",
+      "no_items": "No detail items yet",
+      "no_items_hint": "Click \"Add Item\" button to start",
+      "delete_row": "Delete row",
+      "select_date": "Select Date",
+      "select_account": "Select Cash or Bank Account...",
+      "loading_account": "Loading accounts...",
+      "readonly_mode": "Read-Only Mode",
+      "readonly_message": "Data cannot be modified because its status is: {{status}}.",
+      "validation": {
+        "date_required": "Date is required",
+        "account_required": "Target account is required",
+        "description_required": "Description is required",
+        "amount_required": "Amount is required",
+        "amount_positive": "Amount must be greater than 0"
+      },
+      "modal": {
+        "confirm_title": "Confirmation",
+        "save_message": "Are you sure you want to save this data?",
+        "update_message": "Are you sure you want to update this data?"
+      }
+    },
+    "view_page": {
+      "title": "Revenue Detail",
+      "subtitle": "Revenue transaction detail information #{{transactionNo}}",
+      "back": "Back",
+      "edit": "Edit Revenue",
+      "general_info": "General Information",
+      "transaction_no": "Transaction No.",
+      "journal_no": "Journal No.",
+      "transaction_date": "Transaction Date",
+      "target_account": "Target Account",
+      "description": "Description",
+      "no_description": "No description available.",
+      "detail_info": "Transaction Details",
+      "account_name": "Account Name",
+      "item_description": "Description",
+      "amount": "Amount",
+      "total": "Total",
+      "total_summary": "Total Summary",
+      "no_data": "No data available"
+    }
+  },
+  "pengeluaran": {
+    "list_page": {
+      "title": "Expense List",
+      "subtitle": "Manage all cash and bank expense transactions",
+      "search_placeholder": "Search transaction...",
+      "add_new": "Add",
+      "export": "Export",
+      "export_excel": "Export Excel",
+      "export_flat": "Export Flat",
+      "exporting": "Exporting...",
+      "filter": {
+        "all_status": "All Status",
+        "publish": "Publish",
+        "pending": "Pending",
+        "void": "Void"
+      },
+      "table": {
+        "transaction_no": "TRANSACTION NO",
+        "journal_no": "JOURNAL NO",
+        "date": "DATE",
+        "account": "ACCOUNT",
+        "amount": "AMOUNT",
+        "status": "STATUS",
+        "action": "ACTION"
+      },
+      "actions": {
+        "view": "View",
+        "delete": "Delete",
+        "void": "Void"
+      },
+      "modal": {
+        "delete_title": "Delete Transaction",
+        "void_title": "Void Transaction",
+        "delete_message": "Are you sure you want to delete this transaction? This action cannot be undone.",
+        "void_message": "Are you sure you want to void this transaction? This action cannot be undone."
+      }
+    },
+    "form_page": {
+      "create_title": "Create New Expense",
+      "update_title": "Update Expense",
+      "detail_title": "Expense Detail",
+      "create_subtitle": "Fill the form to record a new expense.",
+      "update_subtitle": "Update expense transaction information.",
+      "transaction_info": "Transaction Information",
+      "detail_info": "Expense Details",
+      "add_detail": "Add Item",
+      "back": "Back",
+      "cancel": "Cancel",
+      "save": "Save Expense",
+      "update": "Update Expense",
+      "processing": "Processing...",
+      "transaction_no": "Transaction No.",
+      "transaction_no_optional": "(Optional)",
+      "transaction_no_hint": "Auto-generated if empty (e.g., TRX-001)",
+      "transaction_date": "Transaction Date",
+      "source_account": "Source Account (Cash/Bank)",
+      "description": "Description / Memo",
+      "description_hint": "Example: Payment for electricity bill January",
+      "expense_account": "Expense Account",
+      "item_description": "Item Description",
+      "amount": "Amount (Rp)",
+      "total_expense": "Total Expense",
+      "no_items": "No detail items yet",
+      "no_items_hint": "Click \"Add Item\" button to start",
+      "delete_row": "Delete row",
+      "select_date": "Select Date",
+      "select_account": "Select Cash or Bank Account...",
+      "loading_account": "Loading accounts...",
+      "readonly_mode": "Read-Only Mode",
+      "readonly_message": "Data cannot be modified because its status is: {{status}}.",
+      "validation": {
+        "date_required": "Date is required",
+        "account_required": "Source account is required",
+        "description_required": "Description is required",
+        "amount_required": "Amount is required",
+        "amount_positive": "Amount must be greater than 0"
+      },
+      "modal": {
+        "confirm_title": "Confirmation",
+        "save_message": "Are you sure you want to save this data?",
+        "update_message": "Are you sure you want to update this data?"
+      }
+    },
+    "view_page": {
+      "title": "Expense Detail",
+      "subtitle": "Expense transaction detail information #{{transactionNo}}",
+      "back": "Back",
+      "edit": "Edit Expense",
+      "general_info": "General Information",
+      "transaction_no": "Transaction No.",
+      "journal_no": "Journal No.",
+      "transaction_date": "Transaction Date",
+      "source_account": "Source Account",
+      "description": "Description",
+      "no_description": "No description available.",
+      "detail_info": "Transaction Details",
+      "account_name": "Account Name",
+      "item_description": "Description",
+      "amount": "Amount",
+      "total": "Total",
+      "total_summary": "Total Summary",
+      "no_data": "No data available"
+    }
+  },
+  "account_payable": {
+    "laporan_aging": {
+      "title": "AP Aging Report",
+      "page_title": "Account Payable Aging Report",
+      "subtitle": "Analyze payable aging based on due date",
+      "select_supplier": "Select Supplier",
+      "all_suppliers": "All Suppliers",
+      "keyword_placeholder": "Search Invoice No / PO No",
+      "export": "Export",
+      "exporting": "Exporting...",
+      "periods": {
+        "current": "CURRENT",
+        "days_1_30": "1-30 DAYS",
+        "days_31_60": "31-60 DAYS",
+        "days_61_90": "61-90 DAYS",
+        "days_over_90": ">90 DAYS"
+      },
+      "total": "TOTAL",
+      "supplier": "SUPPLIER",
+      "table": {
+        "batch_number": "BATCH NO",
+        "po_number": "PO NO",
+        "invoice_number": "INVOICE NO",
+        "po_invoice": "PO NO / INVOICE NO",
+        "due_date": "DUE DATE"
+      },
+      "no_data": "No data available"
+    },
+    "tukar_faktur": {
+      "title": "Invoice Exchange",
+      "subtitle": "Manage supplier invoice exchange",
+      "all_suppliers": "All Suppliers",
+      "select_supplier": "Select Supplier",
+      "select_period": "Select Period",
+      "export": "Export",
+      "exporting": "Exporting...",
+      "filter": {
+        "not_sent": "Not Exchanged",
+        "sent": "Exchanged"
+      },
+      "loading": "Loading data...",
+      "no_data": "No data found",
+      "error_loading": "Error loading data",
+      "retry": "Retry",
+      "transactions": "transactions",
+      "total": "Total",
+      "mark_exchanged": "Mark as Exchanged",
+      "processing": "Processing...",
+      "select_min_one": "Select at least one item",
+      "no_valid_id": "No valid ID",
+      "status_updated": "Status updated successfully",
+      "update_failed": "Failed to update status",
+      "export_failed": "Failed to export data",
+      "table": {
+        "po_no": "PO No",
+        "receipt_date": "Receipt Date",
+        "po_date": "PO Date",
+        "invoice_no": "Invoice No",
+        "due_date": "Due Date",
+        "amount": "Amount",
+        "exchange_date": "Exchange Date",
+        "batch_number": "Batch No",
+        "payment_status": "Payment Status"
+      },
+      "no_detail": "No transaction details",
+      "modal": {
+        "confirm_title": "Confirmation",
+        "confirm_message": "Are you sure you want to mark the selected invoices as exchanged with due date {{date}}?"
+      },
+      "due_date_label": "Due Date",
+      "days_label": "Days",
+      "print_resi": "Print Receipt",
+      "print_failed": "Failed to fetch print data",
+      "paid_manual": "Paid (Manual)"
+    },
+    "pembayaran": {
+      "title": "AP Payment",
+      "subtitle": "Manage Account Payable payments",
+      "all_suppliers": "All Suppliers",
+      "select_supplier": "Select Supplier",
+      "select_bank": "Select Bank Account",
+      "all_banks": "All Banks",
+      "select_period": "Select Period",
+      "pay_now": "Pay Now",
+      "processing": "Processing...",
+      "filter": {
+        "unpaid": "Unpaid",
+        "partial": "Partial",
+        "paid": "Paid",
+        "keyword": "Search Invoice No / PO No",
+        "due_date_period": "Due Date Period"
+      },
+      "no_data": "No data found",
+      "table": {
+        "supplier": "SUPPLIER",
+        "po_no": "PO NO",
+        "invoice_no": "INVOICE NO",
+        "receipt_date": "RECEIPT DATE",
+        "due_date": "DUE DATE",
+        "total": "TOTAL",
+        "paid": "PAID",
+        "outstanding": "OUTSTANDING",
+        "aging": "AGING",
+        "status": "STATUS",
+        "action": "ACTION"
+      },
+      "status": {
+        "paid": "Paid",
+        "unpaid": "Unpaid"
+      },
+      "actions": {
+        "view": "View Detail"
+      },
+      "payment_info": "Payment Info",
+      "payment_date": "Payment Date",
+      "payment_ref": "Payment Ref",
+      "payment_account": "Account",
+      "select_min_one": "Select at least one item to pay",
+      "no_bank_selected": "Select a bank account for payment",
+      "modal": {
+        "confirm_title": "Payment Confirmation",
+        "confirm_message": "Are you sure you want to process payment for the selected items?"
+      },
+      "paid_manual": "Paid (Manual)"
+    },
+    "purchase_order": {
+      "title": "Purchase Order",
+      "subtitle": "Manage PO and down payments",
+      "list_title": "Purchase Order List",
+      "search_placeholder": "Search PO No / Supplier...",
+      "date_placeholder": "Date Range",
+      "filter": {
+        "all_status": "All Status",
+        "outstanding": "Outstanding POs",
+        "marked_paid": "Marked as Paid"
+      },
+      "table": {
+        "po_no": "PO No.",
+        "date": "Date",
+        "supplier": "Supplier",
+        "total": "Total PO",
+        "total_dp": "Total DP",
+        "status": "Status",
+        "action": "Action",
+        "marked_paid_info": "Marked Paid"
+      },
+      "action": {
+        "pay_dp": "Pay DP",
+        "mark_as_paid": "Mark as Paid",
+        "unmark_as_paid": "Undo Mark as Paid"
+      },
+      "pay_dp_modal": {
+        "title": "Pay Down Payment (DP)",
+        "date": "Date",
+        "bank": "Bank/Cash",
+        "select_bank": "Select Bank...",
+        "amount": "DP Amount",
+        "note": "Note",
+        "note_placeholder": "Payment note...",
+        "cancel": "Cancel",
+        "save": "Save DP",
+        "saving": "Saving...",
+        "info_po": "PO Info",
+        "history_dp": "DP History",
+        "no_history": "No DP history yet",
+        "validation": {
+          "amount_positive": "DP Amount must be greater than 0",
+          "select_bank": "Select Bank/Cash",
+          "success": "Down Payment added successfully",
+          "error": "Failed to add DP"
+        }
+      },
+      "mark_as_paid": {
+        "title": "Mark as Paid",
+        "confirm": "Yes, Mark as Paid",
+        "description": "This PO will be marked as paid and drops off the outstanding list and downloads. Every invoice carrying this PO number also becomes Paid in Invoice Exchange, AP List, and Payment.",
+        "no_journal_warning": "No journal is posted, so the Supplier Payable balance in the ledger does not change. Use this only for payments already recorded from another source. It can be undone via the \"Marked as Paid\" filter.",
+        "note_label": "Note",
+        "note_placeholder": "Reason / payment reference (required)"
+      },
+      "unmark_as_paid": {
+        "title": "Undo Mark as Paid",
+        "confirm": "Yes, Undo",
+        "description": "This PO returns to the outstanding list, and every invoice settled through Mark as Paid goes back to Unpaid. Invoices paid through the Payment menu are left untouched.",
+        "note_label": "Reason",
+        "note_placeholder": "Reason for undoing (required)"
+      }
+    }
+  },
+  "account_receivable": {
+    "laporan_aging": {
+      "title": "AR Aging Report",
+      "page_title": "Account Receivable Aging Report",
+      "subtitle": "Analyze receivable aging based on Voucher & Insurance",
+      "select_insurance": "Select Insurance",
+      "all_insurance": "All Insurance",
+      "export": "Export",
+      "exporting": "Exporting...",
+      "periods": {
+        "current": "CURRENT",
+        "days_1_30": "1-30 DAYS",
+        "days_31_60": "31-60 DAYS",
+        "days_61_90": "61-90 DAYS",
+        "days_over_90": ">90 DAYS"
+      },
+      "total": "TOTAL",
+      "table": {
+        "voucher_date": "VOUCHER DATE",
+        "voucher_no": "VOUCHER NO",
+        "insurance": "INSURANCE",
+        "due_date": "DUE DATE",
+        "current": "CURRENT",
+        "days_1_30": "1-30 DAYS",
+        "days_31_60": "31-60 DAYS",
+        "days_61_90": "61-90 DAYS",
+        "days_over_90": ">90 DAYS",
+        "total": "TOTAL"
+      },
+      "no_data": "No data available"
+    },
+    "payment_voucher_detail": {
+      "title_paid": "Payment Voucher AR (PAID)",
+      "title_detail": "Payment Voucher AR Details",
+      "title_generate": "Generate Payment Voucher AR",
+      "subtitle_paid": "This voucher has been paid",
+      "subtitle_detail": "Detail of generated receivable voucher",
+      "subtitle_generate": "Receivable details for insurance to be vouchered",
+      "back_btn": "Back",
+      "watermark_paid": "PAID",
+      "payer_info": {
+        "code": "Payer Code",
+        "name": "Insurance Name",
+        "item_count": "Item Count",
+        "total_amount": "Total Amount"
+      },
+      "details_title": "Receivable Details",
+      "summary_title": "Summary",
+      "table": {
+        "trans_date": "Transaction Date",
+        "post_date": "Posting Date",
+        "service": "Service",
+        "amount": "Total Amount",
+        "action": "Action"
+      },
+      "service_type": {
+        "rajal": "Outpatient",
+        "ranap": "Inpatient"
+      },
+      "summary_form": {
+        "total_label": "Total Amount",
+        "due_date_label": "Due Date",
+        "terbilang_label": "In Words"
+      },
+      "btn": {
+        "generate": "Generate Voucher",
+        "cancel": "Cancel"
+      },
+      "tooltip": {
+        "delete": "Remove from list (Cancel Posting)"
+      },
+      "toast": {
+        "invalid_payer": "Invalid payer data",
+        "generate_success": "Voucher successfully generated for {{count}} items",
+        "generate_failed": "Failed to generate voucher",
+        "delete_success": "Item successfully removed from details",
+        "delete_failed": "Failed to remove item"
+      },
+      "modal": {
+        "generate_title": "Confirm Generate Voucher",
+        "generate_message": "Are you sure you want to generate Payment Voucher for {{name}}? Total amount: {{amount}}",
+        "generate_yes": "Yes, Generate",
+        "delete_title": "Confirm Delete Item",
+        "delete_message": "Are you sure you want to delete this item from the list? Item will be reverted to Pending status.",
+        "delete_yes": "Yes, Delete",
+        "cancel": "Cancel",
+        "unpost_title": "Confirm Unpost",
+        "unpost_message": "Are you sure you want to unpost this item? It will return to Pending status.",
+        "unpost_confirm": "Yes, Unpost",
+        "void_title": "Confirm Void",
+        "void_message": "Are you sure you want to void this item? It will be marked as Void.",
+        "void_confirm": "Yes, Void",
+        "revision_title": "Upload Data Revision"
+      },
+      "zero": "Zero",
+      "currency_name": "Rupiah"
+    },
+    "settlement_form": {
+      "page_title": "Settlement Voucher {{voucherNumber}}",
+      "title": "Receive Payment (Settlement)",
+      "subtitle": "Record payment receipt for this voucher",
+      "back_btn": "Back",
+      "voucher_info": {
+        "title": "Voucher Information",
+        "number": "Voucher No",
+        "payer": "Payer / Insurance",
+        "date": "Voucher Date",
+        "due_date": "Due Date",
+        "total": "Total Bill",
+        "status_paid": "PAID",
+        "status_partial": "PARTIALLY PAID",
+        "status_outstanding": "OUTSTANDING"
+      },
+      "details_title": "Receivable Item Details",
+      "no_items": "No items",
+      "table": {
+        "date_bill": "BILLING DATE",
+        "date_post": "POSTING DATE",
+        "service": "SERVICE",
+        "total": "TOTAL",
+        "invoice_service": "Invoice / Service",
+        "sep_no": "SEP No",
+        "patient_info": "Patient Info"
+      },
+      "payment_title": "Payment Information",
+      "status_paid": "Paid",
+      "paid_info": {
+        "bank": "Bank Account (COA)",
+        "date": "Payment Date",
+        "ref": "Payment Reference"
+      },
+      "payment_form": {
+        "date_label": "Received Date",
+        "bank_label": "Receiving Account",
+        "bank_placeholder": "Select Cash/Bank Account...",
+        "ref_label": "Ref No / Transfer Proof",
+        "ref_placeholder": "Ex: TRF-123456",
+        "save_btn": "Save Receipt",
+        "pay_full": "Pay Full Balance",
+        "amount": "Target Settlement Amount",
+        "processing": "Processing..."
+      },
+      "discount_form": {
+        "title": "Discount",
+        "percent": "Discount (%)",
+        "amount": "Discount (Rp)"
+      },
+      "simulation": {
+        "title": "Payment Summary",
+        "subtotal": "Subtotal (Bill)",
+        "paid": "Paid Amount",
+        "outstanding_before": "Outstanding (Before This Payment)",
+        "current_title": "Current Payment Simulation",
+        "target_settlement": "Target Settlement",
+        "discount": "Discount",
+        "total_cash": "Total Payment (Cash/Bank)",
+        "remaining_after": "Remaining Balance After"
+      },
+      "history_title": "Payment History",
+      "history_empty": "No payment history yet",
+      "history_partial_note": "Partial Payment",
+      "current_total_label": "Total Payment This Time",
+      "modal": {
+        "title": "Confirm Receipt",
+        "message": "Are you sure you want to process receipt for Voucher {{voucher}} amount {{amount}}? Ensure date and bank account are correct.",
+        "yes": "Yes, Process Save",
+        "cancel": "Cancel"
+      },
+      "toast": {
+        "incomplete": "Incomplete data",
+        "success": "Receipt successfully recorded for {{name}}",
+        "failed": "Failed to process receipt"
+      },
+      "not_found": {
+        "message": "Voucher data not found or already paid.",
+        "back": "Back"
+      },
+      "print": {
+        "kuitansi": "RECEIPT",
+        "invoice": "INVOICE",
+        "receipt_proof": "PAYMENT PROOF",
+        "ar_bill": "AR BILLING",
+        "to": "To",
+        "payer_no": "Payer No.",
+        "doc_no": "Doc No.",
+        "date": "Date",
+        "payment_date": "Payment Date",
+        "table": {
+          "date": "Date",
+          "invoice": "Invoice / Service",
+          "sep": "SEP No",
+          "patient": "Patient",
+          "amount": "Amount"
+        },
+        "total": "TOTAL",
+        "terbilang": "Say",
+        "rupiah": "Rupiah",
+        "created_by": "Created By,",
+        "approved_by": "Approved By,",
+        "received_by": "Received By,",
+        "officer": "Officer",
+        "finance": "Finance",
+        "footer": "Printed on: {{date}} | RS THB Backoffice System"
+      }
+    }
+  },
+  "journal": {
+    "trial_journal": {
+      "title": "Trial Journal",
+      "list_title": "Trial Journal List",
+      "select_period": "Select Period",
+      "export_block": "Export Block",
+      "export_list": "Export List",
+      "search_placeholder": "Search...",
+      "posting": "Posting",
+      "status": {
+        "published": "Published",
+        "pending": "Pending",
+        "void": "Void"
+      },
+      "table": {
+        "account_code": "ACCOUNT CODE",
+        "account_name": "ACCOUNT NAME",
+        "description": "DESCRIPTION",
+        "debit": "DEBIT",
+        "credit": "CREDIT"
+      },
+      "modal": {
+        "confirm_title": "Confirmation",
+        "posting_confirm": "Are you sure you want to post this transaction?",
+        "posting_btn": "Post",
+        "cancel_btn": "Cancel"
+      },
+      "toast": {
+        "export_failed": "Failed to export.",
+        "update_failed": "Failed to update transaction journal."
+      },
+      "no_data": "Data Not Found",
+      "total": "Total",
+      "ref": "Ref:"
+    }
+  },
+  "jasa_medis": {
+    "title": "Medical Service",
+    "payment": {
+      "title": "Medical Service Payment",
+      "subtitle": "Manage doctor fee payments",
+      "filter": {
+        "patient_type": "Patient Type",
+        "all_types": "All Types",
+        "all_status": "All Status",
+        "pending": "Pending",
+        "paid": "Paid",
+        "filter_btn": "Filter"
+      },
+      "payment_form": {
+        "title": "Payment Form",
+        "selected_count": "{{count}} selected",
+        "date": "Payment Date",
+        "bank": "Bank Account",
+        "select_bank": "Select Bank",
+        "ref_no": "Ref No.",
+        "ref_placeholder": "Giro/Transfer No.",
+        "total_pay": "Total Payment",
+        "process_btn": "Process Payment",
+        "processing": "Processing..."
+      },
+      "table": {
+        "doctor": "DOCTOR",
+        "period": "PERIOD",
+        "patient_type": "PATIENT TYPE",
+        "total_fee": "TOTAL FEE",
+        "outstanding": "OUTSTANDING",
+        "status": "STATUS"
+      },
+      "modal": {
+        "confirm_pay_btn": "Confirm Pay",
+        "confirm_msg": "You will pay {{count}} medical fees with total {{amount}}. Continue?"
+      }
+    },
+    "badge": {
+      "pph21_active": "PPh21 Subject",
+      "pph21_inactive": "Tax Exempt"
+    },
+    "alert": {
+      "pph21_exempt_title": "Attention!",
+      "pph21_exempt_message": "This doctor is not subject to PPh21 (Status: Tax Exempt)."
+    },
+    "payment_voucher": {
+      "title": "Medical Service - Payment Voucher",
+      "subtitle": "List of doctors with Posting status ready for voucher creation",
+      "filter_status": "Status...",
+      "filter_doctor": "Doctor...",
+      "filter_period": "Period...",
+      "status_posting": "Posting (Unpaid)",
+      "status_final": "Final Payment Voucher",
+      "status_paid": "Paid",
+      "no_data": "No data with Posting status",
+      "table": {
+        "doctor_code": "DOCTOR CODE",
+        "doctor_name": "DOCTOR NAME",
+        "item_count": "ITEM COUNT",
+        "total_fee": "TOTAL FEE",
+        "action": "ACTION"
+      },
+      "detail_btn": "Detail",
+      "form": {
+        "title_paid": "Payment Voucher (PAID)",
+        "title_generate": "Generate Payment Voucher",
+        "subtitle_paid": "Payment voucher has been paid",
+        "subtitle_generate": "Medical service details for doctor to generate voucher",
+        "watermark_paid": "PAID",
+        "back_btn": "Back",
+        "doctor_info": {
+          "code": "DOCTOR CODE",
+          "name": "DOCTOR NAME",
+          "item_count": "ITEM COUNT",
+          "total_fee": "TOTAL FEE"
+        },
+        "details_title": "Medical Service Details",
+        "table": {
+          "date": "Procedure Date",
+          "procedure": "Procedure",
+          "payment_method": "Payment Method",
+          "posting_date": "Posting Date",
+          "total_fee": "Total Fee",
+          "action": "Action"
+        },
+        "calc_title": "Doctor Share Calculation",
+        "share_percent": "Doctor Share (%)",
+        "share_placeholder": "Enter percentage",
+        "share_required": "Required to generate voucher",
+        "doctor_revenue": "Doctor Revenue",
+        "terbilang": "In Words",
+        "generate_btn": "Generate Voucher",
+        "delete_tooltip": "Remove from list (Cancel Posting)",
+        "modal": {
+          "confirm_generate_title": "Confirm Generate Voucher",
+          "confirm_generate_message": "Are you sure you want to generate Payment Voucher for {{name}}? Total doctor share: {{amount}} ({{percent}}%)",
+          "confirm_delete_title": "Confirm Delete Item",
+          "confirm_delete_message": "Are you sure you want to delete this item from the list? Item will be reverted to Pending status.",
+          "yes_generate": "Yes, Generate",
+          "yes_delete": "Yes, Delete",
+          "cancel": "Cancel"
+        },
+        "zero": "Zero",
+        "currency_name": "Rupiah",
+        "toast": {
+          "invalid_doctor": "Invalid doctor data",
+          "generate_success": "Voucher {{voucher}} successfully generated for {{count}} items",
+          "generate_failed": "Failed to generate voucher",
+          "delete_success": "Item successfully deleted from details",
+          "delete_failed": "Failed to delete item"
+        }
+      }
+    },
+    "posting": {
+      "title": "Medical Service Posting",
+      "subtitle": "Manage and post doctor medical service data",
+      "filter_status": "Status...",
+      "filter_doctor": "Doctor...",
+      "filter_payment_method": "Payment Method...",
+      "filter_period": "Period...",
+      "export_btn": "Export to Excel",
+      "posting_btn": "Posting",
+      "cancel_posting_btn": "Cancel Posting",
+      "processing": "Processing...",
+      "no_data": "No data available",
+      "table": {
+        "doctor_code": "DOCTOR CODE",
+        "doctor_name": "DOCTOR NAME",
+        "procedure_name": "PROCEDURE NAME",
+        "procedure_date": "PROCEDURE DATE",
+        "payment_method": "PAYMENT METHOD",
+        "total_fee": "TOTAL FEE",
+        "status": "STATUS"
+      },
+      "modal": {
+        "confirm_posting_title": "Confirm Posting",
+        "confirm_posting_message": "Are you sure you want to post {{count}} medical service items? Status will change from Pending to Posting.",
+        "confirm_cancel_title": "Confirm Cancel Posting",
+        "confirm_cancel_message": "Are you sure you want to cancel posting for {{count}} items? Status will revert to Pending and Batch Number will be removed.",
+        "yes_posting": "Yes, Post",
+        "yes_cancel": "Yes, Cancel Posting",
+        "cancel": "Cancel"
+      },
+      "toast": {
+        "select_item_posting": "Select at least one item to post",
+        "posting_success": "{{count}} items successfully posted with batch {{batch}}",
+        "posting_failed": "Failed to post",
+        "select_item_cancel": "Select at least one item to cancel",
+        "cancel_success": "Posting successfully canceled",
+        "cancel_failed": "Failed to cancel posting",
+        "export_failed": "Failed to export data"
+      }
+    },
+    "settlement": {
+      "title": "Medical Service Settlement",
+      "subtitle": "List of vouchers with Unpaid status ready for settlement",
+      "filter_doctor": "Doctor...",
+      "filter_voucher": "Voucher No...",
+      "filter_period": "Period...",
+      "no_data": "No vouchers with Unpaid status",
+      "table": {
+        "doctor_name": "DOCTOR NAME",
+        "voucher_no": "VOUCHER NO",
+        "voucher_date": "VOUCHER DATE",
+        "share": "SHARE (%)",
+        "item_count": "COUNT",
+        "total_fee": "TOTAL FEE",
+        "status": "STATUS",
+        "total_payment": "TOTAL PAYMENT",
+        "action": "ACTION"
+      },
+      "detail_btn": "Detail",
+      "pay_btn": "Pay",
+      "form": {
+        "title_detail": "Settlement Detail",
+        "title_process": "Payment Settlement",
+        "subtitle_detail": "Detail information of payment settlement",
+        "subtitle_process": "Payment process for doctor voucher",
+        "back_btn": "Back",
+        "voucher_info": {
+          "number": "Voucher No",
+          "date": "Voucher Date",
+          "share": "Doctor Share",
+          "total_pay": "Total Payment",
+          "status": "Status"
+        },
+        "details_title": "Medical Service Details",
+        "payment_info_title": "Payment Information",
+        "payment_info_paid_title": "Payment Information (Paid)",
+        "table": {
+          "date": "Procedure Date",
+          "procedure": "Procedure",
+          "payment_method": "Payment Method",
+          "total_fee": "Total Fee",
+          "pay_amount": "Payment Amount"
+        },
+        "payment_form": {
+          "bank_label": "Bank Account",
+          "bank_placeholder": "Select bank account...",
+          "date_label": "Payment Date",
+          "ref_label": "Payment Reference",
+          "ref_placeholder": "Ex: Transfer No, Check No, etc",
+          "total_label": "Total to be paid:",
+          "process_btn": "Process Payment",
+          "processing": "Processing..."
+        },
+        "payment_readonly": {
+          "bank_label": "Bank Account (COA)",
+          "date_label": "Payment Date",
+          "ref_label": "Payment Reference"
+        },
+        "toast": {
+          "select_bank": "Please select a bank account first",
+          "success": "{{count}} items successfully paid. Total: {{total}}",
+          "failed": "Failed to process payment"
+        },
+        "modal": {
+          "title": "Payment Confirmation",
+          "message": "Are you sure you want to process payment for voucher {{voucher}}? Total payment: {{total}}",
+          "yes": "Yes, Pay",
+          "cancel": "Cancel"
+        }
+      }
+    }
+  },
+  "khanza_journal_page": {
+    "title": "Khanza Journal (SIMRS)",
+    "subtitle": "View and download journal data from Khanza database",
+    "filter": {
+      "date_range": "Select Date Range",
+      "show": "Show",
+      "showing": "Loading...",
+      "reset": "Reset"
+    },
+    "export": {
+      "button": "Download Excel",
+      "exporting": "Exporting...",
+      "success": "File downloaded successfully",
+      "failed": "Failed to export data"
+    },
+    "info": {
+      "title": "Select Period",
+      "desc": "Please select a date range and click \"Show\" to view journal data from Khanza."
+    },
+    "table": {
+      "date": "DATE",
+      "journal_no": "JOURNAL NO",
+      "account_code": "ACCOUNT CODE",
+      "account_name": "ACCOUNT NAME",
+      "debit": "DEBIT",
+      "credit": "CREDIT",
+      "payment_method": "PAYMENT METHOD",
+      "poli": "CLINIC",
+      "no_data": "No journal data for this period"
+    },
+    "note": {
+      "title": "Note:",
+      "desc": "Data is retrieved directly from Khanza database (SIMRS). Ensure database connection configuration is set in Settings > Khanza Config."
+    },
+    "toast": {
+      "select_period": "Please select a date range first",
+      "fetch_failed": "Failed to fetch data"
+    }
+  },
+  "settings_page": {
+    "title": "Settings",
+    "subtitle": "Manage system settings and preferences",
+    "tabs": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "default_accounts": "Default Accounts",
+      "smtp": "SMTP Email",
+      "report_config": "Report Config",
+      "khanza_config": "Khanza Config",
+      "migration": "Data Migration",
+      "audit_trail": "Audit Trail",
+      "print_signatures": "Print Signatures"
+    },
+    "print_signatures": {
+      "title": "Print Signature Settings",
+      "desc": "Configure names and titles that appear on AR print documents",
+      "preview": "Preview",
+      "fields": {
+        "left_name": "Left Signature Name",
+        "left_title": "Left Signature Title",
+        "right_name": "Right Signature Name",
+        "right_title": "Right Signature Title"
+      },
+      "descs": {
+        "left_name": "Name displayed on the left side of AR invoices (e.g., Billing Officer)",
+        "left_title": "Title displayed below the left signature name",
+        "right_name": "Name displayed on the right side of AR invoices (e.g., Finance Manager)",
+        "right_title": "Title displayed below the right signature name"
+      }
+    },
+    "report_config": {
+      "title": "Report Settings",
+      "tabs": {
+        "balance_sheet": "Balance Sheet",
+        "profit_loss": "Profit & Loss"
+      },
+      "form": {
+        "section_name": "SECTION NAME",
+        "section_placeholder": "e.g. Current Assets",
+        "show_child": "Show Child Sections?",
+        "mapping_coa": "MAPPING COA",
+        "no_coa_mapped": "No COA Mapped",
+        "add_top_section": "Add New Top Section",
+        "add_sub_section": "Add Sub-Section",
+        "remove_section": "Remove Section"
+      },
+      "buttons": {
+        "edit_config": "Edit Configuration",
+        "save_changes": "Save Changes",
+        "cancel": "Cancel",
+        "saving": "Saving..."
+      },
+      "toast": {
+        "parse_error": "Failed to parse settings data.",
+        "no_data": "Error: No setting data loaded. Cannot update.",
+        "update_failed": "Update failed",
+        "update_error": "Failed to update configuration"
+      }
+    },
+    "default_accounts": {
+      "info_title": "Default Account Configuration",
+      "info_desc": "Configure COA codes, prefixes, and parameters used across the system. Changes apply to Dashboard, Reports, AR, AP, Medical Fees, and Petty Cash.",
+      "sections": {
+        "dashboard": "Dashboard & Reports",
+        "ar": "Accounts Receivable (AR)",
+        "ap": "Accounts Payable (AP)",
+        "medical_fee": "Medical Fees",
+        "petty_cash": "Petty Cash",
+        "general": "General"
+      },
+      "fields": {
+        "coa_prefix_revenue": "Revenue COA Prefix",
+        "coa_prefix_expense": "Expense COA Prefix",
+        "coa_prefix_revenue_alt": "Revenue COA Prefix (Alt)",
+        "coa_prefix_expense_alt": "Expense COA Prefix (Alt)",
+        "coa_prefix_opd": "Outpatient COA Prefix (OPD)",
+        "coa_prefix_ipd": "Inpatient COA Prefix (IPD)",
+        "account_cash": "Cash Account",
+        "account_bank": "Bank Account",
+        "account_receivable": "Receivable Account",
+        "account_payable": "Payable Account",
+        "clinic_code_igd": "ER Clinic Code",
+        "clinic_code_fisio": "Physiotherapy Clinic Code",
+        "payer_code_bpjs": "BPJS Payer Code",
+        "payer_code_private": "Private Payer Code",
+        "coa_cashflow_special": "Special Cash Flow COA",
+        "piutang_ranap_bpjs": "Inpatient AR BPJS",
+        "piutang_rajal_bpjs": "Outpatient AR BPJS",
+        "piutang_ranap_non_bpjs": "Inpatient AR Non-BPJS",
+        "piutang_rajal_non_bpjs": "Outpatient AR Non-BPJS",
+        "discount_ar": "AR Discount",
+        "ppn_masukan": "Input VAT",
+        "utang_supplier": "Supplier Payable",
+        "ap_discount": "AP Discount",
+        "ap_pph23": "WHT Article 23",
+        "tukar_faktur_credit": "Invoice Exchange (Credit)",
+        "tukar_faktur_debit": "Invoice Exchange (Debit)",
+        "jasa_medis_pribadi": "Private Medical Fee",
+        "jasa_medis_asuransi": "Insurance Medical Fee",
+        "jasa_medis_selisih": "Medical Fee Variance",
+        "petty_cash_topup": "Petty Cash Top-Up COA",
+        "petty_cash_receivable": "Employee Receivable COA",
+        "prefix_cash_bank": "Cash & Bank Prefix"
+      },
+      "descs": {
+        "coa_prefix_revenue": "COA code prefix for revenue accounts (startsWith)",
+        "coa_prefix_expense": "COA code prefix for expense accounts (comma-separated)",
+        "coa_prefix_revenue_alt": "Alternative COA prefix for revenue",
+        "coa_prefix_expense_alt": "Alternative COA prefix for expense",
+        "coa_prefix_opd": "COA prefix for outpatient revenue (OPD)",
+        "coa_prefix_ipd": "COA prefix for inpatient revenue (IPD)",
+        "account_cash": "Cash COA codes (comma-separated for multiple)",
+        "account_bank": "Bank COA codes (comma-separated for multiple)",
+        "account_receivable": "Receivable COA codes (comma-separated for multiple)",
+        "account_payable": "Payable COA codes (comma-separated for multiple)",
+        "clinic_code_igd": "Clinic code for ER filter in dashboard",
+        "clinic_code_fisio": "Clinic code for physiotherapy filter in dashboard",
+        "payer_code_bpjs": "Payer code for BPJS identification",
+        "payer_code_private": "Payer code for private/general patient identification",
+        "coa_cashflow_special": "COA that uses payer_code as filter in cash flow report",
+        "piutang_ranap_bpjs": "Inpatient BPJS receivable COA",
+        "piutang_rajal_bpjs": "Outpatient BPJS receivable COA",
+        "piutang_ranap_non_bpjs": "Inpatient non-BPJS receivable COA",
+        "piutang_rajal_non_bpjs": "Outpatient non-BPJS receivable COA",
+        "discount_ar": "AR discount COA",
+        "ppn_masukan": "Input VAT COA",
+        "utang_supplier": "Supplier payable COA",
+        "ap_discount": "AP discount COA",
+        "ap_pph23": "WHT Article 23 COA",
+        "tukar_faktur_credit": "Credit COA for invoice exchange",
+        "tukar_faktur_debit": "Debit COA for invoice exchange",
+        "jasa_medis_pribadi": "Private medical fee payable COA",
+        "jasa_medis_asuransi": "Insurance medical fee payable COA",
+        "jasa_medis_selisih": "Medical fee variance COA",
+        "petty_cash_topup": "Default source COA for petty cash top-up",
+        "petty_cash_receivable": "Employee receivable COA for petty cash",
+        "prefix_cash_bank": "COA code prefix for cash and bank accounts filter"
+      },
+      "placeholder": "Select {{label}}..."
+    },
+    "smtp": {
+      "info_title": "SMTP Configuration",
+      "info_desc": "SMTP is used to send email notifications, reports, and forgot password features.",
+      "host": "SMTP Host",
+      "port": "Port",
+      "username": "Username",
+      "password": "Password / App Password",
+      "from_email": "From Email",
+      "from_name": "From Name",
+      "test_button": "Test Email",
+      "testing": "Sending...",
+      "toast": {
+        "incomplete": "Complete SMTP configuration first",
+        "success": "Test email sent successfully!",
+        "failed": "Failed to send test email"
+      }
+    },
+    "khanza": {
+      "info_title": "Khanza Database Configuration (SIMRS)",
+      "info_desc": "This configuration is used to synchronize journal data from Khanza SIMRS system. Ensure the database is accessible from the backoffice server.",
+      "host": "Host / IP Address",
+      "port": "Port",
+      "database": "Database Name",
+      "username": "Username",
+      "password": "Password",
+      "test_button": "Test Connection",
+      "testing": "Testing...",
+      "test_result": {
+        "success": "Connection successful! Database is accessible.",
+        "failed": "Connection failed. Check your configuration."
+      },
+      "toast": {
+        "incomplete": "Host, Database, and Username are required",
+        "incomplete_db": "Complete database configuration first",
+        "success": "Database connection successful!",
+        "failed": "Failed to connect to database",
+        "failed_khanza": "Failed to connect to Khanza database"
+      },
+      "placeholder": {
+        "host": "localhost or 192.168.1.100",
+        "database": "sik",
+        "username": "root"
+      },
+      "helper": {
+        "port": "Default MySQL: 3306",
+        "database": "Usually: sik or simrs"
+      }
+    }
+  },
+  "trial_balance_page": {
+    "title": "Trial Balance",
+    "subtitle": "Summary of account balances",
+    "date_separator": " to ",
+    "filter_period": "Select Period",
+    "export": "Export",
+    "exporting": "Exporting...",
+    "detail_title": "Trial Balance Details",
+    "records_found": "{{count}} accounts found",
+    "no_data": "No data available",
+    "pagination": "of {{total}} entries",
+    "grand_total": "Grand Total",
+    "toast": {
+      "export_failed": "Export failed"
+    },
+    "metrics": {
+      "opening_balance": "Opening Balance",
+      "total_debit": "Total Debit",
+      "total_credit": "Total Credit",
+      "ending_balance": "Ending Balance"
+    },
+    "table": {
+      "account_code": "Account Code",
+      "account_name": "Account Name",
+      "opening_balance": "Opening Balance",
+      "debit": "Debit",
+      "credit": "Credit",
+      "ending_balance": "Ending Balance"
+    }
+  },
+  "audit_trail": {
+    "title": "Audit Trail",
+    "subtitle": "All transaction activity recorded in the system.",
+    "search_placeholder": "Search module, reference no, or action...",
+    "filter_module": "Transaction Type",
+    "filter_operation": "Action",
+    "filter_user": "User",
+    "filter_date_from": "Date From",
+    "filter_date_to": "Date To",
+    "all_modules": "All Types",
+    "all_operations": "All Actions",
+    "all_users": "All Users",
+    "reset_filter": "Reset Filter",
+    "empty": "No audit trail data.",
+    "error": "Failed to load audit trail.",
+    "col_time": "Time",
+    "col_module": "Transaction Type",
+    "col_ref": "Reference No",
+    "col_operation": "Action",
+    "col_user": "User",
+    "col_branch": "Branch",
+    "col_status": "Status",
+    "detail_title": "Audit Trail Detail",
+    "detail_before": "Before Data",
+    "detail_after": "Action Detail",
+    "detail_no_payload": "No additional detail.",
+    "view_detail": "View Detail"
+  },
+  "journal_import": {
+    "title": "Import General Journal",
+    "upload": {
+      "title": "Upload Import File",
+      "subtitle": "You can pick several files at once. They are processed on the server one by one — this page updates itself.",
+      "type": "File Type",
+      "choose": "Choose Files",
+      "template": "Download Template",
+      "submit": "Upload ({{count}})",
+      "hint": "Only .xlsx files, max 20 MB each."
+    },
+    "history": {
+      "title": "Upload History",
+      "processing": "A file is being processed — status updates automatically.",
+      "empty": "No upload history yet.",
+      "col_file": "File Name",
+      "col_status": "Status",
+      "col_summary": "Summary",
+      "col_user": "Uploaded By",
+      "col_time": "Uploaded At",
+      "col_duration": "Duration",
+      "rows": "Rows",
+      "journals": "journals",
+      "errors": "errors",
+      "detail": "Detail",
+      "download": "Download file",
+      "cancel": "Cancel"
+    },
+    "detail": {
+      "title": "Import Detail",
+      "errors": "Error List",
+      "row": "Row",
+      "field": "Field",
+      "message": "Message",
+      "all_ok": "All rows imported successfully."
+    },
+    "toast": {
+      "queued": "{{count}} file(s) queued",
+      "upload_failed": "Upload failed",
+      "cancelled": "Job cancelled",
+      "cancel_failed": "Could not cancel",
+      "download_failed": "Could not download file"
+    }
+  }
+}

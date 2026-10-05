@@ -1,0 +1,25 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+conda-meta/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+log/
+nohup.out
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+*.swp

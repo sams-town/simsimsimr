@@ -1,0 +1,2408 @@
+{
+  "settings": "Pengaturan",
+  "profile": "Profil",
+  "preferences": "Preferensi",
+  "default_accounts": "Akun Default",
+  "report": "Laporan",
+  "logout": "Keluar",
+  "opening_balance": {
+    "title": "Saldo Awal",
+    "subtitle": "Input saldo awal (opening balance) per akun sebagai titik awal perhitungan saldo.",
+    "add_new": "Tambah Saldo Awal",
+    "filter_coa": "Filter Akun (COA)",
+    "filter_date": "Filter Tanggal Cut-off",
+    "select_coa": "Pilih Akun (COA)",
+    "coa_required": "Akun (COA) wajib dipilih",
+    "form_hint": "Saldo awal ditulis sebagai titik awal (checkpoint) perhitungan saldo akun. Tanda nilai mengikuti posisi normal akun.",
+    "create_title": "Tambah Saldo Awal",
+    "edit_title": "Ubah Saldo Awal",
+    "view_title": "Detail Saldo Awal",
+    "delete_title": "Hapus Saldo Awal",
+    "delete_confirm": "Yakin ingin menghapus saldo awal ini?",
+    "table": {
+      "coa": "Akun",
+      "normal": "Posisi",
+      "as_of": "Tgl Cut-off",
+      "amount": "Nominal",
+      "note": "Catatan",
+      "created_by": "Dibuat Oleh"
+    }
+  },
+  "period_closing": {
+    "title": "Tutup Buku",
+    "subtitle": "Tutup buku periode (bulanan/tahunan). Periode yang ditutup terkunci dari perubahan jurnal.",
+    "close_action": "Tutup Buku",
+    "reopen_action": "Buka Kembali",
+    "filter_year": "Tahun",
+    "filter_status": "Semua Status",
+    "status_closed": "Ditutup",
+    "status_reopened": "Dibuka Kembali",
+    "monthly": "Bulanan",
+    "yearly": "Tahunan",
+    "all_branch": "Semua Cabang",
+    "type": "Tipe Periode",
+    "year": "Tahun",
+    "month": "Bulan",
+    "close_hint": "Mengunci periode dari perubahan jurnal & mencatat riwayat tutup buku. Bisa dibuka kembali.",
+    "generate_closing": "Buat Jurnal Penutup",
+    "if_on": "Jika dicentang",
+    "if_off": "Jika tidak dicentang",
+    "closing_on_desc": "Sistem membuat jurnal penutup yang menolkan akun pendapatan & beban periode dan memindahkan laba/rugi bersih ke akun Laba Ditahan. Dampak: laporan Laba Rugi periode tsb menjadi nol setelah ditutup (laba pindah ke ekuitas). Sesuai kaidah tutup buku formal. Butuh konfigurasi COA_RETAINED_EARNINGS.",
+    "closing_off_desc": "Hanya mengunci periode & mencatat riwayat. Laba tahun berjalan tetap dihitung otomatis di Neraca tanpa jurnal penutup. Direkomendasikan untuk tutup buku bulanan.",
+    "reopen_hint": "Periode akan dibuka kembali; jurnal penutup (bila ada) akan di-void.",
+    "reopen_note": "Alasan / Catatan",
+    "table": {
+      "type": "Tipe",
+      "period": "Periode",
+      "branch": "Cabang",
+      "closing_entry": "Jurnal Penutup",
+      "status": "Status",
+      "closed_by": "Ditutup Oleh",
+      "note": "Catatan"
+    }
+  },
+  "menu": {
+    "khanza_sync": "Sinkronisasi Khanza",
+    "dashboard": "Dashboard",
+    "master": "Data Master",
+    "users": "Pengguna",
+    "department": "Departemen",
+    "bpjs_cost": "Honor BPJS",
+    "cost_center": "Pusat Biaya & Profit",
+    "account_group": "Grup Akun",
+    "account_type": "Tipe Akun",
+    "coa": "Daftar Akun",
+    "coa_mapping": "Mapping COA",
+    "bank": "Bank",
+    "contact": "Kontak",
+    "user_management": "Manajemen Pengguna",
+    "penerimaan": "Penerimaan",
+    "revenue_list": "Daftar Penerimaan",
+    "pengeluaran": "Pengeluaran",
+    "expense_list": "Daftar Pengeluaran",
+    "general_ledger": "Buku Besar",
+    "history": "Riwayat",
+    "summary": "Ringkasan",
+    "account_payable": "Hutang Usaha",
+    "purchase_order": "Pesanan Pembelian",
+    "invoice_exchange": "Tukar Faktur",
+    "ap_list": "Daftar Hutang",
+    "ap_payment": "Pembayaran Hutang",
+    "aging_report": "Laporan Aging",
+    "medical_service": "Jasa Medis",
+    "account_receivable": "Piutang Usaha",
+    "ar_list": "Daftar Piutang",
+    "ar_payment": "Penerimaan Piutang",
+    "journal": "Jurnal",
+    "trial_journal": "Jurnal Percobaan",
+    "general_journal": "Jurnal Umum",
+    "report": "Laporan",
+    "journal_report": "Laporan Jurnal",
+    "ledger_report": "Laporan Buku Besar",
+    "balance_sheet": "Laporan Neraca",
+    "profit_loss": "Laporan Laba Rugi",
+    "trial_balance": "Neraca Saldo",
+    "khanza_downloader": "Jurnal Khanza",
+    "settings": "Pengaturan",
+    "buku_kas": "Buku Kas",
+    "buku_kas_list": "Daftar Kas & Bank",
+    "transfer_list": "Daftar Transfer",
+    "opening_balance": "Saldo Awal",
+    "period_closing": "Tutup Buku",
+    "transaction_label": "Transaksi",
+    "jasa_medis": "Jasa Medis",
+    "posting_jasa_medis": "Posting Jasa Medis",
+    "payment_voucher": "Payment Voucher",
+    "settlement": "Settlement",
+    "piutang_usaha": "Piutang Usaha",
+    "posting_ar": "Daftar Piutang",
+    "payment_voucher_ar": "Tagihan Piutang",
+    "combined_voucher_ar": "Voucher Gabungan",
+    "settlement_ar": "Penerimaan Piutang",
+    "cash_account": "Akun Kas",
+    "ending_balance": "Saldo Akhir",
+    "petty_cash": "Kas Kecil",
+    "petty_cash_dashboard": "Dashboard",
+    "petty_cash_unit": "Unit Kas Kecil",
+    "petty_cash_request": "Permintaan",
+    "petty_cash_settlement": "Settlement",
+    "petty_cash_topup": "Top Up",
+    "petty_cash_ledger": "Buku Kas"
+  },
+  "users_page": {
+    "title": "Pengguna",
+    "subtitle": "Kelola pengguna dan akses",
+    "list": "Daftar",
+    "filter_role": "Semua Peran",
+    "filter_status": "Semua Status",
+    "active": "Aktif",
+    "inactive": "Tidak Aktif",
+    "create_title": "Buat Pengguna",
+    "edit_title": "Ubah Pengguna",
+    "form": {
+      "name": "Nama",
+      "enter_name": "Masukkan Nama",
+      "email": "Email",
+      "enter_email": "Masukkan Email",
+      "password": "Kata Sandi",
+      "enter_password": "Masukkan Kata Sandi",
+      "role": "Peran",
+      "select_role": "Pilih Peran",
+      "status": "Status"
+    },
+    "table": {
+      "name": "NAMA",
+      "email": "EMAIL",
+      "role": "PERAN",
+      "status": "STATUS"
+    }
+  },
+  "master": {
+    "title": "Data Master",
+    "coa": {
+      "title": "Daftar Akun",
+      "subtitle": "Kelola daftar akun",
+      "list": "Daftar",
+      "create_title": "Buat Daftar Akun",
+      "edit_title": "Ubah Daftar Akun",
+      "form": {
+        "account_no": "No Akun",
+        "enter_account_no": "Masukkan No Akun",
+        "account_name": "Nama Akun",
+        "enter_account_name": "Masukkan Nama",
+        "account_type": "Tipe Akun",
+        "enter_account_type": "Masukkan Tipe Akun",
+        "account_group": "Grup Akun",
+        "enter_account_group": "Masukkan Grup Akun",
+        "parent_account": "Akun Induk",
+        "enter_parent": "Masukkan Induk",
+        "none": "Tidak Ada",
+        "status": "Status",
+        "active": "Aktif",
+        "inactive": "Tidak Aktif",
+        "normal_position": "Posisi Normal",
+        "normal_credit": "Kredit (C)",
+        "normal_debit": "Debit (D)",
+        "normal_position_hint": "Menentukan tanda saldo: Kredit = (kredit - debit), Debit = (debit - kredit)."
+      },
+      "table": {
+        "account_no": "NO AKUN",
+        "normal_position": "POSISI NORMAL",
+        "account_name": "NAMA AKUN",
+        "account_group": "GRUP AKUN",
+        "account_type": "TIPE AKUN",
+        "action": "AKSI",
+        "all_account_groups": "Semua Grup Akun",
+        "all_type": "Semua Tipe"
+      }
+    },
+    "account_type": "Tipe Akun",
+    "account_type_page": {
+      "title": "Tipe Akun",
+      "subtitle": "Kelola tipe akun",
+      "list": "Daftar",
+      "create_title": "Buat Tipe Akun",
+      "edit_title": "Ubah Tipe Akun",
+      "form": {
+        "name": "Nama Tipe Akun",
+        "enter_name": "Masukkan Nama Tipe Akun"
+      },
+      "table": {
+        "name": "NAMA TIPE AKUN"
+      }
+    },
+    "coa_mapping_page": {
+      "title": "Mapping COA",
+      "subtitle": "Kelola mapping kode akun antar sistem",
+      "list": "Daftar",
+      "create_title": "Buat Mapping COA",
+      "edit_title": "Ubah Mapping COA",
+      "form": {
+        "coa_source": "Kode COA Sumber (Khanza)",
+        "enter_coa_source": "Masukkan Kode COA Sumber",
+        "coa_source_name": "Nama COA Sumber",
+        "enter_coa_source_name": "Masukkan Nama COA Sumber",
+        "coa_dest": "COA Tujuan",
+        "select_coa_dest": "Pilih COA Tujuan"
+      },
+      "table": {
+        "coa_source": "KODE COA SUMBER",
+        "coa_source_name": "NAMA COA SUMBER",
+        "coa_dest": "KODE COA TUJUAN",
+        "coa_dest_name": "NAMA COA TUJUAN"
+      }
+    },
+    "account_group": "Grup Akun",
+    "account_group_page": {
+      "title": "Grup Akun",
+      "subtitle": "Kelola grup akun",
+      "list": "Daftar",
+      "create_title": "Buat Grup Akun",
+      "edit_title": "Ubah Grup Akun",
+      "form": {
+        "name": "Nama Grup Akun",
+        "enter_name": "Masukkan Nama Grup Akun"
+      },
+      "table": {
+        "name": "NAMA GRUP AKUN"
+      }
+    },
+    "department": "Departemen",
+    "department_page": {
+      "title": "Departemen",
+      "subtitle": "Kelola departemen",
+      "list": "Daftar",
+      "create_title": "Buat Departemen",
+      "edit_title": "Ubah Departemen",
+      "form": {
+        "name": "Nama Departemen",
+        "enter_name": "Masukkan Nama Departemen"
+      },
+      "table": {
+        "name": "NAMA DEPARTEMEN"
+      }
+    },
+    "bpjs_cost": "Honor BPJS",
+    "bpjs_cost_page": {
+      "title": "Honor BPJS",
+      "subtitle": "Kelola acuan biaya prosedur BPJS",
+      "list": "Daftar",
+      "create_title": "Buat Honor BPJS",
+      "edit_title": "Ubah Honor BPJS",
+      "form": {
+        "procedure": "Prosedur",
+        "enter_procedure": "Masukkan Nama Prosedur",
+        "cost": "Biaya/Honor",
+        "enter_cost": "Masukkan Biaya"
+      },
+      "table": {
+        "procedure": "PROSEDUR",
+        "cost": "BIAYA"
+      }
+    },
+    "cost_center": "Pusat Biaya & Profit",
+    "cost_center_page": {
+      "title": "Pusat Biaya & Profit",
+      "subtitle": "Kelola pusat biaya & profit",
+      "list": "Daftar",
+      "create_title": "Buat Pusat Biaya",
+      "edit_title": "Ubah Pusat Biaya",
+      "form": {
+        "code": "Kode Pusat Biaya",
+        "enter_code": "Masukkan Kode Pusat Biaya",
+        "name": "Nama Pusat Biaya",
+        "enter_name": "Masukkan Nama Pusat Biaya",
+        "department": "Departemen",
+        "select_department": "Pilih Departemen",
+        "all_department": "Semua Departemen"
+      },
+      "table": {
+        "code": "KODE PUSAT BIAYA",
+        "name": "NAMA PUSAT BIAYA",
+        "department": "DEPARTEMEN"
+      }
+    },
+    "contact": "Kontak",
+    "contact_page": {
+      "title": "Kontak",
+      "list_title": "Daftar Kontak",
+      "subtitle": "Kelola kontak anda",
+      "list": "Daftar",
+      "add_new": "Tambah Kontak",
+      "create_title": "Buat Kontak",
+      "edit_title": "Ubah Kontak",
+      "form": {
+        "category": "Kategori",
+        "ref_code": "Kode Ref",
+        "name": "Nama",
+        "enter_name": "Masukkan Nama",
+        "enter_ref_code": "Masukkan Kode Ref",
+        "email": "Email",
+        "enter_email": "Masukkan Email",
+        "phone": "Nomor Telepon",
+        "enter_phone": "Masukkan Nomor Telepon",
+        "address": "Alamat",
+        "enter_address": "Masukkan Alamat",
+        "province": "Provinsi",
+        "city": "Kota",
+        "select_category": "Pilih Kategori",
+        "select_province": "Pilih Provinsi",
+        "select_city": "Pilih Kota",
+        "bank_info": "Informasi Rekening",
+        "add_bank": "Tambah Rekening",
+        "no_bank_data": "Tidak ada data rekening",
+        "bank_table": {
+          "bank_name": "Nama Bank",
+          "account_name": "Nama Rekening",
+          "account_no": "Nomor Rekening",
+          "action": "Aksi",
+          "select_bank": "Pilih Bank",
+          "enter_account_name": "Masukkan Nama Rekening",
+          "enter_account_no": "Masukkan Nomor Rekening"
+        },
+        "due_date": "Jatuh Tempo"
+      },
+      "table": {
+        "ref_code": "Kode Ref",
+        "name": "Nama Kontak",
+        "email": "Email",
+        "phone": "Telepon",
+        "category": "Kategori"
+      }
+    },
+    "bank": "Bank",
+    "bank_page": {
+      "title": "Bank",
+      "subtitle": "Kelola data bank",
+      "list": "Daftar",
+      "add_new": "Tambah Bank",
+      "create_title": "Buat Bank",
+      "edit_title": "Ubah Bank",
+      "delete_title": "Hapus Bank",
+      "form": {
+        "code": "Kode Bank",
+        "enter_code": "Masukkan Kode Bank",
+        "name": "Nama Bank",
+        "enter_name": "Masukkan Nama Bank"
+      },
+      "table": {
+        "code": "KODE BANK",
+        "name": "NAMA BANK"
+      }
+    }
+  },
+  "transaction": {
+    "general_journal": "Jurnal Umum",
+    "journal_detail": "Detail Jurnal",
+    "revenue_list": "Daftar Penerimaan",
+    "expense_list": "Daftar Pengeluaran",
+    "transfer_list": "Daftar Transfer",
+    "general_journal_page": {
+      "title": "Jurnal Umum",
+      "subtitle": "Kelola entri jurnal umum",
+      "add_new": "Buat Jurnal Baru",
+      "download_template": "Unduh Template",
+      "import_excel": "Impor Excel",
+      "import_success": "Berhasil mengimpor jurnal",
+      "import_error_title": "Gagal Impor",
+      "import_confirm_title": "Konfirmasi Impor",
+      "import_confirm_message": "Apakah Anda yakin ingin mengimpor file ini?",
+      "import_error_message": "Terdapat kesalahan pada file impor:",
+      "import_fix_hint": "Silakan perbaiki file dan coba lagi.",
+      "filter_status": "Status",
+      "status_publish": "Terbit",
+      "status_pending": "Tertunda",
+      "status_void": "Batal",
+      "delete_title": "Hapus Jurnal",
+      "delete_confirm": "Apakah Anda yakin ingin menghapus jurnal ini?",
+      "void_title": "Batalkan Jurnal",
+      "void_confirm": "Apakah Anda yakin ingin membatalkan (void) jurnal ini?",
+      "table": {
+        "transaction_no": "NO TRANSAKSI",
+        "date": "TANGGAL",
+        "description": "KETERANGAN",
+        "total": "TOTAL",
+        "status": "STATUS",
+        "action": "AKSI"
+      },
+      "create_title": "Buat Jurnal Umum",
+      "edit_title": "Ubah Jurnal Umum",
+      "detail_title": "Detail Jurnal",
+      "form": {
+        "transaction_no": "No. Transaksi",
+        "enter_transaction_no": "Otomatis jika kosong (cth: JE-001)",
+        "date": "Tanggal Transaksi",
+        "select_date": "Pilih Tanggal",
+        "description": "Keterangan",
+        "enter_description": "Contoh: Penyesuaian stok akhir bulan...",
+        "journal_info": "Informasi Jurnal",
+        "journal_details": "Rincian Jurnal",
+        "add_account": "Tambah Akun",
+        "account": "Akun",
+        "line_description": "Keterangan Baris",
+        "enter_line_description": "Keterangan...",
+        "debit": "Debit (Rp)",
+        "credit": "Kredit (Rp)",
+        "total": "Total:",
+        "unbalanced": "Jurnal Tidak Seimbang!",
+        "difference": "Selisih: Rp",
+        "no_details": "Belum ada rincian jurnal",
+        "click_add": "Klik tombol \"Tambah Akun\" untuk memulai",
+        "read_only": "Mode Baca Saja",
+        "read_only_msg": "Data tidak bisa diubah karena statusnya: ",
+        "update_journal": "Perbarui Jurnal",
+        "save_journal": "Simpan Jurnal",
+        "save_confirm_title": "Konfirmasi Simpan",
+        "save_confirm_msg": "Pastikan data jurnal sudah benar. Lanjutkan menyimpan?",
+        "fix_errors": "Perbaiki kesalahan berikut:",
+        "subtitle_create": "Isi formulir untuk mencatat transaksi jurnal manual.",
+        "subtitle_edit": "Perbarui informasi jurnal umum.",
+        "cancel_journal": "Batalkan Jurnal",
+        "create_title": "Buat Jurnal Umum",
+        "detail_title": "Detail Jurnal"
+      },
+      "validation": {
+        "date_required": "Tanggal transaksi wajib diisi",
+        "date_invalid": "Tanggal transaksi tidak valid",
+        "desc_required": "Keterangan wajib diisi",
+        "line_desc_required": "Keterangan baris wajib diisi",
+        "debit_credit_required": "Setiap baris harus memiliki nilai Debit atau Kredit",
+        "details_required": "Rincian jurnal wajib diisi",
+        "min_lines": "Minimal 2 baris jurnal (Debit & Kredit) diperlukan",
+        "balanced": "Jurnal tidak seimbang (Total Debit harus sama dengan Total Kredit)"
+      },
+      "view": {
+        "title": "Detail Jurnal",
+        "subtitle": "Informasi detail jurnal #{{no}}",
+        "general_info": "Informasi Umum",
+        "transaction_no": "No. Transaksi",
+        "journal_no": "No. Jurnal",
+        "date": "Tanggal Transaksi",
+        "type": "Tipe Transaksi",
+        "description": "Keterangan",
+        "no_description": "Tidak ada keterangan.",
+        "journal_details": "Rincian Jurnal",
+        "account_name": "Nama Akun",
+        "line_desc": "Deskripsi",
+        "debit": "Debit",
+        "credit": "Kredit",
+        "total": "Total",
+        "summary": "Ringkasan",
+        "total_debit": "Total Debit",
+        "total_credit": "Total Kredit",
+        "balanced": "✓ Jurnal Seimbang",
+        "unbalanced": "✕ Jurnal Tidak Seimbang",
+        "unknown": "Tidak Diketahui"
+      }
+    }
+  },
+  "ar": {
+    "invoice_list": "Daftar Piutang",
+    "payment": "Penerimaan",
+    "aging_report": "Laporan Aging",
+    "invoice_exchange": "Tukar Faktur",
+    "penerimaan_piutang_page": {
+      "title": "Penerimaan Piutang",
+      "subtitle": "Proses penerimaan pembayaran piutang dari voucher yang sudah dibuat",
+      "filter": {
+        "payer": "Asuransi...",
+        "status": "Status...",
+        "status_value": {
+          "all": "Semua Status",
+          "final": "Voucher Final (Belum Bayar)",
+          "paid": "Lunas"
+        },
+        "period": "Periode..."
+      },
+      "table": {
+        "payer_code": "KODE PAYER",
+        "insurance_name": "NAMA ASURANSI",
+        "voucher_no": "NO VOUCHER",
+        "voucher_date": "TGL VOUCHER",
+        "item_count": "JUMLAH",
+        "total_amount": "TOTAL AMOUNT",
+        "status": "STATUS",
+        "action": "AKSI",
+        "pay": "Terima",
+        "detail": "Detail"
+      }
+    },
+    "daftar_piutang_page": {
+      "title": "Daftar Piutang",
+      "subtitle": "Pilih item untuk di-posting",
+      "filter": {
+        "insurance": "Asuransi",
+        "all_insurance": "Semua Asuransi",
+        "service": "Layanan",
+        "all_service": "Semua Layanan",
+        "status": "Status",
+        "all_status": "Semua Status",
+        "period": "Pilih Periode"
+      },
+      "table": {
+        "date": "TANGGAL TRANSAKSI",
+        "insurance": "ASURANSI",
+        "service_type": "JENIS LAYANAN",
+        "amount": "JUMLAH",
+        "status": "STATUS",
+        "action": "AKSI"
+      },
+      "action": {
+        "selected": "item dipilih",
+        "post": "Post",
+        "unpost": "Unpost",
+        "export": "Export"
+      },
+      "modal": {
+        "post_title": "Konfirmasi Posting",
+        "post_message": "Anda akan memposting {{count}} item AR. Lanjutkan?",
+        "post_btn": "Ya, Posting",
+        "unpost_title": "Konfirmasi Unpost",
+        "unpost_message": "Anda akan membatalkan posting {{count}} item AR. Lanjutkan?",
+        "unpost_btn": "Ya, Unpost"
+      },
+      "toast": {
+        "no_post_item": "Tidak ada item yang bisa diposting",
+        "post_success": "{{count}} item berhasil diposting",
+        "post_failed": "Gagal melakukan posting",
+        "no_unpost_item": "Tidak ada item yang bisa di-unpost",
+        "unpost_success": "{{count}} item berhasil di-unpost",
+        "unpost_failed": "Gagal melakukan unpost",
+        "export_failed": "Gagal export data",
+        "change_payer_success": "Payer berhasil diubah",
+        "change_payer_failed": "Gagal mengubah payer"
+      },
+      "change_payer": {
+        "title": "Ganti Payer",
+        "current_payer": "Payer Saat Ini",
+        "new_payer": "Payer Baru",
+        "new_payer_placeholder": "Pilih payer baru...",
+        "reason": "Alasan Perubahan",
+        "reason_placeholder": "Masukkan alasan perubahan payer...",
+        "save": "Simpan",
+        "history": "Riwayat Perubahan",
+        "change_number": "Perubahan #{{number}}",
+        "reason_label": "Alasan",
+        "btn_change": "Payer"
+      }
+    },
+    "tagihan_piutang_page": {
+      "title": "Tagihan Piutang",
+      "subtitle": "Daftar penjamin dengan status Posting yang siap dibuatkan voucher",
+      "filter": {
+        "payer": "Asuransi...",
+        "status": "Status...",
+        "status_value": {
+          "posting": "Posting",
+          "final": "Voucher Piutang Final",
+          "paid": "Lunas (Sudah Bayar)"
+        },
+        "period": "Periode Posting..."
+      },
+      "table": {
+        "payer_code": "KODE PAYER",
+        "insurance_name": "NAMA ASURANSI",
+        "voucher_number": "NO VOUCHER",
+        "item_count": "JUMLAH ITEM",
+        "total_amount": "TOTAL AMOUNT",
+        "status": "STATUS",
+        "action": "AKSI",
+        "detail": "Detail",
+        "no_data": "Tidak ada data dengan status Posting"
+      }
+    }
+  },
+  "ap": {
+    "invoice_list": "Daftar Hutang",
+    "payment": {
+      "title": "Pembayaran",
+      "detail_title": "Detail Pembayaran",
+      "info": "Informasi Invoice",
+      "supplier": "Supplier",
+      "invoice_no": "No Faktur",
+      "po_no": "No PO",
+      "due_date": "Jatuh Tempo",
+      "amount": "Jumlah Invoice",
+      "aging": "Umur Hutang",
+      "dp_list": "Riwayat DP",
+      "no_dp": "Tidak ada riwayat DP",
+      "total_dp": "Total DP",
+      "history_list": "Riwayat Pembayaran",
+      "no_history": "Tidak ada riwayat pembayaran",
+      "payment_form": {
+        "total_pay": "Nominal Bayar (Rp)"
+      }
+    },
+    "aging_report": "Laporan Aging",
+    "list": {
+      "title": "Daftar Account Payable",
+      "subtitle": "Kelola semua hutang supplier dengan informasi aging",
+      "filter": {
+        "all_status": "Semua Status",
+        "unpaid": "Belum Bayar",
+        "partial": "Partial",
+        "paid": "Lunas",
+        "select_supplier": "Pilih Supplier",
+        "all_suppliers": "Semua Supplier",
+        "due_date": "Pilih Jatuh Tempo"
+      },
+      "table": {
+        "supplier": "SUPPLIER",
+        "po_no": "NO PO",
+        "invoice_no": "NO FAKTUR",
+        "due_date": "JATUH TEMPO",
+        "total": "TOTAL",
+        "outstanding": "OUTSTANDING",
+        "aging": "AGING",
+        "status": "STATUS"
+      },
+      "paid_manual": "Paid (Manual)"
+    }
+  },
+  "report_page": {
+    "balance_sheet": "Neraca",
+    "profit_loss": "Laba Rugi",
+    "trial_balance": "Neraca Saldo",
+    "general_ledger": "Buku Besar",
+    "ledger_summary": "Ringkasan Buku Besar"
+  },
+  "journal_report": {
+    "title": "Laporan Jurnal",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "title": "Laporan Jurnal",
+      "list": "Daftar"
+    },
+    "search_placeholder": "Cari...",
+    "period_placeholder": "Pilih Periode",
+    "export_block": "Ekspor Blok",
+    "export_list": "Ekspor Daftar",
+    "toast": {
+      "export_failed": "Gagal mengekspor."
+    },
+    "table": {
+      "date": "Tanggal Transaksi:",
+      "posting_date": "Tanggal Posting:",
+      "ref": "Ref:",
+      "account_code": "KODE AKUN",
+      "account_name": "NAMA AKUN",
+      "description": "KETERANGAN",
+      "debit": "DEBIT",
+      "credit": "KREDIT",
+      "total": "Total",
+      "no_data": "Data Tidak Ditemukan"
+    },
+    "status": {
+      "published": "Diposting",
+      "pending": "Menunggu"
+    }
+  },
+  "journal_ledger": {
+    "title": "Buku Besar",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "title": "Buku Besar",
+      "list": "Daftar"
+    },
+    "labels": {
+      "opening": "SALDO AWAL",
+      "closing": "SALDO AKHIR"
+    },
+    "table": {
+      "date": "TANGGAL",
+      "journal_no": "NO JURNAL",
+      "ref_no": "NO REF",
+      "description": "KETERANGAN",
+      "debit": "DEBIT",
+      "credit": "KREDIT",
+      "balance": "SALDO"
+    },
+    "pagination": {
+      "showing_entries": "Menampilkan {{from}} sampai {{to}} dari {{totalRecords}} data",
+      "showing_accounts": "Menampilkan Akun {{start}} sampai {{end}} dari {{total}}",
+      "page_of": "Halaman {{page}} dari {{pages}}"
+    },
+    "tooltip": {
+      "download": "Unduh Buku Besar (Pilih Akun Terlebih Dahulu)"
+    },
+    "button": {
+      "refresh": "Segarkan"
+    },
+    "placeholder": {
+      "period": "Pilih Periode",
+      "select_account": "Pilih Akun (Opsional)"
+    },
+    "empty_state": "Tidak ada data ditemukan."
+  },
+  "balance_sheet_page": {
+    "title": "Neraca",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "report": "Laporan",
+      "title": "Neraca"
+    },
+    "subtitle": "Laporan Keuangan",
+    "filter_period": "Filter Periode",
+    "export": "Ekspor",
+    "exporting": "Mengekspor...",
+    "download_excel": "Unduh Excel",
+    "metrics": {
+      "total_assets": "Total Aset",
+      "total_liabilities": "Total Kewajiban",
+      "total_equity": "Total Ekuitas"
+    },
+    "table": {
+      "title": "Rincian Neraca",
+      "subtitle": "Detail pos-pos keuangan",
+      "description": "KETERANGAN",
+      "amount": "JUMLAH (IDR)",
+      "no_data": "Tidak ada data untuk periode ini"
+    }
+  },
+  "profit_loss_page": {
+    "title": "Laba Rugi",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "report": "Laporan",
+      "title": "Laba Rugi"
+    },
+    "subtitle": "Laporan Keuangan",
+    "filter_period": "Filter Periode",
+    "export": "Ekspor",
+    "exporting": "Mengekspor...",
+    "download_excel": "Unduh Excel",
+    "metrics": {
+      "gross_profit": "Total Laba Kotor",
+      "operating_profit": "Total Laba Operasional",
+      "net_profit": "Total Laba Bersih"
+    },
+    "table": {
+      "title": "Rincian Laba Rugi",
+      "subtitle": "Detail pendapatan dan beban",
+      "description": "KETERANGAN",
+      "amount": "JUMLAH (IDR)",
+      "no_data": "Tidak ada data untuk periode ini"
+    }
+  },
+  "profile_settings": {
+    "title": "Pengaturan Profil",
+    "display_name": "Nama Tampilan",
+    "enter_display_name": "Masukkan nama tampilan",
+    "email": "Email",
+    "enter_email": "contoh@email.com",
+    "phone": "Nomor Telepon",
+    "enter_phone": "08xxxxxxxxxx",
+    "change_password": "Ubah Kata Sandi",
+    "current_password": "Kata Sandi Saat Ini",
+    "enter_current_password": "Masukkan kata sandi saat ini",
+    "new_password": "Kata Sandi Baru",
+    "enter_new_password": "Masukkan kata sandi baru",
+    "confirm_password": "Konfirmasi Kata Sandi",
+    "enter_confirm_password": "Ulangi kata sandi baru",
+    "profile_picture": "Foto Profil",
+    "upload_photo": "Unggah Foto",
+    "delete_photo": "Hapus Foto",
+    "photo_guideline": "JPG, PNG, GIF, WEBP maks 2MB",
+    "save_profile": "Simpan Profil",
+    "saving": "Menyimpan..."
+  },
+  "preferences_settings": {
+    "title": "Preferensi",
+    "language": "Bahasa",
+    "language_id": "Bahasa Indonesia",
+    "language_en": "English",
+    "date_format": "Format Tanggal",
+    "timezone": "Zona Waktu",
+    "currency": "Mata Uang"
+  },
+  "default_account_settings": {
+    "title": "Akun Default",
+    "cash_account": "Akun Kas Default",
+    "ar_account": "Akun Piutang Default",
+    "ap_account": "Akun Hutang Default",
+    "revenue_account": "Akun Pendapatan Default",
+    "expense_account": "Akun Beban Default"
+  },
+  "common": {
+    "add_new": "Tambah Baru",
+    "action": "Aksi",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "edit": "Ubah",
+    "delete": "Hapus",
+    "add": "Tambah",
+    "search": "Cari",
+    "filter": "Filter",
+    "export": "Ekspor",
+    "import": "Impor",
+    "download": "Unduh",
+    "upload": "Unggah",
+    "print": "Cetak",
+    "refresh": "Segarkan",
+    "back": "Kembali",
+    "next": "Selanjutnya",
+    "previous": "Sebelumnya",
+    "submit": "Kirim",
+    "reset": "Reset",
+    "close": "Tutup",
+    "confirm": "Konfirmasi",
+    "yes": "Ya",
+    "no": "Tidak",
+    "loading": "Memuat...",
+    "no_data": "Tidak ada data",
+    "select": "Pilih",
+    "all": "Semua",
+    "select_all": "Pilih Semua",
+    "actions": "Aksi",
+    "pagination_text": "Menampilkan {{from}} - {{to}} dari {{totalRecords}} data",
+    "view_mode": "Mode Lihat",
+    "edit_mode": "Mode Edit",
+    "status": "Status",
+    "date": "Tanggal",
+    "amount": "Jumlah",
+    "total": "Total",
+    "description": "Deskripsi",
+    "notes": "Catatan",
+    "created_at": "Dibuat Pada",
+    "updated_at": "Diperbarui Pada",
+    "created_by": "Dibuat Oleh",
+    "create": "Buat",
+    "list": "Daftar",
+    "no_data_available": "Tidak ada data tersedia",
+    "update": "Perbarui",
+    "view": "Lihat",
+    "no_records": "Tidak ada data",
+    "riwayat": {
+      "title": "Riwayat",
+      "empty": "Belum ada riwayat untuk transaksi ini.",
+      "error": "Gagal memuat riwayat.",
+      "unknown_user": "Tidak diketahui",
+      "backfill": "Data lama"
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Diposting",
+    "pending": "Menunggu",
+    "approved": "Disetujui",
+    "rejected": "Ditolak",
+    "completed": "Selesai",
+    "cancelled": "Dibatalkan",
+    "active": "Aktif",
+    "inactive": "Tidak Aktif",
+    "paid_watermark": "LUNAS"
+  },
+  "validation": {
+    "required": "Kolom ini wajib diisi",
+    "email_invalid": "Alamat email tidak valid",
+    "password_min": "Kata sandi minimal 6 karakter",
+    "password_mismatch": "Kata sandi tidak cocok",
+    "amount_positive": "Jumlah harus lebih dari 0",
+    "file_size_max": "Ukuran file maksimal 2MB",
+    "file_type_image": "Format file harus JPEG, PNG, GIF, atau WEBP",
+    "number_only": "Hanya boleh berisi angka"
+  },
+  "messages": {
+    "save_success": "Data berhasil disimpan",
+    "save_error": "Gagal menyimpan data",
+    "delete_success": "Data berhasil dihapus",
+    "delete_error": "Gagal menghapus data",
+    "delete_confirm": "Apakah Anda yakin ingin menghapus item ini?",
+    "confirmation": "Konfirmasi",
+    "save_confirm": "Apakah Anda yakin ingin menyimpan data ini?",
+    "update_confirm": "Apakah Anda yakin ingin memperbarui data ini?",
+    "delete_warning": "Anda akan kehilangan data Anda!",
+    "update_success": "Data berhasil diperbarui",
+    "update_error": "Gagal memperbarui data",
+    "password_changed": "Kata sandi berhasil diubah",
+    "password_error": "Gagal mengubah kata sandi",
+    "profile_updated": "Profil berhasil diperbarui",
+    "upload_photo_success": "Foto profil berhasil diupload",
+    "upload_photo_error": "Gagal upload foto",
+    "delete_photo_info": "Foto akan dihapus saat simpan profil",
+    "delete_photo_success": "Foto profil berhasil dihapus",
+    "delete_photo_error": "Gagal menghapus foto",
+    "password_mismatch": "Kata sandi baru tidak cocok",
+    "password_min_length": "Kata sandi minimal 6 karakter",
+    "password_change_success": "Kata sandi berhasil diubah",
+    "password_change_error": "Gagal mengubah kata sandi",
+    "something_went_wrong": "Terjadi kesalahan"
+  },
+  "auth": {
+    "login": "Masuk",
+    "title": "Login Backoffice",
+    "welcome_title": "Selamat Datang Kembali",
+    "welcome_desc": "Masuk untuk mengakses dashboard keuangan rumah sakit Anda",
+    "register": "Daftar",
+    "email": "Alamat Email",
+    "email_placeholder": "Masukkan email Anda",
+    "password": "Kata Sandi",
+    "password_placeholder": "Masukkan kata sandi Anda",
+    "remember_me": "Ingat Saya",
+    "forgot_password": "Lupa Kata Sandi?",
+    "sign_in": "Masuk",
+    "login_error": "Email atau kata sandi salah",
+    "system_name": "Sistem Backoffice RS THB",
+    "copyright": "© 2024 Hak cipta dilindungi undang-undang",
+    "features": {
+      "integrated_accounting": "Akuntansi Terintegrasi",
+      "realtime_report": "Laporan Real-time",
+      "cash_flow": "Kelola Arus Kas",
+      "security": "Keamanan Terjamin"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard Eksekutif",
+    "subtitle": "Kinerja keuangan dan metrik operasional real-time",
+    "loading": "Memuat dashboard...",
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "overview": "Ringkasan"
+    },
+    "date_range": {
+      "to": "sampai"
+    },
+    "metrics": {
+      "total_revenue": "Total Pendapatan",
+      "outpatient": "Rawat Jalan",
+      "inpatient": "Rawat Inap",
+      "igd": "IGD",
+      "polyclinic": "Poliklinik",
+      "pharmacy": "Farmasi",
+      "laboratory": "Laboratorium",
+      "radiology": "Radiologi",
+      "physiotherapy": "Fisioterapi",
+      "today": "Hari Ini",
+      "this_month": "Bulan Ini",
+      "vs_last_month": "vs Bulan Lalu",
+      "department_performance": "Kinerja Departemen"
+    },
+    "charts": {
+      "monthly_revenue_trend": "Tren Pendapatan Bulanan",
+      "income_vs_expense": "Pendapatan vs Pengeluaran (12 Bulan Terakhir)",
+      "revenue": "Pendapatan",
+      "expense": "Pengeluaran",
+      "revenue_sources": "Sumber Pendapatan",
+      "distribution_by_dept": "Distribusi per Departemen",
+      "total": "Total",
+      "payment_methods": "Metode Pembayaran",
+      "payer_distribution": "Distribusi Kelas Pembayar"
+    },
+    "tables": {
+      "top_revenue_accounts": "Akun Pendapatan Tertinggi",
+      "highest_revenue_coa": "COA penghasil pendapatan tertinggi",
+      "view_all": "Lihat Semua",
+      "coa_code": "Kode COA",
+      "account_name": "Nama Akun",
+      "group": "Grup"
+    }
+  },
+  "table": {
+    "no": "No",
+    "action": "Aksi",
+    "showing": "Menampilkan",
+    "of": "dari",
+    "entries": "entri",
+    "rows_per_page": "Baris per halaman"
+  },
+  "finance": {
+    "debit": "Debit",
+    "credit": "Kredit",
+    "balance": "Saldo",
+    "revenue": "Pendapatan",
+    "expense": "Beban",
+    "profit": "Laba",
+    "loss": "Rugi",
+    "asset": "Aset",
+    "liability": "Kewajiban",
+    "equity": "Ekuitas",
+    "net_profit": "Laba Bersih",
+    "gross_profit": "Laba Kotor",
+    "total_assets": "Total Aset",
+    "total_liabilities": "Total Kewajiban",
+    "total_equity": "Total Ekuitas"
+  },
+  "general_ledger": {
+    "history": {
+      "title": "Riwayat Buku Besar",
+      "subtitle": "Lihat semua riwayat transaksi jurnal",
+      "select_account": "Pilih Akun",
+      "select_date_range": "Pilih Rentang Tanggal",
+      "total_debit": "Total Debit",
+      "total_credit": "Total Kredit",
+      "table": {
+        "date": "TANGGAL",
+        "journal_no": "NO JURNAL",
+        "trans_no": "NO TRANS",
+        "account": "AKUN",
+        "description": "KETERANGAN",
+        "debit": "DEBIT",
+        "credit": "KREDIT"
+      }
+    },
+    "summary": {
+      "title": "Ringkasan Buku Besar",
+      "subtitle": "Lihat saldo akun dan pergerakan berkala",
+      "filter_account": "Filter berdasarkan Akun...",
+      "table": {
+        "account": "AKUN",
+        "beginning_balance": "SALDO AWAL",
+        "debit": "DEBIT",
+        "credit": "KREDIT",
+        "net_change": "PERUBAHAN BERSIH",
+        "ending_balance": "SALDO AKHIR"
+      }
+    }
+  },
+  "buku_kas": {
+    "list_page": {
+      "title": "Daftar Buku Kas",
+      "subtitle": "Daftar akun kas dan bank serta rincian saldonya",
+      "search_placeholder": "Cari akun...",
+      "download_excel": "Download Excel",
+      "view_detail": "Lihat Detail",
+      "table": {
+        "account_code": "KODE AKUN",
+        "type": "TIPE",
+        "account_name": "NAMA AKUN",
+        "balance": "SALDO",
+        "action": "AKSI"
+      }
+    },
+    "detail_page": {
+      "title": "Detail Buku Kas",
+      "subtitle": "Rincian transaksi akun kas/bank",
+      "account_info": "Informasi Akun",
+      "transaction_list": "Daftar Transaksi",
+      "transaction_history": "Riwayat Transaksi",
+      "debit_credit_list": "Daftar mutasi debit dan kredit",
+      "balance_as_of": "Saldo per",
+      "no_transactions": "Tidak ada transaksi",
+      "table": {
+        "date": "TANGGAL",
+        "transaction_no": "NO TRANSAKSI",
+        "journal_no": "NO JURNAL",
+        "description": "KETERANGAN",
+        "reference": "REFERENSI",
+        "debit": "DEBIT",
+        "credit": "KREDIT",
+        "balance": "SALDO"
+      }
+    },
+    "form_page": {
+      "title": "Tambah Transaksi",
+      "edit_title": "Edit Transaksi",
+      "date": "Tanggal",
+      "description": "Keterangan",
+      "amount": "Jumlah",
+      "type": "Tipe",
+      "debit": "Debit (Masuk)",
+      "credit": "Kredit (Keluar)"
+    },
+    "transfer_page": {
+      "title": "Daftar Transfer",
+      "subtitle": "Kelola perpindahan dana antar akun kas dan bank",
+      "search_placeholder": "Cari transaksi...",
+      "add_new": "Tambah",
+      "export": "Ekspor",
+      "exporting": "Mengekspor...",
+      "filter": {
+        "all_status": "Semua Status",
+        "publish": "Terbit",
+        "pending": "Menunggu",
+        "void": "Batal"
+      },
+      "table": {
+        "transaction_no": "NO TRANSAKSI",
+        "date": "TANGGAL",
+        "from": "DARI (PENGIRIM)",
+        "to": "KE (PENERIMA)",
+        "amount": "JUMLAH",
+        "status": "STATUS",
+        "action": "AKSI"
+      },
+      "actions": {
+        "view": "Lihat",
+        "delete": "Hapus",
+        "void": "Batalkan"
+      },
+      "modal": {
+        "delete_title": "Hapus Transaksi",
+        "void_title": "Batalkan Transaksi",
+        "delete_message": "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.",
+        "void_message": "Apakah Anda yakin ingin membatalkan transaksi ini? Tindakan ini tidak dapat dibatalkan."
+      }
+    },
+    "transfer_form": {
+      "create_title": "Buat Transfer Baru",
+      "update_title": "Update Transfer",
+      "detail_title": "Detail Transfer",
+      "create_subtitle": "Isi formulir untuk mencatat transfer dana antar akun.",
+      "update_subtitle": "Perbarui informasi transfer dana.",
+      "back": "Kembali",
+      "cancel": "Batal",
+      "transaction_info": "Informasi Transaksi",
+      "transaction_no": "No. Transaksi",
+      "transaction_no_hint": "Otomatis jika kosong (e.g., BTU-0001)",
+      "optional": "Optional",
+      "transaction_date": "Tanggal Transaksi",
+      "select_date": "Pilih Tanggal",
+      "from_account": "Akun Asal (Pengirim)",
+      "to_account": "Akun Tujuan (Penerima)",
+      "select_account": "Pilih Akun",
+      "select_from_account": "Pilih Akun Asal...",
+      "select_to_account": "Pilih Akun Tujuan...",
+      "amount": "Jumlah (Rp)",
+      "description": "Keterangan",
+      "description_hint": "Contoh: Transfer dana operasional...",
+      "in_words": "Terbilang:",
+      "rupiah": "rupiah",
+      "read_only": "Mode Baca Saja",
+      "read_only_msg": "Data tidak bisa diubah karena statusnya:",
+      "save_transfer": "Simpan Transfer",
+      "update_transfer": "Update Transfer",
+      "processing": "Memproses...",
+      "validation": {
+        "date_required": "Tanggal wajib diisi",
+        "from_required": "Akun asal wajib diisi",
+        "to_required": "Akun tujuan wajib diisi",
+        "amount_required": "Jumlah wajib diisi",
+        "description_required": "Keterangan wajib diisi"
+      },
+      "modal": {
+        "confirm_title": "Konfirmasi",
+        "save_message": "Apakah Anda yakin ingin menyimpan data ini?",
+        "update_message": "Apakah Anda yakin ingin memperbarui data ini?"
+      }
+    },
+    "view_page": {
+      "title": "Detail Transfer",
+      "subtitle": "Informasi detail transaksi transfer dana.",
+      "back": "Kembali",
+      "edit": "Edit",
+      "transaction_info": "Informasi Transaksi",
+      "transaction_no": "No. Transaksi",
+      "transaction_date": "Tanggal Transaksi",
+      "from_account": "Akun Asal (Pengirim)",
+      "to_account": "Akun Tujuan (Penerima)",
+      "amount": "Jumlah (Rp)",
+      "description": "Keterangan"
+    }
+  },
+  "penerimaan": {
+    "list_page": {
+      "title": "Daftar Penerimaan",
+      "subtitle": "Kelola semua transaksi penerimaan kas dan bank",
+      "search_placeholder": "Cari transaksi...",
+      "add_new": "Tambah",
+      "export": "Ekspor",
+      "export_excel": "Export Excel",
+      "export_flat": "Export Flat",
+      "exporting": "Mengekspor...",
+      "filter": {
+        "all_status": "Semua Status",
+        "publish": "Terbit",
+        "pending": "Menunggu",
+        "void": "Batal"
+      },
+      "table": {
+        "transaction_no": "NO TRANSAKSI",
+        "journal_no": "NO JURNAL",
+        "date": "TANGGAL",
+        "account": "AKUN",
+        "amount": "JUMLAH",
+        "status": "STATUS",
+        "action": "AKSI"
+      },
+      "actions": {
+        "view": "Lihat",
+        "delete": "Hapus",
+        "void": "Batalkan"
+      },
+      "modal": {
+        "delete_title": "Hapus Transaksi",
+        "void_title": "Batalkan Transaksi",
+        "delete_message": "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.",
+        "void_message": "Apakah Anda yakin ingin membatalkan transaksi ini? Tindakan ini tidak dapat dibatalkan."
+      }
+    },
+    "form_page": {
+      "create_title": "Buat Penerimaan Baru",
+      "update_title": "Update Penerimaan",
+      "detail_title": "Detail Penerimaan",
+      "create_subtitle": "Isi formulir untuk mencatat penerimaan baru.",
+      "update_subtitle": "Perbarui informasi transaksi penerimaan.",
+      "transaction_info": "Informasi Transaksi",
+      "detail_info": "Rincian Penerimaan",
+      "add_detail": "Tambah Item",
+      "back": "Kembali",
+      "cancel": "Batal",
+      "save": "Simpan Penerimaan",
+      "update": "Update Penerimaan",
+      "processing": "Memproses...",
+      "transaction_no": "No. Transaksi",
+      "transaction_no_optional": "(Optional)",
+      "transaction_no_hint": "Otomatis jika kosong (e.g., TRX-001)",
+      "transaction_date": "Tanggal Transaksi",
+      "target_account": "Akun Tujuan (Kas/Bank)",
+      "description": "Keterangan / Memo",
+      "description_hint": "Contoh: Penerimaan pembayaran invoice #INV-2023-001",
+      "revenue_account": "Akun Pendapatan",
+      "item_description": "Deskripsi Item",
+      "amount": "Jumlah (Rp)",
+      "total_receipt": "Total Penerimaan",
+      "no_items": "Belum ada rincian item",
+      "no_items_hint": "Klik tombol \"Tambah Item\" untuk memulai",
+      "delete_row": "Hapus baris",
+      "select_date": "Pilih Tanggal",
+      "select_account": "Pilih Akun Kas atau Bank...",
+      "loading_account": "Memuat akun...",
+      "readonly_mode": "Mode Baca Saja",
+      "readonly_message": "Data tidak bisa diubah karena statusnya: {{status}}.",
+      "validation": {
+        "date_required": "Tanggal wajib diisi",
+        "account_required": "Akun tujuan wajib dipilih",
+        "description_required": "Keterangan wajib diisi",
+        "amount_required": "Jumlah wajib diisi",
+        "amount_positive": "Jumlah harus lebih dari 0"
+      },
+      "modal": {
+        "confirm_title": "Konfirmasi",
+        "save_message": "Apakah Anda yakin ingin menyimpan data ini?",
+        "update_message": "Apakah Anda yakin ingin memperbarui data ini?"
+      }
+    },
+    "view_page": {
+      "title": "Detail Penerimaan",
+      "subtitle": "Informasi detail transaksi penerimaan #{{transactionNo}}",
+      "back": "Kembali",
+      "edit": "Edit Penerimaan",
+      "general_info": "Informasi Umum",
+      "transaction_no": "No. Transaksi",
+      "journal_no": "No. Jurnal",
+      "transaction_date": "Tanggal Transaksi",
+      "target_account": "Akun Tujuan",
+      "description": "Keterangan",
+      "no_description": "Tidak ada keterangan.",
+      "detail_info": "Rincian Transaksi",
+      "account_name": "Nama Akun",
+      "item_description": "Deskripsi",
+      "amount": "Jumlah",
+      "total": "Total",
+      "total_summary": "Ringkasan Total",
+      "no_data": "Data tidak tersedia"
+    }
+  },
+  "pengeluaran": {
+    "list_page": {
+      "title": "Daftar Pengeluaran",
+      "subtitle": "Kelola semua transaksi pengeluaran kas dan bank",
+      "search_placeholder": "Cari transaksi...",
+      "add_new": "Tambah",
+      "export": "Ekspor",
+      "export_excel": "Export Excel",
+      "export_flat": "Export Flat",
+      "exporting": "Mengekspor...",
+      "filter": {
+        "all_status": "Semua Status",
+        "publish": "Terbit",
+        "pending": "Menunggu",
+        "void": "Batal"
+      },
+      "table": {
+        "transaction_no": "NO TRANSAKSI",
+        "journal_no": "NO JURNAL",
+        "date": "TANGGAL",
+        "account": "AKUN",
+        "amount": "JUMLAH",
+        "status": "STATUS",
+        "action": "AKSI"
+      },
+      "actions": {
+        "view": "Lihat",
+        "delete": "Hapus",
+        "void": "Batalkan"
+      },
+      "modal": {
+        "delete_title": "Hapus Transaksi",
+        "void_title": "Batalkan Transaksi",
+        "delete_message": "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.",
+        "void_message": "Apakah Anda yakin ingin membatalkan transaksi ini? Tindakan ini tidak dapat dibatalkan."
+      }
+    },
+    "form_page": {
+      "create_title": "Buat Pengeluaran Baru",
+      "update_title": "Update Pengeluaran",
+      "detail_title": "Detail Pengeluaran",
+      "create_subtitle": "Isi formulir untuk mencatat pengeluaran baru.",
+      "update_subtitle": "Perbarui informasi transaksi pengeluaran.",
+      "transaction_info": "Informasi Transaksi",
+      "detail_info": "Rincian Pengeluaran",
+      "add_detail": "Tambah Item",
+      "back": "Kembali",
+      "cancel": "Batal",
+      "save": "Simpan Pengeluaran",
+      "update": "Update Pengeluaran",
+      "processing": "Memproses...",
+      "transaction_no": "No. Transaksi",
+      "transaction_no_optional": "(Optional)",
+      "transaction_no_hint": "Otomatis jika kosong (e.g., TRX-001)",
+      "transaction_date": "Tanggal Transaksi",
+      "source_account": "Akun Sumber (Kas/Bank)",
+      "description": "Keterangan / Memo",
+      "description_hint": "Contoh: Pembayaran biaya listrik bulan Januari",
+      "expense_account": "Akun Beban",
+      "item_description": "Deskripsi Item",
+      "amount": "Jumlah (Rp)",
+      "total_expense": "Total Pengeluaran",
+      "no_items": "Belum ada rincian item",
+      "no_items_hint": "Klik tombol \"Tambah Item\" untuk memulai",
+      "delete_row": "Hapus baris",
+      "select_date": "Pilih Tanggal",
+      "select_account": "Pilih Akun Kas atau Bank...",
+      "loading_account": "Memuat akun...",
+      "readonly_mode": "Mode Baca Saja",
+      "readonly_message": "Data tidak bisa diubah karena statusnya: {{status}}.",
+      "validation": {
+        "date_required": "Tanggal wajib diisi",
+        "account_required": "Akun sumber wajib dipilih",
+        "description_required": "Keterangan wajib diisi",
+        "amount_required": "Jumlah wajib diisi",
+        "amount_positive": "Jumlah harus lebih dari 0"
+      },
+      "modal": {
+        "confirm_title": "Konfirmasi",
+        "save_message": "Apakah Anda yakin ingin menyimpan data ini?",
+        "update_message": "Apakah Anda yakin ingin memperbarui data ini?"
+      }
+    },
+    "view_page": {
+      "title": "Detail Pengeluaran",
+      "subtitle": "Informasi detail transaksi pengeluaran #{{transactionNo}}",
+      "back": "Kembali",
+      "edit": "Edit Pengeluaran",
+      "general_info": "Informasi Umum",
+      "transaction_no": "No. Transaksi",
+      "journal_no": "No. Jurnal",
+      "transaction_date": "Tanggal Transaksi",
+      "source_account": "Akun Sumber",
+      "description": "Keterangan",
+      "no_description": "Tidak ada keterangan.",
+      "detail_info": "Rincian Transaksi",
+      "account_name": "Nama Akun",
+      "item_description": "Deskripsi",
+      "amount": "Jumlah",
+      "total": "Total",
+      "total_summary": "Ringkasan Total",
+      "no_data": "Data tidak tersedia"
+    }
+  },
+  "account_payable": {
+    "laporan_aging": {
+      "title": "Laporan Aging AP",
+      "page_title": "Laporan Aging Account Payable",
+      "subtitle": "Analisis umur hutang berdasarkan jatuh tempo",
+      "select_supplier": "Pilih Supplier",
+      "all_suppliers": "Semua Supplier",
+      "keyword_placeholder": "Cari No Faktur / No PO",
+      "export": "Ekspor",
+      "exporting": "Mengekspor...",
+      "periods": {
+        "current": "BELUM JATUH TEMPO",
+        "days_1_30": "1-30 HARI",
+        "days_31_60": "31-60 HARI",
+        "days_61_90": "61-90 HARI",
+        "days_over_90": ">90 HARI"
+      },
+      "total": "TOTAL",
+      "supplier": "SUPPLIER",
+      "table": {
+        "batch_number": "NO BATCH",
+        "po_number": "NO PO",
+        "invoice_number": "NO FAKTUR",
+        "po_invoice": "NO PO / NO FAKTUR",
+        "due_date": "JATUH TEMPO"
+      },
+      "no_data": "Tidak ada data"
+    },
+    "tukar_faktur": {
+      "title": "Tukar Faktur",
+      "subtitle": "Kelola pertukaran faktur supplier",
+      "all_suppliers": "Semua Supplier",
+      "select_supplier": "Pilih Supplier",
+      "select_period": "Pilih Periode",
+      "export": "Ekspor",
+      "exporting": "Mengekspor...",
+      "filter": {
+        "not_sent": "Belum Tukar",
+        "sent": "Sudah Tukar"
+      },
+      "loading": "Memuat data...",
+      "no_data": "Tidak ada data ditemukan",
+      "error_loading": "Error memuat data",
+      "retry": "Coba Lagi",
+      "transactions": "transaksi",
+      "total": "Total",
+      "mark_exchanged": "Tandai Sudah Tukar",
+      "processing": "Memproses...",
+      "select_min_one": "Pilih minimal satu item",
+      "no_valid_id": "Tidak ada ID valid",
+      "status_updated": "Status berhasil diupdate",
+      "update_failed": "Gagal update status",
+      "export_failed": "Gagal export data",
+      "table": {
+        "po_no": "No PO",
+        "receipt_date": "Tgl Penerimaan",
+        "po_date": "Tgl PO",
+        "invoice_no": "No Faktur",
+        "due_date": "Jatuh Tempo",
+        "amount": "Jumlah",
+        "exchange_date": "Tgl Tukar Faktur",
+        "batch_number": "No Batch",
+        "payment_status": "Status Bayar"
+      },
+      "no_detail": "Tidak ada detail transaksi",
+      "modal": {
+        "confirm_title": "Konfirmasi",
+        "confirm_message": "Apakah Anda yakin ingin menandai faktur yang dipilih sebagai sudah ditukar dengan tanggal jatuh tempo {{date}}?"
+      },
+      "due_date_label": "Jatuh Tempo",
+      "days_label": "Hari",
+      "print_resi": "Cetak Resi",
+      "print_failed": "Gagal mengambil data cetak",
+      "paid_manual": "Paid (Manual)"
+    },
+    "pembayaran": {
+      "title": "Pembayaran AP",
+      "subtitle": "Kelola pembayaran Account Payable",
+      "all_suppliers": "Semua Supplier",
+      "select_supplier": "Pilih Supplier",
+      "select_bank": "Pilih Rekening",
+      "all_banks": "Semua Rekening",
+      "select_period": "Pilih Periode",
+      "pay_now": "Bayar Sekarang",
+      "processing": "Memproses...",
+      "filter": {
+        "unpaid": "Belum Bayar",
+        "partial": "Partial",
+        "paid": "Sudah Bayar",
+        "keyword": "Cari No Faktur / No PO",
+        "due_date_period": "Periode Jatuh Tempo"
+      },
+      "no_data": "Tidak ada data ditemukan",
+      "table": {
+        "supplier": "SUPPLIER",
+        "po_no": "NO PO",
+        "invoice_no": "NO FAKTUR",
+        "receipt_date": "TGL PENERIMAAN",
+        "due_date": "JATUH TEMPO",
+        "total": "TOTAL",
+        "paid": "DIBAYAR",
+        "outstanding": "SISA",
+        "aging": "AGING",
+        "status": "STATUS",
+        "action": "AKSI"
+      },
+      "status": {
+        "paid": "Lunas",
+        "unpaid": "Belum Lunas"
+      },
+      "actions": {
+        "view": "Lihat Detail"
+      },
+      "payment_info": "Info Pembayaran",
+      "payment_date": "Tgl Bayar",
+      "payment_ref": "Ref Bayar",
+      "payment_account": "Rekening",
+      "select_min_one": "Pilih minimal satu item untuk dibayar",
+      "no_bank_selected": "Pilih rekening bank untuk pembayaran",
+      "modal": {
+        "confirm_title": "Konfirmasi Pembayaran",
+        "confirm_message": "Apakah Anda yakin ingin melakukan pembayaran untuk item yang dipilih?"
+      },
+      "paid_manual": "Paid (Manual)"
+    },
+    "purchase_order": {
+      "title": "Purchase Order",
+      "subtitle": "Kelola PO dan pembayaran uang muka",
+      "list_title": "Daftar Purchase Order",
+      "search_placeholder": "Cari No PO / Supplier...",
+      "date_placeholder": "Periode Tanggal",
+      "filter": {
+        "all_status": "Semua Status",
+        "outstanding": "PO Outstanding",
+        "marked_paid": "Sudah Ditandai Paid"
+      },
+      "table": {
+        "po_no": "No. PO",
+        "date": "Tanggal",
+        "supplier": "Supplier",
+        "total": "Total PO",
+        "total_dp": "Total DP",
+        "status": "Status",
+        "action": "Aksi",
+        "marked_paid_info": "Ditandai Paid"
+      },
+      "action": {
+        "pay_dp": "Bayar DP",
+        "mark_as_paid": "Tandai Paid",
+        "unmark_as_paid": "Batal Tandai Paid"
+      },
+      "pay_dp_modal": {
+        "title": "Bayar Uang Muka (DP)",
+        "date": "Tanggal",
+        "bank": "Bank/Kas",
+        "select_bank": "Pilih Bank...",
+        "amount": "Jumlah DP",
+        "note": "Catatan",
+        "note_placeholder": "Catatan pembayaran...",
+        "cancel": "Batal",
+        "save": "Simpan DP",
+        "saving": "Menyimpan...",
+        "info_po": "Info PO",
+        "history_dp": "Riwayat DP",
+        "no_history": "Belum ada riwayat DP",
+        "validation": {
+          "amount_positive": "Jumlah DP harus lebih dari 0",
+          "select_bank": "Pilih Bank/Kas",
+          "success": "Down Payment berhasil ditambahkan",
+          "error": "Gagal menambahkan DP"
+        }
+      },
+      "mark_as_paid": {
+        "title": "Tandai sebagai Paid",
+        "confirm": "Ya, Tandai Paid",
+        "description": "PO ini akan ditandai sudah dibayar dan hilang dari daftar outstanding serta hasil download. Semua faktur dengan No. PO ini ikut menjadi Paid di Tukar Faktur, Daftar AP, dan Pembayaran.",
+        "no_journal_warning": "Tidak ada jurnal yang diposting, jadi saldo Utang Supplier di buku besar tidak berubah. Gunakan hanya untuk pembayaran yang pencatatan akuntansinya sudah masuk dari sumber lain. Bisa dibatalkan lewat filter \"Sudah Ditandai Paid\".",
+        "note_label": "Catatan",
+        "note_placeholder": "Alasan / referensi pembayaran (wajib diisi)"
+      },
+      "unmark_as_paid": {
+        "title": "Batalkan Tanda Paid",
+        "confirm": "Ya, Batalkan",
+        "description": "PO ini kembali ke daftar outstanding, dan semua faktur yang dilunasi lewat Mark as Paid dikembalikan ke status Unpaid. Faktur yang dibayar lewat menu Pembayaran tidak tersentuh.",
+        "note_label": "Alasan pembatalan",
+        "note_placeholder": "Alasan pembatalan (wajib diisi)"
+      }
+    }
+  },
+  "account_receivable": {
+    "laporan_aging": {
+      "title": "Laporan Aging Piutang",
+      "page_title": "Laporan Aging Account Receivable",
+      "subtitle": "Analisis umur piutang berdasarkan Voucher & Asuransi",
+      "select_insurance": "Pilih Asuransi",
+      "all_insurance": "Semua Asuransi",
+      "export": "Ekspor",
+      "exporting": "Mengekspor...",
+      "periods": {
+        "current": "BELUM JATUH TEMPO",
+        "days_1_30": "1-30 HARI",
+        "days_31_60": "31-60 HARI",
+        "days_61_90": "61-90 HARI",
+        "days_over_90": ">90 HARI"
+      },
+      "total": "TOTAL",
+      "table": {
+        "voucher_date": "TGL VOUCHER",
+        "voucher_no": "NO VOUCHER",
+        "insurance": "ASURANSI",
+        "due_date": "JATUH TEMPO",
+        "current": "BELUM JATUH TEMPO",
+        "days_1_30": "1-30 HARI",
+        "days_31_60": "31-60 HARI",
+        "days_61_90": "61-90 HARI",
+        "days_over_90": ">90 HARI",
+        "total": "TOTAL"
+      },
+      "no_data": "Tidak ada data"
+    },
+    "payment_voucher_detail": {
+      "title_paid": "Payment Voucher AR (PAID)",
+      "title_detail": "Payment Voucher AR Details",
+      "title_generate": "Generate Payment Voucher AR",
+      "subtitle_paid": "Voucher ini sudah dibayar/dilunasi",
+      "subtitle_detail": "Detail voucher piutang yang telah dibuat",
+      "subtitle_generate": "Detail piutang untuk penjamin yang akan dibuatkan voucher",
+      "back_btn": "Kembali",
+      "watermark_paid": "LUNAS",
+      "payer_info": {
+        "code": "Kode Payer",
+        "name": "Nama Asuransi",
+        "item_count": "Jumlah Item",
+        "total_amount": "Total Amount"
+      },
+      "details_title": "Rincian Piutang",
+      "summary_title": "Summary",
+      "table": {
+        "trans_date": "Tanggal Transaksi",
+        "post_date": "Tanggal Posting",
+        "service": "Layanan",
+        "amount": "Total Amount",
+        "action": "Aksi"
+      },
+      "service_type": {
+        "rajal": "Rawat Jalan",
+        "ranap": "Rawat Inap"
+      },
+      "summary_form": {
+        "total_label": "Total Amount",
+        "due_date_label": "Tanggal Jatuh Tempo",
+        "terbilang_label": "Terbilang"
+      },
+      "btn": {
+        "generate": "Generate Voucher",
+        "cancel": "Batal"
+      },
+      "tooltip": {
+        "delete": "Hapus dari daftar (Cancel Posting)"
+      },
+      "toast": {
+        "invalid_payer": "Data payer tidak valid",
+        "generate_success": "Voucher berhasil dibuat untuk {{count}} item",
+        "generate_failed": "Gagal membuat voucher",
+        "delete_success": "Item berhasil dihapus dari rincian",
+        "delete_failed": "Gagal menghapus item"
+      },
+      "modal": {
+        "generate_title": "Konfirmasi Generate Voucher",
+        "generate_message": "Apakah Anda yakin ingin membuat Payment Voucher untuk {{name}}? Total amount: {{amount}}",
+        "generate_yes": "Ya, Generate",
+        "delete_title": "Konfirmasi Hapus Item",
+        "delete_message": "Apakah Anda yakin ingin menghapus item ini dari daftar? Item akan dikembalikan ke status Pending.",
+        "delete_yes": "Ya, Hapus",
+        "cancel": "Batal",
+        "unpost_title": "Konfirmasi Unpost",
+        "unpost_message": "Apakah Anda yakin ingin membatalkan posting item ini? Item akan kembali ke status Pending.",
+        "unpost_confirm": "Ya, Unpost",
+        "void_title": "Konfirmasi Void",
+        "void_message": "Apakah Anda yakin ingin membatalkan (void) item ini? Item akan ditandai sebagai Void.",
+        "void_confirm": "Ya, Void",
+        "revision_title": "Upload Revisi Data"
+      },
+      "zero": "Nol",
+      "currency_name": "Rupiah"
+    },
+    "settlement_form": {
+      "page_title": "Settlement Voucher {{voucherNumber}}",
+      "title": "Proses Penerimaan (Settlement)",
+      "subtitle": "Catat penerimaan pembayaran untuk voucher ini",
+      "back_btn": "Kembali",
+      "voucher_info": {
+        "title": "Informasi Voucher",
+        "number": "No. Voucher",
+        "payer": "Payer / Asuransi",
+        "date": "Tgl Voucher",
+        "due_date": "Jatuh Tempo",
+        "total": "Total Tagihan",
+        "status_paid": "LUNAS",
+        "status_partial": "DIBAYAR SEBAGIAN",
+        "status_outstanding": "OUTSTANDING"
+      },
+      "details_title": "Rincian Item Piutang",
+      "no_items": "Tidak ada item",
+      "table": {
+        "date_bill": "TGL BILLING",
+        "date_post": "TGL POSTING",
+        "service": "LAYANAN",
+        "total": "TOTAL",
+        "invoice_service": "Invoice / Layanan",
+        "sep_no": "No SEP",
+        "patient_info": "Info Pasien"
+      },
+      "payment_title": "Informasi Pembayaran",
+      "status_paid": "Sudah Dibayar",
+      "paid_info": {
+        "bank": "Rekening Bank (COA)",
+        "date": "Tanggal Pembayaran",
+        "ref": "Referensi Pembayaran"
+      },
+      "payment_form": {
+        "date_label": "Tanggal Terima",
+        "bank_label": "Rekening Penerimaan",
+        "bank_placeholder": "Pilih Akun Kas/Bank...",
+        "ref_label": "No. Referensi / Bukti Transfer",
+        "ref_placeholder": "Contoh: TRF-123456",
+        "save_btn": "Simpan Penerimaan",
+        "pay_full": "Bayar Full Sisa",
+        "amount": "Target Pelunasan Piutang",
+        "processing": "Processing..."
+      },
+      "discount_form": {
+        "title": "Diskon",
+        "percent": "Diskon (%)",
+        "amount": "Diskon (Rp)"
+      },
+      "simulation": {
+        "title": "Ringkasan Pembayaran",
+        "subtotal": "Subtotal (Tagihan)",
+        "paid": "Sudah Dibayar",
+        "outstanding_before": "Sisa Tagihan (Sebelum Payment Ini)",
+        "current_title": "Simulasi Pembayaran Saat Ini",
+        "target_settlement": "Target Pelunasan",
+        "discount": "Diskon",
+        "total_cash": "Total Pembayaran (Kas/Bank)",
+        "remaining_after": "Sisa Tagihan Nanti"
+      },
+      "history_title": "Riwayat Pembayaran",
+      "history_empty": "Belum ada riwayat pembayaran",
+      "history_partial_note": "Pembayaran Partial",
+      "current_total_label": "Total Pembayaran Saat Ini",
+      "modal": {
+        "title": "Konfirmasi Penerimaan",
+        "message": "Apakah anda yakin ingin memproses penerimaan untuk Voucher {{voucher}} sebesar {{amount}}? Pastikan data tanggal dan rekening bank sudah benar.",
+        "yes": "Ya, Proses Simpan",
+        "cancel": "Batal"
+      },
+      "toast": {
+        "incomplete": "Data tidak lengkap",
+        "success": "Penerimaan berhasil dicatat untuk {{name}}",
+        "failed": "Gagal memproses penerimaan"
+      },
+      "not_found": {
+        "message": "Data voucher tidak ditemukan atau sudah dibayar.",
+        "back": "Kembali"
+      },
+      "print": {
+        "kuitansi": "KUITANSI",
+        "invoice": "INVOICE",
+        "receipt_proof": "BUKTI PEMBAYARAN",
+        "ar_bill": "TAGIHAN PIUTANG",
+        "to": "Kepada",
+        "payer_no": "No. Payer",
+        "doc_no": "No. Dokumen",
+        "date": "Tanggal",
+        "payment_date": "Tgl Bayar",
+        "table": {
+          "date": "Tanggal",
+          "invoice": "Invoice / Layanan",
+          "sep": "No SEP",
+          "patient": "Pasien",
+          "amount": "Jumlah"
+        },
+        "total": "TOTAL",
+        "terbilang": "Terbilang",
+        "rupiah": "Rupiah",
+        "created_by": "Dibuat Oleh,",
+        "approved_by": "Disetujui Oleh,",
+        "received_by": "Diterima Oleh,",
+        "officer": "Petugas",
+        "finance": "Keuangan",
+        "footer": "Dicetak pada: {{date}} | RS THB Backoffice System"
+      }
+    }
+  },
+  "journal": {
+    "trial_journal": {
+      "title": "Jurnal Percobaan",
+      "list_title": "Daftar Jurnal Percobaan",
+      "select_period": "Pilih Periode",
+      "export_block": "Ekspor Blok",
+      "export_list": "Ekspor Daftar",
+      "search_placeholder": "Cari...",
+      "posting": "Posting",
+      "status": {
+        "published": "Terbit",
+        "pending": "Tertunda",
+        "void": "Batal"
+      },
+      "table": {
+        "account_code": "KODE AKUN",
+        "account_name": "NAMA AKUN",
+        "description": "KETERANGAN",
+        "debit": "DEBIT",
+        "credit": "KREDIT"
+      },
+      "modal": {
+        "confirm_title": "Konfirmasi",
+        "posting_confirm": "Apakah Anda yakin ingin memposting transaksi ini?",
+        "posting_btn": "Posting",
+        "cancel_btn": "Batal"
+      },
+      "toast": {
+        "export_failed": "Gagal melakukan ekspor.",
+        "update_failed": "Gagal memperbarui jurnal transaksi."
+      },
+      "no_data": "Data Tidak Ditemukan",
+      "total": "Total",
+      "ref": "Ref:"
+    }
+  },
+  "jasa_medis": {
+    "title": "Jasa Medis",
+    "payment": {
+      "title": "Pembayaran Jasa Medis",
+      "subtitle": "Kelola pembayaran jasa dokter",
+      "filter": {
+        "patient_type": "Tipe Pasien",
+        "all_types": "Semua Tipe",
+        "all_status": "Semua Status",
+        "pending": "Menunggu",
+        "paid": "Lunas",
+        "filter_btn": "Filter"
+      },
+      "payment_form": {
+        "title": "Form Pembayaran",
+        "selected_count": "{{count}} jasa medis dipilih",
+        "date": "Tanggal Bayar",
+        "bank": "Rekening Bank",
+        "select_bank": "Pilih Bank",
+        "ref_no": "No. Referensi",
+        "ref_placeholder": "No. Giro/Transfer",
+        "total_pay": "Total Bayar",
+        "process_btn": "Proses Pembayaran",
+        "processing": "Memproses..."
+      },
+      "table": {
+        "doctor": "DOKTER",
+        "period": "PERIODE",
+        "patient_type": "TIPE PASIEN",
+        "total_fee": "TOTAL JASA",
+        "outstanding": "SISA",
+        "status": "STATUS"
+      },
+      "modal": {
+        "confirm_pay_btn": "Konfirmasi Bayar",
+        "confirm_msg": "Anda akan membayar {{count}} jasa medis dengan total {{amount}}. Lanjutkan?"
+      }
+    },
+    "badge": {
+      "pph21_active": "Kena PPh21",
+      "pph21_inactive": "Bebas PPh21"
+    },
+    "alert": {
+      "pph21_exempt_title": "Perhatian!",
+      "pph21_exempt_message": "Dokter ini tidak dikenakan PPh21 (Status: Bebas Pajak)."
+    },
+    "payment_voucher": {
+      "title": "Payment Voucher - Jasa Medis",
+      "subtitle": "Daftar dokter dengan status Posting yang siap dibuatkan voucher",
+      "filter_status": "Status...",
+      "filter_doctor": "Dokter...",
+      "filter_period": "Periode...",
+      "table": {
+        "voucher_number": "NO VOUCHER",
+        "period": "PERIODE",
+        "doctor_code": "KODE DOKTER",
+        "doctor_name": "NAMA DOKTER",
+        "item_count": "JUMLAH ITEM",
+        "total_fee": "TOTAL JASA",
+        "action": "AKSI"
+      },
+      "detail_btn": "Detail",
+      "form": {
+        "title_paid": "Payment Voucher (PAID)",
+        "title_generate": "Generate Payment Voucher",
+        "subtitle_paid": "Voucher jasa medis yang sudah dibayar",
+        "subtitle_generate": "Detail jasa medis untuk dokter yang akan dibuatkan voucher",
+        "watermark_paid": "DIBAYAR",
+        "back_btn": "Kembali",
+        "doctor_info": {
+          "code": "KODE DOKTER",
+          "name": "NAMA DOKTER",
+          "item_count": "JUMLAH ITEM",
+          "total_fee": "TOTAL JASA"
+        },
+        "details_title": "Rincian Jasa Medis",
+        "table": {
+          "date": "Tanggal Tindakan",
+          "procedure": "Tindakan",
+          "payment_method": "Cara Bayar",
+          "posting_date": "Tanggal Posting",
+          "total_fee": "Total Jasa",
+          "action": "Aksi"
+        },
+        "calc_title": "Kalkulasi Doctor Share",
+        "share_percent": "Bagian Dokter (%)",
+        "share_placeholder": "Masukkan persentase",
+        "share_required": "Wajib diisi untuk generate voucher",
+        "doctor_revenue": "Pendapatan Dokter",
+        "terbilang": "Terbilang",
+        "generate_btn": "Generate Voucher",
+        "delete_tooltip": "Hapus dari daftar (Cancel Posting)",
+        "modal": {
+          "confirm_generate_title": "Konfirmasi Generate Voucher",
+          "confirm_generate_message": "Apakah Anda yakin ingin membuat Payment Voucher untuk {{name}}? Total share dokter: {{amount}} ({{percent}}%)",
+          "confirm_delete_title": "Konfirmasi Hapus Item",
+          "confirm_delete_message": "Apakah Anda yakin ingin menghapus item ini dari daftar? Item akan dikembalikan ke status Pending.",
+          "yes_generate": "Ya, Generate",
+          "yes_delete": "Ya, Hapus",
+          "cancel": "Batal"
+        },
+        "zero": "Nol",
+        "currency_name": "Rupiah",
+        "toast": {
+          "invalid_doctor": "Data dokter tidak valid",
+          "generate_success": "Voucher {{- voucher}} berhasil dibuat untuk {{count}} item",
+          "generate_failed": "Gagal membuat voucher",
+          "delete_success": "Item berhasil dihapus dari rincian",
+          "delete_failed": "Gagal menghapus item"
+        }
+      }
+    },
+    "posting": {
+      "title": "Posting Jasa Medis",
+      "subtitle": "Kelola dan posting data jasa medis dokter",
+      "filter_status": "Status...",
+      "filter_doctor": "Dokter...",
+      "filter_payment_method": "Cara Bayar...",
+      "filter_period": "Periode...",
+      "export_btn": "Export ke Excel",
+      "posting_btn": "Posting",
+      "cancel_posting_btn": "Batalkan Posting",
+      "processing": "Memproses...",
+      "no_data": "Tidak ada data",
+      "table": {
+        "doctor_code": "KODE DOKTER",
+        "doctor_name": "NAMA DOKTER",
+        "procedure_name": "NAMA TINDAKAN",
+        "procedure_date": "TANGGAL TINDAKAN",
+        "payment_method": "CARA BAYAR",
+        "total_fee": "TOTAL JASA",
+        "status": "STATUS"
+      },
+      "modal": {
+        "confirm_posting_title": "Konfirmasi Posting",
+        "confirm_posting_message": "Apakah Anda yakin ingin memposting {{count}} item jasa medis? Status akan berubah dari Pending menjadi Posting.",
+        "confirm_cancel_title": "Konfirmasi Batalkan Posting",
+        "confirm_cancel_message": "Apakah Anda yakin ingin membatalkan posting {{count}} item? Status akan dikembalikan menjadi Pending dan Batch Number akan dihapus.",
+        "yes_posting": "Ya, Posting",
+        "yes_cancel": "Ya, Batalkan Posting",
+        "cancel": "Batal"
+      },
+      "toast": {
+        "select_item_posting": "Pilih minimal satu item untuk posting",
+        "posting_success": "{{count}} item berhasil diposting dengan batch {{batch}}",
+        "posting_failed": "Gagal melakukan posting",
+        "select_item_cancel": "Pilih minimal satu item untuk dibatalkan",
+        "cancel_success": "Posting berhasil dibatalkan",
+        "cancel_failed": "Gagal membatalkan posting",
+        "export_failed": "Gagal mengexport data"
+      }
+    },
+    "settlement": {
+      "title": "Settlement Jasa Medis",
+      "subtitle": "Daftar voucher dengan status Unpaid yang siap untuk settlement",
+      "filter_doctor": "Dokter...",
+      "filter_voucher": "No. Voucher...",
+      "filter_period": "Periode...",
+      "no_data": "Tidak ada voucher dengan status Unpaid",
+      "table": {
+        "doctor_name": "NAMA DOKTER",
+        "voucher_no": "NO. VOUCHER",
+        "voucher_date": "TGL VOUCHER",
+        "share": "SHARE (%)",
+        "item_count": "JUMLAH",
+        "total_fee": "TOTAL JASA",
+        "status": "STATUS",
+        "total_payment": "TOTAL BAYAR",
+        "action": "AKSI"
+      },
+      "detail_btn": "Detail",
+      "pay_btn": "Bayar",
+      "form": {
+        "title_detail": "Detail Settlement",
+        "title_process": "Settlement Pembayaran",
+        "subtitle_detail": "Informasi detail settlement pembayaran",
+        "subtitle_process": "Proses pembayaran untuk voucher dokter",
+        "back_btn": "Kembali",
+        "voucher_info": {
+          "number": "No. Voucher",
+          "date": "Tgl Voucher",
+          "share": "Doctor Share",
+          "total_pay": "Total Bayar",
+          "status": "Status"
+        },
+        "details_title": "Rincian Jasa Medis",
+        "payment_info_title": "Informasi Pembayaran",
+        "payment_info_paid_title": "Informasi Pembayaran (Lunas)",
+        "table": {
+          "date": "Tanggal Tindakan",
+          "procedure": "Tindakan",
+          "payment_method": "Cara Bayar",
+          "total_fee": "Total Jasa",
+          "pay_amount": "Jumlah Bayar"
+        },
+        "payment_form": {
+          "bank_label": "Rekening Bank",
+          "bank_placeholder": "Pilih rekening bank...",
+          "date_label": "Tanggal Pembayaran",
+          "ref_label": "Referensi Pembayaran",
+          "ref_placeholder": "Contoh: No. Transfer, No. Cek, dll",
+          "total_label": "Total yang akan dibayarkan:",
+          "process_btn": "Proses Pembayaran",
+          "processing": "Memproses..."
+        },
+        "payment_readonly": {
+          "bank_label": "Rekening Bank (COA)",
+          "date_label": "Tanggal Pembayaran",
+          "ref_label": "Referensi Pembayaran"
+        },
+        "toast": {
+          "select_bank": "Pilih rekening bank terlebih dahulu",
+          "success": "{{count}} item berhasil dibayar. Total: {{total}}",
+          "failed": "Gagal memproses pembayaran"
+        },
+        "modal": {
+          "title": "Konfirmasi Pembayaran",
+          "message": "Apakah Anda yakin ingin memproses pembayaran untuk voucher {{- voucher}}? Total pembayaran: {{total}}",
+          "yes": "Ya, Bayar",
+          "cancel": "Batal"
+        }
+      }
+    }
+  },
+  "khanza_journal_page": {
+    "title": "Jurnal Khanza (SIMRS)",
+    "subtitle": "Lihat dan unduh data jurnal dari database Khanza",
+    "filter": {
+      "date_range": "Pilih Rentang Tanggal",
+      "show": "Tampilkan",
+      "showing": "Memuat...",
+      "reset": "Reset"
+    },
+    "export": {
+      "button": "Download Excel",
+      "exporting": "Exporting...",
+      "success": "File berhasil didownload",
+      "failed": "Gagal mengexport data"
+    },
+    "info": {
+      "title": "Pilih Periode",
+      "desc": "Silakan pilih rentang tanggal dan klik \"Tampilkan\" untuk melihat data jurnal dari Khanza."
+    },
+    "table": {
+      "date": "TANGGAL",
+      "journal_no": "NO JURNAL",
+      "account_code": "KODE AKUN",
+      "account_name": "NAMA AKUN",
+      "debit": "DEBET",
+      "credit": "KREDIT",
+      "payment_method": "CARA BAYAR",
+      "poli": "POLI",
+      "no_data": "Tidak ada data jurnal untuk periode ini"
+    },
+    "note": {
+      "title": "Catatan:",
+      "desc": "Data diambil langsung dari database Khanza (SIMRS). Pastikan konfigurasi koneksi database sudah diatur di Settings > Khanza Config."
+    },
+    "toast": {
+      "select_period": "Silakan pilih rentang tanggal terlebih dahulu",
+      "fetch_failed": "Gagal mengambil data"
+    }
+  },
+  "settings_page": {
+    "title": "Pengaturan",
+    "subtitle": "Kelola pengaturan sistem dan preferensi",
+    "tabs": {
+      "profile": "Profil",
+      "preferences": "Preferensi",
+      "default_accounts": "Akun Default",
+      "smtp": "Email SMTP",
+      "report_config": "Konfigurasi Laporan",
+      "khanza_config": "Konfigurasi Khanza",
+      "migration": "Migrasi Data",
+      "audit_trail": "Audit Trail",
+      "print_signatures": "Tanda Tangan Cetak"
+    },
+    "print_signatures": {
+      "title": "Pengaturan Tanda Tangan Cetak",
+      "desc": "Atur nama dan jabatan yang muncul di dokumen cetak AR",
+      "preview": "Pratinjau",
+      "fields": {
+        "left_name": "Nama TTD Kiri",
+        "left_title": "Jabatan TTD Kiri",
+        "right_name": "Nama TTD Kanan",
+        "right_title": "Jabatan TTD Kanan"
+      },
+      "descs": {
+        "left_name": "Nama yang ditampilkan di sisi kiri invoice AR (contoh: Bagian Penagihan)",
+        "left_title": "Jabatan di bawah nama tanda tangan kiri",
+        "right_name": "Nama yang ditampilkan di sisi kanan invoice AR (contoh: Manajer Keuangan)",
+        "right_title": "Jabatan di bawah nama tanda tangan kanan"
+      }
+    },
+    "report_config": {
+      "title": "Pengaturan Laporan",
+      "tabs": {
+        "balance_sheet": "Neraca",
+        "profit_loss": "Laba Rugi"
+      },
+      "form": {
+        "section_name": "NAMA BAGIAN",
+        "section_placeholder": "cth. Aset Lancar",
+        "show_child": "Tampilkan Sub-Bagian?",
+        "mapping_coa": "MAPPING COA",
+        "no_coa_mapped": "Tidak ada COA yang dipetakan",
+        "add_top_section": "Tambah Bagian Utama",
+        "add_sub_section": "Tambah Sub-Bagian",
+        "remove_section": "Hapus Bagian"
+      },
+      "buttons": {
+        "edit_config": "Edit Konfigurasi",
+        "save_changes": "Simpan Perubahan",
+        "cancel": "Batal",
+        "saving": "Menyimpan..."
+      },
+      "toast": {
+        "parse_error": "Gagal memproses data pengaturan.",
+        "no_data": "Error: Tidak ada data pengaturan. Tidak dapat memperbarui.",
+        "update_failed": "Gagal memperbarui",
+        "update_error": "Gagal memperbarui konfigurasi"
+      }
+    },
+    "default_accounts": {
+      "info_title": "Konfigurasi Akun Default",
+      "info_desc": "Konfigurasi kode COA, prefix, dan parameter yang digunakan di seluruh sistem. Perubahan akan berlaku untuk Dashboard, Laporan, AR, AP, Jasa Medis, dan Petty Cash.",
+      "sections": {
+        "dashboard": "Dashboard & Laporan",
+        "ar": "Piutang Usaha (AR)",
+        "ap": "Hutang Usaha (AP)",
+        "medical_fee": "Jasa Medis",
+        "petty_cash": "Petty Cash",
+        "general": "Umum"
+      },
+      "fields": {
+        "coa_prefix_revenue": "Prefix COA Pendapatan",
+        "coa_prefix_expense": "Prefix COA Beban",
+        "coa_prefix_revenue_alt": "Prefix COA Pendapatan Alternatif",
+        "coa_prefix_expense_alt": "Prefix COA Beban Alternatif",
+        "coa_prefix_opd": "Prefix COA Rawat Jalan (OPD)",
+        "coa_prefix_ipd": "Prefix COA Rawat Inap (IPD)",
+        "account_cash": "Akun Kas",
+        "account_bank": "Akun Bank",
+        "account_receivable": "Akun Piutang",
+        "account_payable": "Akun Hutang",
+        "clinic_code_igd": "Kode Klinik IGD",
+        "clinic_code_fisio": "Kode Klinik Fisioterapi",
+        "payer_code_bpjs": "Kode Payer BPJS",
+        "payer_code_private": "Kode Payer Pribadi",
+        "coa_cashflow_special": "COA Khusus Cash Flow",
+        "piutang_ranap_bpjs": "Piutang Ranap BPJS",
+        "piutang_rajal_bpjs": "Piutang Rajal BPJS",
+        "piutang_ranap_non_bpjs": "Piutang Ranap Non-BPJS",
+        "piutang_rajal_non_bpjs": "Piutang Rajal Non-BPJS",
+        "discount_ar": "Diskon AR",
+        "ppn_masukan": "PPN Masukan",
+        "utang_supplier": "Utang Supplier",
+        "ap_discount": "Diskon AP",
+        "ap_pph23": "PPh Pasal 23",
+        "tukar_faktur_credit": "Tukar Faktur (Credit)",
+        "tukar_faktur_debit": "Tukar Faktur (Debit)",
+        "jasa_medis_pribadi": "Jasa Medis Pribadi",
+        "jasa_medis_asuransi": "Jasa Medis Asuransi",
+        "jasa_medis_selisih": "Selisih Jasa Medis",
+        "petty_cash_topup": "COA TopUp Petty Cash",
+        "petty_cash_receivable": "COA Piutang Karyawan",
+        "prefix_cash_bank": "Prefix Kas & Bank"
+      },
+      "descs": {
+        "coa_prefix_revenue": "Prefix kode COA untuk akun pendapatan (startsWith)",
+        "coa_prefix_expense": "Prefix kode COA untuk akun beban (comma-separated)",
+        "coa_prefix_revenue_alt": "Prefix alternatif kode COA pendapatan",
+        "coa_prefix_expense_alt": "Prefix alternatif kode COA beban",
+        "coa_prefix_opd": "Prefix kode COA pendapatan rawat jalan (OPD)",
+        "coa_prefix_ipd": "Prefix kode COA pendapatan rawat inap (IPD)",
+        "account_cash": "Kode COA kas (comma-separated untuk multiple)",
+        "account_bank": "Kode COA bank (comma-separated untuk multiple)",
+        "account_receivable": "Kode COA piutang (comma-separated untuk multiple)",
+        "account_payable": "Kode COA hutang (comma-separated untuk multiple)",
+        "clinic_code_igd": "Kode klinik untuk filter IGD di dashboard",
+        "clinic_code_fisio": "Kode klinik untuk filter fisioterapi di dashboard",
+        "payer_code_bpjs": "Kode payer untuk identifikasi BPJS",
+        "payer_code_private": "Kode payer untuk identifikasi pasien pribadi/umum",
+        "coa_cashflow_special": "COA yang menggunakan payer_code sebagai filter di laporan arus kas",
+        "piutang_ranap_bpjs": "COA piutang usaha rawat inap BPJS",
+        "piutang_rajal_bpjs": "COA piutang usaha rawat jalan BPJS",
+        "piutang_ranap_non_bpjs": "COA piutang usaha rawat inap non-BPJS",
+        "piutang_rajal_non_bpjs": "COA piutang usaha rawat jalan non-BPJS",
+        "discount_ar": "COA diskon piutang usaha",
+        "ppn_masukan": "COA PPN masukan",
+        "utang_supplier": "COA utang supplier",
+        "ap_discount": "COA diskon hutang usaha",
+        "ap_pph23": "COA PPh pasal 23",
+        "tukar_faktur_credit": "COA credit untuk tukar faktur",
+        "tukar_faktur_debit": "COA debit untuk tukar faktur",
+        "jasa_medis_pribadi": "COA hutang jasa medis pribadi",
+        "jasa_medis_asuransi": "COA hutang jasa medis asuransi",
+        "jasa_medis_selisih": "COA selisih jasa medis",
+        "petty_cash_topup": "COA sumber default untuk top-up petty cash",
+        "petty_cash_receivable": "COA piutang karyawan untuk petty cash",
+        "prefix_cash_bank": "Prefix kode COA untuk filter akun kas dan bank"
+      },
+      "placeholder": "Pilih {{label}}..."
+    },
+    "smtp": {
+      "info_title": "Konfigurasi SMTP",
+      "info_desc": "SMTP digunakan untuk mengirim email notifikasi, laporan, dan fitur forgot password.",
+      "host": "SMTP Host",
+      "port": "Port",
+      "username": "Username",
+      "password": "Password / App Password",
+      "from_email": "From Email",
+      "from_name": "From Name",
+      "test_button": "Test Email",
+      "testing": "Mengirim...",
+      "toast": {
+        "incomplete": "Lengkapi konfigurasi SMTP terlebih dahulu",
+        "success": "Email test berhasil dikirim!",
+        "failed": "Gagal mengirim email test"
+      }
+    },
+    "khanza": {
+      "info_title": "Konfigurasi Database Khanza (SIMRS)",
+      "info_desc": "Konfigurasi ini digunakan untuk sinkronisasi data jurnal dari sistem SIMRS Khanza. Pastikan database dapat diakses dari server backoffice.",
+      "host": "Host / IP Address",
+      "port": "Port",
+      "database": "Nama Database",
+      "username": "Username",
+      "password": "Password",
+      "test_button": "Test Koneksi",
+      "testing": "Testing...",
+      "test_result": {
+        "success": "Koneksi berhasil! Database dapat diakses.",
+        "failed": "Koneksi gagal. Periksa kembali konfigurasi Anda."
+      },
+      "toast": {
+        "incomplete": "Host, Database, dan Username wajib diisi",
+        "incomplete_db": "Lengkapi konfigurasi database terlebih dahulu",
+        "success": "Koneksi database berhasil!",
+        "failed": "Gagal terhubung ke database",
+        "failed_khanza": "Gagal terhubung ke database Khanza"
+      },
+      "placeholder": {
+        "host": "localhost atau 192.168.1.100",
+        "database": "sik",
+        "username": "root"
+      },
+      "helper": {
+        "port": "Default MySQL: 3306",
+        "database": "Biasanya: sik atau simrs"
+      }
+    }
+  },
+  "trial_balance_page": {
+    "title": "Neraca Saldo",
+    "subtitle": "Ringkasan saldo akun",
+    "date_separator": " s/d ",
+    "filter_period": "Pilih Periode",
+    "export": "Ekspor",
+    "exporting": "Mengekspor...",
+    "detail_title": "Rincian Neraca Saldo",
+    "records_found": "{{count}} akun ditemukan",
+    "no_data": "Data tidak tersedia",
+    "pagination": "dari {{total}} data",
+    "grand_total": "Total Keseluruhan",
+    "toast": {
+      "export_failed": "Gagal mengekspor"
+    },
+    "metrics": {
+      "opening_balance": "Saldo Awal",
+      "total_debit": "Total Debit",
+      "total_credit": "Total Kredit",
+      "ending_balance": "Saldo Akhir"
+    },
+    "table": {
+      "account_code": "KODE AKUN",
+      "account_name": "NAMA AKUN",
+      "opening_balance": "SALDO AWAL",
+      "debit": "DEBIT",
+      "credit": "KREDIT",
+      "ending_balance": "SALDO AKHIR"
+    }
+  },
+  "migration_job": {
+    "info_title": "Migrasi Data Khanza (Manual)",
+    "info_desc": "Menjalankan script tarik data backdate yang tidak ter-capture scheduler otomatis. Gunakan saat scheduler melewatkan data karena sumber tidak punya last_update. Hanya 1 job per script yang bisa berjalan bersamaan.",
+    "run": {
+      "title": "Jalankan Script",
+      "script": "Script",
+      "target_date": "Tanggal Target",
+      "target_date_hint": "Diteruskan ke argumen --date",
+      "mode": "Mode",
+      "mode_skip": "Skip existing (default)",
+      "mode_update": "Update data (--update-columns=all)",
+      "script_busy": "Script ini masih berjalan (job #{{id}}). Tunggu sampai selesai.",
+      "submit": "Jalankan",
+      "submitting": "Mengantrikan..."
+    },
+    "history": {
+      "title": "Riwayat Eksekusi",
+      "filter_all_scripts": "Semua script",
+      "filter_all_status": "Semua status",
+      "col": {
+        "script": "Script",
+        "target_date": "Tanggal Target",
+        "mode": "Mode",
+        "requested_by": "Pemicu",
+        "requested_at": "Dipicu",
+        "started_at": "Mulai",
+        "finished_at": "Selesai",
+        "duration": "Durasi"
+      }
+    },
+    "detail": {
+      "title": "Detail Job",
+      "still_running": "Script masih berjalan — log akan muncul setelah selesai.",
+      "not_found": "Job tidak ditemukan."
+    },
+    "toast": {
+      "select_script": "Pilih script terlebih dahulu",
+      "select_date": "Pilih tanggal terlebih dahulu",
+      "run_failed": "Gagal menjalankan script",
+      "queued": "Script berhasil di-antrikan"
+    }
+  },
+  "audit_trail": {
+    "title": "Audit Trail",
+    "subtitle": "Seluruh aktivitas transaksi yang tercatat di sistem.",
+    "search_placeholder": "Cari modul, no. referensi, atau aksi...",
+    "filter_module": "Jenis Transaksi",
+    "filter_operation": "Aksi",
+    "filter_user": "User",
+    "filter_date_from": "Dari Tanggal",
+    "filter_date_to": "Sampai Tanggal",
+    "all_modules": "Semua Jenis",
+    "all_operations": "Semua Aksi",
+    "all_users": "Semua User",
+    "reset_filter": "Reset Filter",
+    "empty": "Tidak ada data audit trail.",
+    "error": "Gagal memuat audit trail.",
+    "col_time": "Waktu",
+    "col_module": "Jenis Transaksi",
+    "col_ref": "No. Referensi",
+    "col_operation": "Aksi",
+    "col_user": "User",
+    "col_branch": "Cabang",
+    "col_status": "Status",
+    "detail_title": "Detail Audit Trail",
+    "detail_before": "Data Sebelum",
+    "detail_after": "Detail Aksi",
+    "detail_no_payload": "Tidak ada detail tambahan.",
+    "view_detail": "Lihat Detail"
+  },
+  "journal_import": {
+    "title": "Import Jurnal Umum",
+    "upload": {
+      "title": "Upload File Import",
+      "subtitle": "Bisa pilih beberapa file sekaligus. File diproses di server secara berurutan — halaman ini akan memperbarui statusnya sendiri.",
+      "type": "Jenis File",
+      "choose": "Pilih File",
+      "template": "Download Template",
+      "submit": "Upload ({{count}})",
+      "hint": "Hanya file .xlsx, maksimal 20 MB per file."
+    },
+    "history": {
+      "title": "Riwayat Upload",
+      "processing": "Ada file sedang diproses — status diperbarui otomatis.",
+      "empty": "Belum ada riwayat upload.",
+      "col_file": "Nama File",
+      "col_status": "Status",
+      "col_summary": "Ringkasan",
+      "col_user": "Diupload Oleh",
+      "col_time": "Waktu Upload",
+      "col_duration": "Durasi",
+      "rows": "Baris",
+      "journals": "jurnal",
+      "errors": "error",
+      "detail": "Detail",
+      "download": "Unduh file",
+      "cancel": "Batalkan"
+    },
+    "detail": {
+      "title": "Detail Import",
+      "errors": "Daftar Error",
+      "row": "Baris",
+      "field": "Kolom",
+      "message": "Pesan",
+      "all_ok": "Semua baris berhasil diimport."
+    },
+    "toast": {
+      "queued": "{{count}} file masuk antrian",
+      "upload_failed": "Upload gagal",
+      "cancelled": "Job dibatalkan",
+      "cancel_failed": "Gagal membatalkan",
+      "download_failed": "Gagal mengunduh file"
+    }
+  }
+}

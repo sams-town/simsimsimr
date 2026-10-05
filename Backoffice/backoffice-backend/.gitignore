@@ -1,0 +1,92 @@
+# .NET Core
+## Exclude build outputs
+bin/
+obj/
+logs/
+uploads/
+Public/
+
+## User-specific files
+*.user
+*.userosscache
+*.suo
+*.svclog
+*.userprefs
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# DotNet CLI
+dotnet.cmd
+dotnet.exe
+dotnet
+
+# Azure build
+.csx
+*.build.csdef
+
+# Mac files
+*.DS_Store
+*.AppleDouble
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# NPM packages
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+
+# Visual Studio
+.vscode/
+.vscode/*
+
+# Rider
+.idea/
+.idea/*
+
+# ASP.NET Core secrets
+*.secrets.json
+
+# JetBrains Rider
+.idea/
+.idea/*
+
+# Web application publishing settings
+.publish/
+publish/
+
+# Resharper
+_ReSharper.*
+/resharper/
+
+bin/Debug/net8.0/TDPBackend.dll
+bin/Debug/net8.0/TDPBackend.pdb
+Properties/launchSettings.json
+
+.backoffice-backend.sln
+
+
+# Local credentials for build-and-push.sh — JANGAN di-commit
+.env.local
+.env.*.local
+
+
+# Artifact dari local dotnet publish (dipakai build-and-push.sh)
+published-app/
+
+# Backup file lokal — JANGAN di-commit
+.gitlab-ci.yml.backup

@@ -1,0 +1,346 @@
+
+
+    public function export_kunjungan_get($p = 0){
+		header("Access-Control-Allow-Origin: *");
+        parse_str($_SERVER['QUERY_STRING'],$q_strings);
+        $error  = true;
+        $id     = $this->security->xss_clean($p);
+        $model  = $this->name;
+
+        // Token Validation
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        // Buat sebuah variabel untuk menampung pengaturan style dari header tabel
+        $style_col = [
+            'font' => ['bold' => true], // Set font nya jadi bold
+            'alignment' => [
+            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, // Set text jadi ditengah secara horizontal (center)
+            'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER // Set text jadi di tengah secara vertical (middle)
+            ],
+            'borders' => [
+            'top' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border top dengan garis tipis
+            'right' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],  // Set border right dengan garis tipis
+            'bottom' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border bottom dengan garis tipis
+            'left' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN] // Set border left dengan garis tipis
+            ]
+        ];
+        // Buat sebuah variabel untuk menampung pengaturan style dari isi tabel
+        $style_row = [
+            'alignment' => [
+            'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER // Set text jadi di tengah secara vertical (middle)
+            ],
+            'borders' => [
+            'top' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border top dengan garis tipis
+            'right' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],  // Set border right dengan garis tipis
+            'bottom' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border bottom dengan garis tipis
+            'left' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN] // Set border left dengan garis tipis
+            ]
+        ];
+        $sheet->setCellValue('A1', 'LAPORAN KUNJUNGAN PASIEN'); // Set kolom A1 dengan tulisan "DATA "
+        $sheet->mergeCells('A1:E1'); // Set Merge Cell pada kolom A1 sampai E1
+        $sheet->getStyle('A1')->getFont()->setBold(true); // Set bold kolom A1
+        // Buat header tabel nya pada baris ke 3
+        $sheet->setCellValue('A3', "TANGGAL KUNJUNGAN"); 
+        $sheet->setCellValue('B3', "NORM"); 
+        $sheet->setCellValue('C3', "NIK"); 
+        $sheet->setCellValue('D3', "NAMA"); 
+        $sheet->setCellValue('E3', "ALAMAT");
+        $sheet->setCellValue('F3', "NO HP"); 
+        $sheet->setCellValue('G3', "POLI"); 
+        $sheet->setCellValue('H3', "DPJP"); 
+        $sheet->setCellValue('I3', "DPJP2"); 
+        $sheet->setCellValue('J3', "DPJP3"); 
+        $sheet->setCellValue('K3', "DPJP4"); 
+        $sheet->setCellValue('L3', "DPJP5"); 
+        $sheet->setCellValue('M3', "DIAGNOSA"); 
+        $sheet->setCellValue('N3', "PENJAMIN"); 
+        $sheet->setCellValue('O3', "JENIS KELAMIN"); 
+        $sheet->setCellValue('P3', "TANGGAL LAHIR"); 
+        // $sheet->setCellValue('K3', "STOK AWAL"); 
+        // $sheet->setCellValue('L3', "JUMLAH FISIK"); 
+        // $sheet->setCellValue('M3', "SELISIH"); 
+        // $sheet->setCellValue('N3', "NILAI"); 
+        $numrow = 4; // Set baris pertama untuk isi tabel adalah baris ke 4
+        $no=1;
+        
+        
+        $where = $q_strings;
+        
+        if(isset($q_strings['limit'])) {
+            $limit = $q_strings['limit'];
+            $this->$model->limit = $limit; 
+            unset($where['limit']);
+        }
+
+        if(isset($q_strings['offset'])) {
+            $offset = $q_strings['offset'];
+            $this->$model->offset = $offset; 
+            unset($where['offset']);
+        }
+
+        if(isset($q_strings['name'])) {
+            $name = $q_strings['name'];
+            $this->$model->whereLike['p.name'] = $name;
+            unset($where['name']);
+        }
+
+        if(isset($q_strings['norm'])) {
+            $norm = $q_strings['norm'];
+            $where['p.norm'] = $norm;
+            unset($where['norm']);
+        }
+
+        if(isset($q_strings['sep'])) {
+            $sep = $q_strings['sep'];
+            $where['ri.sep'] = $sep;
+            unset($where['sep']);
+        }
+
+        if(isset($q_strings['code'])) {
+            $code = $q_strings['code'];
+            $where['a.code'] = $code;
+            unset($where['code']);
+        }
+
+        if(isset($q_strings['sex'])) {
+            $sex = $q_strings['sex'];
+            $where['p.sex'] = $sex;
+            unset($where['sex']);
+        }
+
+        if(isset($q_strings['is_checkout'])) {
+            $is_checkout = $q_strings['is_checkout'];
+            if ($is_checkout == 'checkout') {
+                $where['rd.is_checkout'] = 0;
+            } else {
+                $where['rd.is_checkout'] = $is_checkout;
+            }
+            unset($where['is_checkout']);
+        }
+
+        if(isset($q_strings['is_new'])) {
+            $is_new = $q_strings['is_new'];
+            $where['p.is_new'] = $is_new;
+            unset($where['is_new']);
+        }
+        
+        if(isset($q_strings['health_facility_id'])) {
+            $where['hf.id'] = $q_strings['health_facility_id'];
+            unset($where['health_facility_id']);
+        }
+        
+        if(isset($q_strings['health_facility_id'])) {
+            $where['hf.id'] = $q_strings['health_facility_id'];
+            unset($where['health_facility_id']);
+        }
+        
+        if(isset($q_strings['insurance_id'])) {
+            $where['ri.insurance_id'] = $q_strings['insurance_id'];
+            unset($where['insurance_id']);
+        }
+        
+        if(isset($q_strings['company_id'])) {
+            $where['ri.company_id'] = $q_strings['company_id'];
+            unset($where['company_id']);
+        }
+    
+        $date_start = date('Y-m-d');
+        $date_end = date('Y-m-d');
+    
+        if(isset($q_strings['date_start']) && isset($q_strings['date_end'])) {
+            $date_start = $q_strings['date_start'] . ' 00:00:00';
+            $date_end = $q_strings['date_end'] . ' 23:59:59';
+    
+            unset($where['date_start']);
+            unset($where['date_end']);
+        } 
+
+        $where['a.register_date >='] = $date_start . ' 00:00:00';
+        $where['a.register_date <='] = $date_end . ' 23:59:59';
+
+        if (isset($q_strings['doctor_in_charge_id'])) {
+            $doctor_in_charge_id = $q_strings['doctor_in_charge_id'];
+            unset($where['doctor_in_charge_id']);
+    
+            if ($where['hf.id'] == '40f06534-07ec-4221-ad9d-dea08196079f') {
+                $where_doc = array('a.is_checkout' => 0);
+            } else {
+                $where_doc = array('a.register_date >=' => $date_start, 'a.register_date <=' => $date_end);
+            }
+            $select = 'r.id';
+    
+            $where_doc['a.doctor_in_charge_id'] = $doctor_in_charge_id;
+            $employee = $this->Registration_Destination->select(0, $select, $where_doc);
+            unset($where_doc['a.doctor_in_charge_id']);
+    
+            $where_doc['a.doctor_in_charge_id_2'] = $doctor_in_charge_id;
+            $employee_2 = $this->Registration_Destination->select(0, $select, $where_doc);
+            unset($where_doc['a.doctor_in_charge_id_2']);
+    
+            $where_doc['a.doctor_in_charge_id_3'] = $doctor_in_charge_id;
+            $employee_3 = $this->Registration_Destination->select(0, $select, $where_doc);
+            unset($where_doc['a.doctor_in_charge_id_3']);
+    
+            $where_doc['a.doctor_in_charge_id_4'] = $doctor_in_charge_id;
+            $employee_4 = $this->Registration_Destination->select(0, $select, $where_doc);
+            unset($where_doc['a.doctor_in_charge_id_4']);
+    
+            $where_doc['a.doctor_in_charge_id_5'] = $doctor_in_charge_id;
+            $employee_5 = $this->Registration_Destination->select(0, $select, $where_doc);
+            unset($where_doc['a.doctor_in_charge_id_5']);
+    
+            $reg_id_arr = [];
+            $employee_arr = [];
+            array_push($employee_arr, $employee, $employee_2, $employee_3, $employee_4, $employee_5);
+    
+            for ($i=0; $i < count($employee_arr); $i++) { 
+                for ($j=0; $j < count($employee_arr[$i]); $j++) { 
+                    array_push($reg_id_arr, $employee_arr[$i][$j]->id);
+                }
+            }
+    
+            if (count($reg_id_arr) > 0) {
+                $this->$model->whereInFields['a.id'] = $reg_id_arr;
+            }
+        }
+
+        // not setting date_start & date_end if inpatient
+        if ($where['hf.id'] == '40f06534-07ec-4221-ad9d-dea08196079f') {
+            unset($where['a.register_date >=']);
+            unset($where['a.register_date <=']);
+        }
+
+        $where['a.is_cancel'] = 0;
+    
+        // e2.fullname as doctor_in_charge_name_2, 
+        $select = '
+        e3.fullname as doctor_in_charge_name_3, 
+        e4.fullname as doctor_in_charge_name_4, 
+        e5.fullname as doctor_in_charge_name_5, 
+        a.id, a.code_booking, rd.id as registration_destination_id,  ri.is_cob, ri.sep, ri.number_insurance, e2.fullname as doctor_in_charge_name_2, rd.code_queue, a.register_date, rd.checkin_date, rd.exit_id, ex.name as exit_name, rd.sts, rd.call_nurse_stamp,rd.call_doctor_stamp,rd.done_doctor_stamp,rd.call_pharmacy_stamp,rd.done_pharmacy_stamp,rd.date_task_1,rd.date_task_2,rd.date_task_3,rd.date_task_4,rd.date_task_5,rd.date_task_6,rd.date_task_7, a.code, a.how_to_enter_id, hte.name as how_to_enter_name, h5.name as type_visit_name , h2.name as how_to_pay, c.name as insurance_name, a.type_register_id, h.name as type_register_name, a.norm, p.idcard, p.name, h4.name as alias, p.is_new, p.birth_date, p.idcard, p.address, p.phone, h3.name as sex_name, hf.id as health_facility_id, hf.name as health_facility_name, rd.health_facility_item_id, hfi.name as health_facility_item_name, rd.doctor_in_charge_id, b.id as bed_id, b.name as bed_name, e.fullname as doctor_in_charge_name, e.bride_bpjs, rd.queue';
+        // i.code as icd_code, s.id as soap_id, i.name as icd_name,
+        $join = array(
+            array('registration_destination rd', 'a.id = rd.registration_id', 'INNER'),
+            array('registration_insurance ri', 'rd.id = ri.registration_destination_id AND ri.is_primary=1', 'INNER'),
+            // array('refer_internal internal', 'rd.id = internal.registration_destination_id', 'INNER'),
+            array('patient p', 'a.norm = p.norm', 'INNER'),
+            array('health_facility_item hfi', 'rd.health_facility_item_id = hfi.id', 'INNER'),
+            array('health_facility hf', 'hfi.health_facility_id = hf.id', 'INNER'),
+            array('bed b', 'rd.bed_id = b.id', 'LEFT'),
+            array('exit ex', 'rd.exit_id = ex.id', 'LEFT'),
+            array('employee e', 'rd.doctor_in_charge_id = e.id', 'INNER'),
+            // array('employee e_internal', 'internal.doctor_in_charge_id = e.id', 'INNER'),
+            array('helper h', "a.type_register_id = h.code and h.variable='type_register'", 'INNER'),
+            array('helper h2', "ri.insurance_id = h2.code and h2.variable='insurance'", 'INNER'),
+            array('helper h3', "p.sex = h3.code and h3.variable='sex'", 'INNER'),
+            array('helper h4', "p.alias = h4.code and h4.variable='alias'", 'INNER'),
+            array('helper h5', "a.type_visit_id = h5.code and h5.variable='type_visit'", 'LEFT'),
+            array('company c', "ri.company_id = c.id", 'LEFT'),
+            array('how_to_enter hte', "a.how_to_enter_id = hte.id", 'INNER'),
+            array('employee e2', 'rd.doctor_in_charge_id_2 = e2.id', 'LEFT'),
+            array('employee e3', 'rd.doctor_in_charge_id_3 = e3.id', 'LEFT'),
+            array('employee e4', 'rd.doctor_in_charge_id_4 = e4.id', 'LEFT'),
+            array('employee e5', 'rd.doctor_in_charge_id_5 = e5.id', 'LEFT'),
+            // array('soap s', "rd.id = s.registration_destination_id", 'INNER'),
+            // array('soap_a sa', "s.id = sa.soap_id", 'INNER'),
+            // array('soap_a_action saa', "sa.id = saa.soap_a_id", 'INNER'),
+            // array('icd10 i', "saa.icd10_id = i.id", 'INNER'),
+        );
+        $order = array('a.register_date' => 'desc');
+        // $this->db->group_by(array("s.id"));
+        $output = $this->$model->select(0, $select, $where, $join, $order);
+        
+        // $sheet->setCellValue('A3', "TANGGAL KUNJUNGAN"); 
+        // $sheet->setCellValue('B3', "NIK"); 
+        // $sheet->setCellValue('C3', "NAMA"); 
+        // $sheet->setCellValue('D3', "ALAMAT");
+        // $sheet->setCellValue('E3', "NO HP"); 
+        // $sheet->setCellValue('F3', "POLI"); 
+        // $sheet->setCellValue('G3', "DPJP"); 
+        // $sheet->setCellValue('H3', "DIAGNOSA"); 
+        for ($i=0; $i < count($output); $i++) {
+            // if ($output[$i]->soap_id) {
+            //     $response_data_lab = $this->db->query("
+            //         SELECT `b`.`costing_name`
+            //         FROM `laboratory_request` as `a` 
+            //         LEFT JOIN `laboratory_request_item` `b` ON `a`.`id` = `b`.`laboratory_request_id` 
+            //         WHERE `a`.`soap_id` = '{$output[$i]->soap_id}'
+            //         AND `a`.`is_delete` = 0 AND `b`.`is_delete` = 0")->result();
+            //     $response_data_rad = $this->db->query("
+            //         SELECT `b`.`costing_name`
+            //         FROM `radiology_request` as `a` 
+            //         LEFT JOIN `radiology_request_item` `b` ON `a`.`id` = `b`.`radiology_request_id` 
+            //         INNER JOIN `radiology_request_item_image` `bb` ON `b`.`id` = `bb`.`radiology_request_item_id` 
+            //         WHERE `a`.`soap_id` = '{$output[$i]->soap_id}'
+            //         AND `a`.`is_delete` = 0 AND `a`.`status` = 2 AND `b`.`status` = 2 AND `bb`.`status` = 2 AND `b`.`is_delete` = 0 AND `bb`.`is_delete` = 0 GROUP BY `bb`.`id`")->result();
+            // }
+
+            $sheet->setCellValue('A'.$numrow, date('d/m/Y H:i:s', strtotime($output[$i]->register_date)));
+            $sheet->setCellValue('B'.$numrow, "'".$output[$i]->norm);
+            $sheet->setCellValue('C'.$numrow, "'".$output[$i]->idcard);
+            $sheet->setCellValue('D'.$numrow, $output[$i]->name);
+            $sheet->setCellValue('E'.$numrow, $output[$i]->address);
+            $sheet->setCellValue('F'.$numrow, $output[$i]->phone);
+            $sheet->setCellValue('G'.$numrow, $output[$i]->health_facility_item_name);
+            $sheet->setCellValue('H'.$numrow, $output[$i]->doctor_in_charge_name);
+            $sheet->setCellValue('I'.$numrow, $output[$i]->doctor_in_charge_name_2);
+            $sheet->setCellValue('J'.$numrow, $output[$i]->doctor_in_charge_name_3);
+            $sheet->setCellValue('K'.$numrow, $output[$i]->doctor_in_charge_name_4);
+            $sheet->setCellValue('L'.$numrow, $output[$i]->doctor_in_charge_name_5);
+            $sheet->setCellValue('M'.$numrow, $output[$i]->icd_code.'-'.$output[$i]->icd_name);
+            $sheet->setCellValue('N'.$numrow, $output[$i]->how_to_pay.'-'.$output[$i]->insurance_name);
+            $sheet->setCellValue('O'.$numrow, $output[$i]->birth_date);
+            $sheet->setCellValue('P'.$numrow, $output[$i]->sex_name);
+            $numrow_detail = $numrow+1;
+            for ($lab=0; $lab < count($response_data_lab); $lab++) {
+                $sheet->setCellValue('A'.$numrow_detail, date('d/m/Y H:i:s', strtotime($output[$i]->checkin_date)));
+                $sheet->setCellValue('B'.$numrow_detail, "'".$output[$i]->norm);
+                $sheet->setCellValue('C'.$numrow_detail, "'".$output[$i]->idcard);
+                $sheet->setCellValue('D'.$numrow_detail, $output[$i]->name);
+                $sheet->setCellValue('E'.$numrow_detail, $output[$i]->address);
+                $sheet->setCellValue('F'.$numrow_detail, $output[$i]->phone);
+                $sheet->setCellValue('G'.$numrow_detail, $output[$i]->health_facility_item_name);
+                $sheet->setCellValue('H'.$numrow_detail, $output[$i]->doctor_in_charge_name);
+                $sheet->setCellValue('I'.$numrow_detail, $output[$i]->icd_code.'-'.$output[$i]->icd_name);
+                $sheet->setCellValue('J'.$numrow_detail, $response_data_lab[$lab]->costing_name);
+                $numrow_detail++; // Tambah 1 setiap kali looping
+                $numrow++;
+            }
+            for ($rad=0; $rad < count($response_data_rad); $rad++) {
+                $sheet->setCellValue('A'.$numrow_detail, date('d/m/Y H:i:s', strtotime($output[$i]->checkin_date)));
+                $sheet->setCellValue('B'.$numrow_detail, "'".$output[$i]->norm);
+                $sheet->setCellValue('C'.$numrow_detail, "'".$output[$i]->idcard);
+                $sheet->setCellValue('D'.$numrow_detail, $output[$i]->name);
+                $sheet->setCellValue('E'.$numrow_detail, $output[$i]->address);
+                $sheet->setCellValue('F'.$numrow_detail, $output[$i]->phone);
+                $sheet->setCellValue('G'.$numrow_detail, $output[$i]->health_facility_item_name);
+                $sheet->setCellValue('H'.$numrow_detail, $output[$i]->doctor_in_charge_name);
+                $sheet->setCellValue('I'.$numrow_detail, $output[$i]->icd_code.'-'.$output[$i]->icd_name);
+                $sheet->setCellValue('J'.$numrow_detail, $response_data_rad[$rad]->costing_name);
+                $numrow_detail++; // Tambah 1 setiap kali looping
+                $numrow++;
+            }
+            // $sheet->setCellValue('I'.$numrow, $data->hp);
+            // $sheet->setCellValue('J'.$numrow, $data->hna);
+            // $sheet->setCellValue('K'.$numrow, $data->sum_adm);
+            // $sheet->setCellValue('L'.$numrow, $data->accumulation);
+            // $sheet->setCellValue('M'.$numrow, $data->accumulation-$data->sum_adm);
+            // $sheet->setCellValue('N'.$numrow, $data->accumulation*$data->hp);
+            $no++;
+            $numrow++;
+        }
+        $sheet->getDefaultRowDimension()->setRowHeight(-1);
+        $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+        $sheet->setTitle('Kunjungan Pasien');
+        $writer = new Xlsx($spreadsheet);
+        ob_end_clean();
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="'.date('Y-m-d H:i:s').'.xlsx"'); // Set nama file excel nya
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        ob_end_clean();
+
+        // for ($i=0; $i < count($doctor); $i++) {
+        //     var_dump($doctor[$i]->fullname);
+        // }
+	}

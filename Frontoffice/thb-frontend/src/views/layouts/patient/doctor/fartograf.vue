@@ -1,0 +1,10158 @@
+<template>
+    <div>
+        <patientMenu selectedMenu="menu4" />
+        <div class="label-head my-16 my-lg-24">
+            <span class="px-16 text-bold-24 text-neutral-700">Pengkajian Dokter</span>
+        </div>
+        <!-- ////////  -->
+        <div class="card-body shadow-sm rounded">
+            <div class="row mx-0">
+                <div class="col-12 col-lg">
+                    <div class="row">
+                        <div class="col-12 col-lg-3">
+                            <img src="@/@core/assets/images/pendaftaran/user.png" alt="your-photo"
+                                class="rounded-circle shadow-sm c-img">
+                        </div>
+                        <div class="col-12 col-lg">
+                            <span class="text-bold-18 text-indigo">
+                                <img src="@/@core/assets/icons/nurse/user.svg" alt="user-icon">{{this.regData.norm}}
+                            </span>
+                            <p class="mb-0 mt-12 text-semi-24 text-neutral-800">
+                                <span>({{this.regData.alias_name}}) </span>
+                                <span>{{this.regData.name}}</span>
+                            </p>
+                            <div class="row mx-0 mt-16">
+                                <b-badge class="rounded text-neutral-500 text-uppercase border border-success-200 px-10 py-1" :variant="this.regData.is_new == 'N' ? 'success-200' : 'info-200'">{{ this.regData.is_new == 'N' ? 'Pasien Lama' : 'pasien Baru' }}</b-badge>
+                                <b-badge
+                                    class="rounded text-neutral-500 text-uppercase border border-success-500 px-10 py-1 mx-lg-12 "
+                                    variant="success-200">{{this.regData.health_facility_name}}</b-badge>
+                                <b-badge
+                                    class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1 "
+                                    variant="warning-200">{{this.regData.health_facility_item_name}}</b-badge>
+                                <div v-if="this.regData.registration_insurance">
+                                    <div v-for="list in this.regData.registration_insurance">
+                                        <b-badge v-if="list.is_cob == 1"class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1" variant="warning-200">COB</b-badge>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-neutral-800 mt-8 mt-lg-16">
+                                <span class="text-regular-14 mr-2">Status:</span>
+                                <span class="text-bold-14">Dalam Penanganan Medis</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4 mt-16 mt-lg-0">
+                    <div class="d-flex flex-column align-items-lg-end h-100">
+                        <div class="row mx-0">
+                            <b-button pill variant="outline-indigo" size="sm" class="mr-2">
+                                <b-icon icon="arrow-left" /> <span>Kembali</span>
+                            </b-button>
+                            <administration />
+                        </div>
+                        <div class="mt-2 mt-lg-auto">
+                            <b-button pill variant="outline-indigo" @click="refresh()" size="sm">
+                                <b-icon icon="arrow-clockwise" /> <span>Refresh</span>
+                            </b-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex w-100 px-3 justify-content-lg-end mt-20"> 
+            <b-button @click="openModalPartograf()" pill variant="indigo-400" size="sm" class="px-16 mr-2">
+                <b-icon icon="plus" /> <span>PARTOGRAF</span>
+            </b-button>                   
+            <b-button @click="openModalSPRI()" pill variant="indigo-400" size="sm" class="px-16 mr-2">
+                <b-icon icon="plus" /> <span>SPRI</span>
+            </b-button>
+            <b-button @click="openModalNewBorn()" pill variant="indigo-400" size="sm" class="px-16 mr-2">
+                <b-icon icon="plus" /> <span>BAYI BARU LAHIR</span>
+            </b-button>
+            <template v-if="isIGD">                    
+                <b-button @click="openModalIGD()" pill variant="indigo-400" size="sm" class="px-16 mr-2">
+                    <b-icon icon="plus" /> <span>Kajian IGD</span>
+                </b-button>
+            </template>
+            <template v-if="isRajal">
+                <b-button @click="openModalBooking('ADD', null)" pill variant="success-600" size="sm" class="px-16 mr-2">
+                    <b-icon icon="plus" /> <span>Booking Penunjang</span>
+                </b-button>
+                <modalDokter />
+                <modalDokterEdit :dataFromEdit="dataFromEdit" />
+            </template>
+            <!-- <b-button pill variant="info-700" size="sm" class="px-16 ml-lg-2 mt-8 mt-lg-0">
+                <b-icon icon="plus" /> <span>Tambah Kajian Keperawatan</span>
+            </b-button> -->
+        </div>
+        <template v-for="(result,i) in items" >
+            <div class="card-body mt-20 shadow-sm">
+                <!-- <div class="row">
+                    <div class="col-12 col-lg-6">
+                        <table>
+                            <tr>
+                                <th class="text-regular-14">Kajian Dokter</th>
+                                <td class="text-regular-14 px-12 py-1">:</td>
+                                <td class="text-bold-14">{{ result.employee_doctor_name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-regular-14">Waktu</th>
+                                <td class="text-regular-14 px-12 py-1">:</td>
+                                <td class="text-bold-14">{{ result.date_added }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-12 col-lg-6 mt-16 mt-lg-0">
+                        <div class="d-flex flex-column flex-lg-row justify-content-lg-end">
+                            <b-button @click="sendStudies(result)" pill size="sm" variant="success-500" class="px-16 text-white mr-2">
+                                <b-icon icon="printer" /> <span>Cetak kajian</span>
+                            </b-button>
+                            <b-button pill size="sm" variant="primary-600" @click="getFromEdit(result)" class="px-16 mt-16 mt-lg-0">
+                                <i><img src="@/@core/assets/icons/nurse/file-eye.svg" alt=""></i> <span>Lihat Kajian</span>
+                            </b-button>
+                        </div>
+                    </div>
+                </div> -->
+                <!-- <div class="mt-16 mt-lg-32">
+                    <ModernLabel label="Pengkajian Awal Dokter" />
+                    <div class="mt-24 row">
+                        <div class="col-lg-6">
+                            <b-table-simple style="border-bottom: 1px solid #deede6;">
+                                <b-tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Keluhan Utama</b-td>
+                                    <b-td class="text-bold-14">: {{ result.main_complaint }}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Riwayat Penyakit Sekarang</b-td>
+                                    <b-td class="text-bold-14">: {{ result.history_disease_now }}</b-td>
+                                </b-tr>
+                                <tr>
+                                    <b-td class="text-regular-14">Riwayat Penyakit Dahulu</b-td>
+                                    <b-td class="text-bold-14">: {{ result.history_disease_past }}</b-td>
+                                </tr>
+                            </b-table-simple>
+                        </div>
+                        <div class="col-lg-6">
+                            <b-table-simple style="border-bottom: 1px solid #deede6;">
+                                <b-tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Riwayat Alergi</b-td>
+                                    <b-td class="text-bold-14">
+                                        <b-input-group class="">
+                                            :&nbsp;<b-form-input readonly></b-form-input>
+                                            <b-input-group-append>
+                                                <b-button variant="primary" @click="active_act.modal_allergy = !active_act.modal_allergy">
+                                                    <b-icon icon="search" />
+                                                </b-button>
+                                            </b-input-group-append>
+                                        </b-input-group>
+                                    </b-td>
+                                </b-tr>
+                                <tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Riwayat Obat</b-td>
+                                    <b-td class="text-bold-14">: {{ result.history_drugs }}</b-td>
+                                </tr>
+                            </b-table-simple>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-16 mt-lg-32" v-if="result.soap_a.obgyn_diag_clinis">
+                    <ModernLabel label="Data Pemeriksaan USG" />
+                    <div class="mt-24 row">
+                        <div class="col-lg-6">
+                            <b-table-simple style="border-bottom: 1px solid #deede6;">
+                                <b-tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Tanggal Pemeriksaan</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_diag_date }}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Diagnosis Klinis</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_diag_clinis }}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Ketuban</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_j_k }}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Kelamin</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_j_sex === 1 ? "Laki-laki" : "Perempuan" }}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Ukuran USG</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_size_usg === 1 ? "BPD" : result.soap_a.obgyn_size_usg === 2 ? "GA" : result.soap_a.obgyn_size_usg === 3 ? "EDD" : "AC" }}</b-td>
+                                </b-tr>
+                            </b-table-simple>
+                        </div>
+                        <div class="col-lg-6">
+                            <b-table-simple style="border-bottom: 1px solid #deede6;">
+                                <tr>
+                                    <b-td class="text-regular-14">HPHT</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_diag_hpht }}</b-td>
+                                </tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14" style="width: 250px;">Hamil</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_s_d === 1 ? "Tunggal" : "Kembar" }}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Keadaan Janin</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_j_exam }}</b-td>
+                                </b-tr>
+                                <tr>
+                                    <b-td class="text-regular-14">Letak</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_j_pos }}</b-td>
+                                </tr>
+                                <tr>
+                                    <b-td class="text-regular-14">Berat</b-td>
+                                    <b-td class="text-bold-14">: {{ result.soap_a.obgyn_j_weight }} KG</b-td>
+                                </tr>
+                            </b-table-simple>
+                        </div>
+                        <div class="col-lg-12">
+                            <b-table-simple style="border-bottom: 1px solid #deede6;">
+                                <b-tr>
+                                    <b-td class="text-regular-14">Foto : </b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14"><b-img rounded :src="result.soap_a.obgyn_usg_file"/></b-td>
+                                </b-tr>
+                                <tr>
+                                    <b-td class="text-regular-14">Kesan : {{ result.soap_a.obgyn_usg_desc }}</b-td>
+                                </tr>
+                            </b-table-simple>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-32">
+                    <div class="card-header bg-indigo-200 d-flex">
+                        <span class="text-bold-18">Lihat Rincian Tindakan Dokter</span>
+                        <b-icon icon="chevron-down" class="ml-auto" />
+                    </div>
+                    <div class="card-body">
+                        <div>
+                            <b-table small responsive bordered head-variant="light" :items="result.transaction_doctor" :fields="doctor.fields">
+                                <template #cell(no)="row">
+                                    <div class="text-regular-14 text-center">
+                                        {{ row.index+1 }}
+                                    </div>
+                                </template>
+                                <template #cell(tindakan)="row">
+                                    <div class="text-regular-14" style="width: 250px;">
+                                        {{ row.item.costing_name }}
+                                    </div>
+                                </template>
+                                <template #cell(notes)="row">
+                                    <div class="text-regular-14" style="width: 650px;">
+                                        {{ row.item.notes }}
+                                    </div>
+                                </template>
+                                <template #cell(tanggal)="row">
+                                    <div class="text-regular-14" style="width: 300px;">
+                                        {{ row.item.date_added }}
+                                    </div>
+                                </template>
+                            </b-table>
+                        </div>
+                        <div class="mt-32">
+                            <b-table small responsive bordered head-variant="light" :items="result.icd10"
+                                :fields="diag_primer.fields">
+                                <template #cell(no)="row">
+                                    <div class="text-regular-14 text-center">
+                                        {{ row.index+1 }}
+                                    </div>
+                                </template>
+                                <template #cell(primer_code)="row">
+                                    <div class="text-regular-14" style="width: 250px;">
+                                        {{ row.item.code }}
+                                    </div>
+                                </template>
+                                <template #cell(primer_diag)="row">
+                                    <div class="text-regular-14" style="width: 650px;">
+                                        {{ row.item.name }}
+                                    </div>
+                                </template>
+                                <template #cell(tanggal)="row">
+                                    <div class="text-regular-14" style="width: 300px;">
+                                        {{ row.item.date_added }}
+                                    </div>
+                                </template>
+                            </b-table>
+                        </div>
+                        <div class="mt-32" style="display:none">
+                            <b-table small responsive bordered head-variant="light" :items="diag_sekunder.items"
+                                :fields="diag_sekunder.fields">
+                                <template #cell(no)="data">
+                                    <div class="text-regular-14 text-center">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(sekunder_code)="data">
+                                    <div class="text-regular-14" style="width: 250px;">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(sekunder_diag)="data">
+                                    <div class="text-regular-14" style="width: 650px;">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(tanggal)="data">
+                                    <div class="text-regular-14" style="width: 300px;">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                            </b-table>
+                        </div>
+                        <div class="mt-32">
+                            <b-table small responsive bordered head-variant="light" :items="result.icd9cm"
+                                :fields="ICD9CM.fields">
+                                <template #cell(no)="row">
+                                    <div class="text-regular-14 text-center">
+                                        {{ row.index+1 }}
+                                    </div>
+                                </template>
+                                <template #cell(ICD9CM_code)="row">
+                                    <div class="text-regular-14" style="width: 250px;">
+                                        {{ row.item.code }}
+                                    </div>
+                                </template>
+                                <template #cell(rencana)="row">
+                                    <div class="text-regular-14" style="width: 650px;">
+                                        {{ row.item.name }}
+                                    </div>
+                                </template>
+                                <template #cell(tanggal)="row">
+                                    <div class="text-regular-14" style="width: 300px;">
+                                        {{ row.item.date_added }}
+                                    </div>
+                                </template>
+                            </b-table>
+                        </div>
+                        <div class="mt-32">
+                            <ModernLabel label="Rincian Transaksi Laboratorium" />
+                            <b-table small responsive bordered head-variant="light" :items="result.laboratory_request"
+                                :fields="laboratorium.fields">
+                                <template #cell(no_request)="data">
+                                    <div class="text-regular-14 text-center">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(costing_name)="data">
+                                    <div class="text-regular-14" style="width: 250px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(var_1)="data">
+                                    <div class="text-regular-14" style="width: 650px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(date_request)="data">
+                                    <div class="text-regular-14" style="width: 300px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(result)="row">
+                                    <router-link :to="{ path: '/laboratory/print/'+ row.item.laboratory_request_id}">
+                                    <b-button size="sm" variant="outline-secondary" class="mr-2">
+                                        <feather-icon icon="EyeIcon" /> Lihat Hasil
+                                    </b-button>
+                                </router-link>
+                                </template>
+                            </b-table>
+                        </div>
+                        <div class="mt-32">
+                            <ModernLabel label="Rincian Transaksi Radiologi" />
+                            <b-table small responsive bordered head-variant="light" :items="result.radiology_request"
+                                :fields="radiologi.fields">
+                                <template #cell(no_request)="data">
+                                    <div class="text-regular-14 text-center">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(costing_name)="data">
+                                    <div class="text-regular-14" style="width: 250px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(var_1)="data">
+                                    <div class="text-regular-14" style="width: 650px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(tanggal)="data">
+                                    <div class="text-regular-14" style="width: 300px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(url)="data">
+                                    <b-button variant="primary-600" @click="isRefcontrol(urlbe+data.value)" size="sm" class="mr-2">Lihat Hasil <feather-icon icon="EyeIcon" /></b-button>
+                                </template>
+                            </b-table>
+                        </div>
+                        <div class="mt-32" style="display:none;">
+                            <ModernLabel label="Rincian Transaksi Fisioterapi" />
+                            <b-table small responsive bordered head-variant="light" :items="fisioterapi.items"
+                                :fields="fisioterapi.fields">
+                                <template #cell(no)="data">
+                                    <div class="text-regular-14 text-center">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(nama)="data">
+                                    <div class="text-regular-14" style="width: 250px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(kelas)="data">
+                                    <div class="text-regular-14" style="width: 200px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(tarif)="data">
+                                    <div class="text-regular-14" style="width: 150px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                                <template #cell(tanggal)="data">
+                                    <div class="text-regular-14" style="width: 200px">
+                                        {{ data.value }}
+                                    </div>
+                                </template>
+                            </b-table>
+                        </div>
+                    </div>
+                </div> -->
+                <section class="card mt-24">
+                    <div class="card-header bg-white">
+                        <section>
+                            <!-- <ModernLabel :label="result.health_facility_item_id == 'cca59ec4-d77a-45fd-b51f-aae069da22ea' ? 'Soap Dokter IGD' : 'Soap Dokter'" :small="`Added on ${result.date_added} Oleh ${result.employee_doctor_name}`" /> -->
+                            <ModernLabel :label="result.health_facility_id == '444b3134-5b75-4b67-af72-a558d46716d7' ? 'Soap Dokter IGD' : 'Soap Dokter'" :small="`Added on ${result.date_added} Oleh ${result.employee_doctor_name}`" />
+                                
+                            <router-link :to="{ path: '/prints/doctor-studies-print/'+ result.id}" target="_blank">
+                                <b-button pill size="sm" variant="success-500" class="px-16 pull-right mt-2 text-white mr-2">
+                                    <b-icon icon="printer" /> <span>Cetak Kajian</span>
+                                </b-button>
+                            </router-link>
+                            <!-- <template v-if="isIGD"> -->
+                            <template v-if="result.health_facility_id == '444b3134-5b75-4b67-af72-a558d46716d7'">
+                                <router-link :to="{ path: '/prints/doctor-emergency-print/'+ result.id}" target="_blank">
+                                    <b-button pill size="sm" variant="success-500" class="px-16 pull-right mt-2 text-white mr-2">
+                                        <b-icon icon="printer" /> <span>Cetak Pengkajian IGD Version</span>
+                                    </b-button>
+                                </router-link>
+                            </template>
+                            <router-link :to="{ path: '/prints/doctor-sbpk-print/'+ result.id}" target="_blank">
+                                <b-button pill size="sm" variant="primary-500" class="px-16 pull-right mt-2 text-white mr-2">
+                                    <b-icon icon="printer" /> <span>Cetak SBPK</span>
+                                </b-button>
+                            </router-link>
+
+                            <!-- result.health_facility_id != '444b3134-5b75-4b67-af72-a558d46716d7' -->
+                            <template v-if="isRajal && result.is_resume_exit != 1 && result.is_booking != 1">
+                                <b-button pill size="sm" variant="primary-600" @click="getFromEdit(result)" class="px-16 pull-right mt-2">
+                                    <i><img src="@/@core/assets/icons/nurse/file-eye.svg" alt=""></i> <span>Buka Kajian</span>
+                                </b-button>
+                            </template>
+
+                            <template v-if="isRajal && result.is_booking == 1 && result.laboratory_request">
+                                <router-link :to="{ path: '/prints/booking-laboratory-print/'+ result.id}" target="_blank">
+                                    <b-button pill size="sm" variant="success-500" class="px-16 pull-right mt-2 text-white mr-2">
+                                        <b-icon icon="printer" /> <span>Booking Laboratorium</span>
+                                    </b-button>
+                                </router-link>
+                            </template>
+                            <template v-if="isRajal && result.is_booking == 1 && result.radiology_request">
+                                <router-link :to="{ path: '/prints/booking-radiology-print/'+ result.id}" target="_blank">
+                                    <b-button pill size="sm" variant="success-500" class="px-16 pull-right mt-2 text-white mr-2">
+                                        <b-icon icon="printer" /> <span>Booking Radiologi</span>
+                                    </b-button>
+                                </router-link>
+                            </template>
+                            <template v-if="isRajal && result.is_booking == 1">
+                                <b-button @click="openModalBooking('EDIT', result)" pill size="sm" variant="primary-700" class="px-16 pull-right mt-2 text-white mr-2">
+                                    <i><img src="@/@core/assets/icons/nurse/file-eye.svg" alt=""></i> <span>Edit Booking</span>
+                                </b-button>
+                            </template>
+                        </section>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <section class="col-lg-3 mt-16 mt-lg-0">
+                                <div class="text-uppercase text-bold-16 text-success-500">Subjective</div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Keluhan Utama	 :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>{{result.main_complaint ? result.main_complaint : '-' }}</b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Riwayat Penyakit Sekarang	:</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>{{ result.history_disease_now ? result.history_disease_now : '-' }}</b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Riwayat Penyakit Dahulu :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>{{ result.history_disease_past ? result.history_disease_past : '-' }}</b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Riwayat Obat :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>{{ result.history_drugs ? result.history_drugs : '-' }}</b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                            </section>
+                            <section class="col-lg-3 mt-16 mt-lg-0">
+                                <div class="text-uppercase text-bold-16 text-success-500">Objective</div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Vitals :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                Systolic = {{ result.systolic_blood_pressure ? result.systolic_blood_pressure : '0' }},
+                                                Diastolic = {{ result.diastolic_blood_pressure ? result.diastolic_blood_pressure : '0' }},
+                                                Frekuensi Nadi = {{ result.pulse_frequency ? result.pulse_frequency : '0' }},
+                                                Frekuensi Nafas = {{ result.breath_frequency ? result.breath_frequency : '0' }},
+                                                Saturasi Oksigen = {{ result.oximetry_frequency ? result.oximetry_frequency : '0' }},
+                                                Suhu = {{ result.temperature ? result.temperature : '0' }},
+                                                Gula Darah = {{ result.blood_sugar ? result.blood_sugar : '0' }}
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Antopometri :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                Berat Badan = {{ result.weight ? result.weight : '0' }},
+                                                Tinggi Badan = {{ result.height ? result.height : '0' }},
+                                                IMT = {{ result.imt ? result.imt : '0' }},
+                                                Lingkar Kepala = {{ result.head_circumference ? result.head_circumference : '0' }},
+                                                Lingkar Dada = {{ result.chest_circumference ? result.chest_circumference : '0' }},
+                                                Lingkar Lengan Atas = {{ result.arm_circumference ? result.arm_circumference : '0' }},
+                                                Lingkar Perut = {{ result.stomach_circumference ? result.stomach_circumference : '0' }},
+                                                Lingkar Lutut = {{ result.knee_circumference ? result.knee_circumference : '0' }}
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Pemeriksaan Fisik :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>{{ result.physical_check ? result.physical_check : '-' }}</b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Lainnya :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>{{ result.soap_o_anythingelse ? result.soap_o_anythingelse : '-' }}</b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                            </section>
+                            <section class="col-lg-3 mt-16 mt-lg-0">
+                                <div class="text-uppercase text-bold-16 text-success-500">Assesment</div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Diagnosis :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div>
+                                                    <div v-if="result.icd10 && result.icd10.length != 0">
+                                                        <template v-for="(iicd, index) in result.icd10">
+                                                            <div v-if="index === 0" class="mt-1">
+                                                                <b>Utama:</b> {{ iicd.code }} {{ iicd.name }}
+                                                            </div>
+                                                        </template>
+                                                        <template v-for="(iicd, index) in result.icd10">
+                                                            <div v-if="result.icd10.length > 1" class="mt-1">
+                                                                <div v-if="index > 0"><b>Tambahan:</b> {{ iicd.code }} {{ iicd.name }}</div>
+                                                            </div>
+                                                            <div v-else class="mt-1">
+                                                                <b>Tambahan: -</b>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                    <div v-else class="mt-1">
+                                                        <div><b>Utama: -</b></div>
+                                                        <div><b>Tambahan: -</b></div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1"><b>Catatan ICD10 :</b> {{ result.icd10_notes ? result.icd10_notes : '-'}}</div>
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                            </section>
+                            <section class="col-lg-3 mt-16 mt-lg-0">
+                                <div class="text-uppercase text-bold-16 text-success-500">Planning</div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Procedure/Tindakan :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <!-- Utama: K59.0 Constipation <br> Tambahan: E66.0 Obesiti due to excess calories -->
+                                                <div v-if="result.transaction_doctor && result.transaction_doctor.length != 0">
+                                                    <li v-for="(itd, index) in result.transaction_doctor">
+                                                        {{ itd.costing_name }}
+                                                    </li>
+                                                </div>
+                                                <div v-else>-</div>
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">ICD 9 :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div>
+                                                    <div v-if="result.icd9cm && result.icd9cm.length != 0">
+                                                        <div class="font-weight-bold">ICD9CM :</div>
+                                                        <li v-for="(iicd9, index) in result.icd9cm">
+                                                            {{ iicd9.code }} {{ iicd9.name }}
+                                                        </li>
+                                                    </div>
+                                                    <div v-else class="font-weight-bold">ICD9CM : - </div>
+                                                </div>
+                                                <div class="mt-1"><b>Catatan ICD9CM : </b>{{ result.therapy_plan ? result.therapy_plan : '-' }}</div>
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Pemeriksaan Penunjang :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div v-if="result.laboratory_request_new && result.laboratory_request_new.length != 0">
+                                                    <div class="font-weight-bold">LABORATORIUM :</div>
+                                                    <template v-for="(il, i) in result.laboratory_request_new">
+                                                        <div class="mb-12">
+                                                            <div class="font-weight-bold">{{il.no_request}}</div>
+                                                            <li v-for="(list, j) in il.laboratory_request_items">
+                                                                {{ list.code }} {{ list.costing_name }} 
+                                                                <router-link :to="{ path: '/laboratory/print/'+ list.laboratory_request_id}" target="_blank">
+                                                                    <b-button size="sm" variant="outline-secondary" class="ml-2">
+                                                                        <feather-icon icon="EyeIcon" /> Lihat Hasil
+                                                                    </b-button>
+                                                                </router-link>
+                                                            </li>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div v-else class="font-weight-bold">LABORATORIUM : - </div>
+                                            </b-td>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div v-if="result.radiology_request_new && result.radiology_request_new.length != 0">
+                                                    <div class="font-weight-bold">RADIOLOGI :</div>
+                                                    <template v-for="(ir, i) in result.radiology_request_new">
+                                                        <div class="mb-12">
+                                                            <div class="font-weight-bold">{{ir.no_request}}</div>
+                                                            <li v-for="(list, j) in ir.radiology_request_items">
+                                                                {{ list.code }} {{ list.costing_name }} 
+                                                                <template v-if="list.url.length > 0">
+                                                                    <b-button size="sm" variant="outline-secondary" class="ml-2" @click="isRefcontrol(urlbe,list.url)"><feather-icon icon="EyeIcon" /> Lihat Hasil</b-button>
+                                                                </template>
+
+                                                            </li>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div v-else class="font-weight-bold">RADIOLOGI : - </div>
+                                            </b-td>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div v-if="result.physiotherapy_request && result.physiotherapy_request.length != 0">
+                                                    <div class="font-weight-bold">FISIOTERAPI :</div>
+                                                    <!-- <template v-if="result.physiotherapy_request.physiotherapy_request_items"> -->
+                                                        <template v-for="(ip, index) in result.physiotherapy_request">
+                                                            <li v-for="list in ip.physiotherapy_request_items">{{ list.costing_name }} </li>
+                                                        </template>
+                                                    <!-- </template> -->
+                                                </div>
+                                                <div v-else class="font-weight-bold">FISIOTERAPI : -</div>
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Prescription :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div v-if="result.prescription_new && result.prescription_new.length != 0">
+                                                    <template v-for="(ipre, i) in result.prescription_new">
+                                                        <div class="mb-12">
+                                                            <div class="font-weight-bold">{{ipre.no_order}}</div>
+                                                            <li v-for="(list, j) in ipre.form_prescription">
+                                                                {{ list.pharmacy_catalog_name }}, {{ list.qty }} {{ list.package_name }}, {{ list.used }}, {{ list.desc }} <br>                                                                
+                                                            </li>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div v-else>-</div>
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                                <div class="mt-12">
+                                    <b-table-simple small class="text-regular-12">
+                                        <b-tr>
+                                            <div class="text-uppercase text-bold-12 text-primary-500">Advice :</div>
+                                        </b-tr>
+                                        <b-tr>
+                                            <b-td>
+                                                <div>{{ result.advice ? result.advice : '-' }}</div>
+                                            </b-td>
+                                        </b-tr>
+                                    </b-table-simple>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </template>
+        <b-modal v-model="active_act.modal_booking" scrollable size="lg" title="Booking" hide-footer>
+            <section class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Data Pendaftaran</span>
+                    </div>
+                    <div class="card-body">
+                        <b-table-simple>
+                            <b-tbody>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Nomor Pendaftaran</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.code}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Cara Bayar</b-td>
+                                    <b-td class="text-bold-14">
+                                        <div v-if="this.regData.registration_insurance">
+                                            <div v-for="list in this.regData.registration_insurance">
+                                                <template>
+                                                    {{ list.insurance_name }} - {{ list.company_name }}
+                                                </template>
+                                                <b-badge v-if="list.is_cob == 1"class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1" variant="warning-200">COB</b-badge>
+                                            </div>
+                                        </div>
+                                    </b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Cara Masuk</b-td>
+                                    <b-td class="text-bold-14">Langsung</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">No. RM</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.norm}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Nama</b-td>
+                                    <b-td class="text-bold-14">({{this.regData.alias_name}}) {{this.regData.name}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Tanggal Lahir</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.birth_date}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Jenis Kelamin</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.sex_name}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Dokter</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.doctor_in_charge_name}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">{{ this.regData.health_facility_name }}</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.health_facility_item_name}}</b-td>
+                                </b-tr>
+                                <b-tr>
+                                    <b-td class="text-regular-14">Tanggal Daftar</b-td>
+                                    <b-td class="text-bold-14">{{this.regData.register_date}}</b-td>
+                                </b-tr>
+                            </b-tbody>
+                        </b-table-simple>
+                    </div>
+                </div>
+            </section>
+            <div class="mt-32">
+                <div class="col">
+                    <ModernLabel label="Diagnosis (ICD10)" />
+                    
+                    <table class="table mt-12">
+                        <tr>
+                            <th>ICD10</th>
+                            <th>Aksi</th>
+                        </tr>
+                        <tr class="item" v-for="(item,index) in form_booking.icd10">
+                            <td>
+                                <b-form-input style="display:none" v-model="item.value" />
+                                <b-form-input type="text" v-model="item.title" aria-readonly="true" />
+                            </td>
+                            <td>
+                                <b-button variant="danger-600" size="sm" @click="delete10(index)" class="mr-2">
+                                    <feather-icon icon="TrashIcon" />
+                                </b-button>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <v-select v-model="icd10_id" @input="onAdd10($event)" aria-readonly="true"  @search="onSearchIcd10" :options="OptionsIcd10" :reduce="OptionsIcd10 => OptionsIcd10" label="title" placeholder="-- Diagnosa --"></v-select>
+                </div>
+            </div>
+            <div class="col">
+                <ModernLabel label="Penunjang" class="mt-24" />
+                <section class="row mt-12">
+                    <div class="col-lg-4">
+                        <label class="c-form-label">Tanggal Permintaan</label>
+                        <b-form-input v-model="form_booking.date_request" :disabled="active.booking_view != 'ADD'" type="date"></b-form-input>
+                    </div>
+                </section>
+                <section class="mt-32 d-flex flex-wrap">
+                    <b-button pill size="sm" :variant="active_act.tab_penunjang === 'menu1' ? 'primary' : 'outline-primary'"
+                        class="m-1 px-3 text-semi-14-on" @click="goToPenunjangTab('menu1')">
+                        Rencana Laboratorium
+                    </b-button>
+                    <b-button pill size="sm" :variant="active_act.tab_penunjang === 'menu2' ? 'primary' : 'outline-primary'"
+                        class="m-1 px-3 text-semi-14-on" @click="goToPenunjangTab('menu2')">
+                        Rencana Radiologi
+                    </b-button>
+                </section>
+
+                <section v-if="active_act.tab_penunjang === 'menu1'" class="py-20 col" :class="active.booking_view != 'ADD' && active.editAccess.laboratory == false ? 'bg-warning-100': ''">
+                    <div v-if="active.booking_view != 'ADD' && active.editAccess.laboratory == false" class="card-body bg-warning mb-16">
+                        <div class="d-flex align-items-center">
+                            <b-icon-exclamation-triangle-fill variant="neutral-800" style="width: 24px; height: 24px;"/>
+                            <div class="ml-3 font-italic">Form penunjang laboratorium tidak dapat diubah karena sudah diproses oleh laboratorium</div>
+                        </div>
+                    </div>
+                    <div class="text-semi-18 card-header rounded bg-neutral-200 border-bottom-0">Laboratorium</div>
+                    <div class="mt-20">
+                        <b-form-input type="text" v-model="searchlab" placeholder="Pencarian"></b-form-input>
+                        <div class="col-lg-12 mt-3">
+                            <h5>Checked Items:</h5>
+                            <b-form-checkbox-group v-model="form_booking.laboratory_request_items">
+                                <b-form-checkbox
+                                    :disabled="active.booking_view != 'ADD' && active.editAccess.laboratory == false"
+                                    v-for="(item, index) in form_booking.laboratory_request_items"
+                                    :key="index"
+                                    :value="item"
+                                    >
+                                    {{ item.costing_name }}
+                                </b-form-checkbox>
+                            </b-form-checkbox-group>
+                        </div>
+                        <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                            <div class="row">
+                                <b-form-checkbox-group size="sm" stacked>
+                                    <b-form-checkbox-group class="col-lg-12" v-model="form_booking.laboratory_request_items" :disabled="active.booking_view != 'ADD' && active.editAccess.laboratory == false">
+                                        <div v-for="(item, index) in filteredListLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                            <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                            <div class="row mx-0"> 
+                                                <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                            </div>
+                                        </div>
+                                    </b-form-checkbox-group>
+                                </b-form-checkbox-group>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section v-if="active_act.tab_penunjang === 'menu2'" class="py-20 col" :class="active.booking_view != 'ADD' && active.editAccess.radiology == false ? 'bg-warning-100': ''">
+                    <div v-if="active.booking_view != 'ADD' && active.editAccess.radiology == false" class="card-body bg-warning mb-16">
+                        <div class="d-flex align-items-center">
+                            <b-icon-exclamation-triangle-fill variant="neutral-800" style="width: 24px; height: 24px;"/>
+                            <div class="ml-3 font-italic">Form penunjang radiologi tidak dapat diubah karena sudah diproses oleh laboratorium</div>
+                        </div>
+                    </div>
+                    <div class="text-semi-18 card-header rounded bg-neutral-200 border-bottom-0">Radiologi</div>
+                    <div class="mt-20">
+                        <b-form-input type="text" v-model="searchrad" placeholder="Pencarian"></b-form-input>
+                        <div class="col-lg-12 mt-3">
+                            <h5>Checked Items:</h5>
+                            <b-form-checkbox-group v-model="form_booking.radiology_request_items" :disabled="active.booking_view != 'ADD' && active.editAccess.radiology == false">
+                                <b-form-checkbox
+                                    v-for="(item, index) in form_booking.radiology_request_items"
+                                    :key="index"
+                                    :value="item"
+                                    >
+                                    {{ item.costing_name }}
+                                </b-form-checkbox>
+                            </b-form-checkbox-group>
+                        </div>
+                        <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                            <div class="row">
+                                <b-form-checkbox-group size="sm" stacked>
+                                    <b-form-checkbox-group class="col-lg-12" v-model="form_booking.radiology_request_items" :disabled="active.booking_view != 'ADD' && active.editAccess.radiology == false">
+                                        <div v-for="(item, index) in filteredListRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                            <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                            <div class="row mx-0"> 
+                                                <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                            </div>
+                                        </div>
+                                    </b-form-checkbox-group>
+                                </b-form-checkbox-group>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div v-if="active.editAccess.laboratory == true || active.editAccess.radiology == true" class="card-footer mt-32">
+                <div class="d-flex justify-content-end">
+                    <b-button v-if="active.booking_view == 'ADD'" :disabled="isDisable" @click="resetBooking()" variant="outline-primary">Reset</b-button>
+                    <b-button :disabled="isDisable" @click="validationBooking()" variant="primary" class="ml-2">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <!-- <b-modal v-model="active_act.modal_allergy" scrollable size="lg" title="Alergi" hide-footer>
+            <div class="col">
+                <ModernLabel label="List Alergi" />
+                <b-table small responsive head-variant="light" :fields="fieldsAllergy" :items="itemsAllergy">
+                    <template #cell(type_allergy_id)="data">
+                        <div class="text-regular-16">
+                            <b-badge size="sm" :variant=" data.value === '1' ? 'success-600' : 'info-600'" class="p-2 font-weight-normal">
+                                <span>
+                                    {{ data.value === '1' ? 'Obat' : 'Makanan' }}
+                                </span>
+                            </b-badge>
+                        </div>
+                    </template>
+                    <template #cell(action)>
+                        <div>
+                            <b-button size="sm" variant="danger-500">
+                                <b-icon icon="trash" class="mr-2" /> <span>Hapus</span>
+                            </b-button>
+                        </div>
+                    </template>
+                </b-table>
+            </div>
+        </b-modal> -->
+        <b-modal v-model="active.refcontrol" scrollable size="xl" @close="isRefcontrol()" title="Hasil Radiologi" hide-footer>
+            <div>
+                <b-table :fields="radiologyResultField" :items="imageview" bordered responsive small style="font-size: 14px;">
+                    <template #cell(no)="row">
+                        <div>{{ row.index+1 }}</div>
+                    </template>
+                    <template #cell(expertise)="row">
+                        <div>
+                            <table class="w-100 custom-border">
+                                <tr>
+                                    <td style="width: 150px;">Pemeriksa Radiologi</td>
+                                    <td class="align-top text-center" style="width: 30px;">:</td>
+                                    <td>{{ row.item.user_lab_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Verifikator</td>
+                                    <td class="align-top text-center">:</td>
+                                    <td>{{ row.item.doctor_lab_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Tanggal Order</td>
+                                    <td class="align-top text-center">:</td>
+                                    <td>{{ row.item.date_request ? localDate(row.item.date_request) : '' }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Tanggal Diproses</td>
+                                    <td class="align-top text-center">:</td>
+                                    <td>{{ row.item.date_process ? localDate(row.item.date_process) : '' }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Expertise</td>
+                                    <td class="align-top text-center">:</td>
+                                    <td><span v-html="parsedBody(row.item.conclusion)"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Kesan</td>
+                                    <td class="align-top text-center">:</td>
+                                    <td><span v-html="parsedBody(row.item.advice)"></span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </template>
+                    <template #cell(url)="data">
+                        <div>
+                            <b-img rounded :src="urlbe+data.value" style="width: 100%;" />
+                        </div>
+                    </template>
+                    <template #cell(action)="row">
+                        <div class="d-flex">
+                            <b-button @click="blankToPrint({radiology_request_id: row.item.radiology_request_id, radiology_request_item_id: row.item.radiology_request_item_id , image_id: row.item.id})" v-b-popover.hover.top="'Cetak'" size="sm" variant="w3green" class="mr-2">
+                                <feather-icon icon="PrinterIcon" />
+                            </b-button>
+                            <b-button @click="expandImage(row.item.url)" v-b-popover.hover.top="'Expand Gambar'" size="sm" variant="primary">
+                                <feather-icon icon="ExternalLinkIcon" />
+                                <!-- <feather-icon icon="Maximize2Icon" /> -->
+                            </b-button>
+                        </div>
+                    </template>
+                </b-table>
+            </div>
+        </b-modal>
+        <!-- <b-modal v-model="active.refcontrol" scrollable size="xl" @close="isRefcontrol()" title="Hasil Radiologi" hide-footer>
+            <div>
+                <b-table :fields="radiologyResultField" :items="imageview" bordered responsive small style="font-size: 14px;">
+                    <template #cell(no)="row">
+                        <div>{{ row.index+1 }}</div>
+                    </template>
+                    <template #cell(expertise)="row">
+                        <div>
+                            <div>Pemeriksa Radiologi: {{ row.item.user_lab_name }}</div>
+                            <div>Verifikator: {{ row.item.doctor_lab_name }}</div>
+                            <div>Tanggal Order: {{ row.item.date_order ? localDate(row.item.date_order) : '' }}</div>
+                            <div>Tanggal Diproses: {{ row.item.date_process ? localDate(row.item.date_process) : '' }}</div>
+                            <div>Expertise: {{ row.item.conclusion }}</div>
+                            <div>Kesan: {{ row.item.advice }}</div>
+                        </div>
+                    </template>
+                    <template #cell(url)="data">
+                        <div>
+                            <b-img rounded :src="urlbe+data.value" style="width: 100%;" />
+                        </div>
+                    </template>
+                </b-table>
+            </div>
+        </b-modal> -->
+
+        <b-modal v-if="isNewBorn" v-model="active_act.modal_NewBorn" scrollable size="xl" title="KEADAAN BAYI BARU LAHIR" hide-footer>
+            <section class="col-12">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Data Dasar</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" style="font-size: 14px">
+                            <div class="col-4">
+                                <div class="font-weight-bold">Nama</div>
+                                <div>{{ regData.name }} ({{ parsed_age(regData.birth_date) }})</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">Tanggal Lahir</div>
+                                <div>{{ localDate(regData.birth_date) }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">No RM</div>
+                                <div>{{ regData.norm }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Keadaan Bayi Baru Lahir</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" > 
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <b-table-simple bordered hover resposive>
+                                        <b-thead>
+                                            <b-tr>
+                                                <b-th></b-th>
+                                                <b-th></b-th>
+                                                <b-th>I</b-th>
+                                                <b-th>II</b-th>
+                                            </b-tr>
+                                        </b-thead>
+                                        <b-tbody>
+                                            <b-tr>
+                                                <b-td>Frekuensi Jantung</b-td>
+                                                <b-td>
+                                                    <p>Tidak ada : 0</p>
+                                                    <p>Kurang dari 100 : 1</p>
+                                                    <p>Lebih dari 100 : 2</p>
+                                                </b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                            </b-tr>
+                                            <b-tr>
+                                                <b-td>Usaha Pernafasan</b-td>
+                                                <b-td>
+                                                    <p>Tidak ada : 0</p>
+                                                    <p>Lemah menangis : 1</p>
+                                                    <p>Menangis Kuat dan Baik : 2</p>
+                                                </b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                            </b-tr>
+                                            <b-tr>
+                                                <b-td>Tonus Otot</b-td>
+                                                <b-td>
+                                                    <p>Lembek : 0</p>
+                                                    <p>Gerakan Sedikit : 1</p>
+                                                    <p>Gerakan Baik : 2</p>
+                                                    <p>Tidak beraksi : 0</p>
+                                                </b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                            </b-tr>
+                                            <b-tr>
+                                                <b-td>
+                                                    <p>Reaksi Refleks</p>
+                                                    <p>a. Sonde Hidung</p>
+                                                    <p>b. Telapak kaki</p>
+                                                </b-td>
+                                                <b-td>
+                                                    <p>Reaksi Sedikit : 1</p>
+                                                    <p>a. Bersin atau Batuk : 2</p>
+                                                    <p>b. Menangis dan Kaki Menarik Kembali</p>
+                                                </b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                                <b-td><b-form-input type="number"/></b-td>
+                                            </b-tr>
+                                            <b-tr>
+                                                <b-td>
+                                                    <p>Warna Kulit</p>
+                                                </b-td>
+                                                <b-td>
+                                                    <p>Pucat / Biru : 0</p>
+                                                    <p>Badan Merah Muda : 1</p>
+                                                    <p>Ekstremitas Biru (Anggota-anggota Badan)</p>
+                                                    <p>Seluruhnya Mera Muda : 2</p>
+                                                </b-td>
+                                                <b-td><b-form-input type="number" /></b-td>
+                                                <b-td><b-form-input type="number" /></b-td>
+                                            </b-tr>
+                                            <b-tr>
+                                                <b-td colspan="2">JUMLAH</b-td>
+                                                <b-td></b-td>
+                                                <b-td></b-td>
+                                            </b-tr>
+                                        </b-tbody>
+                                    </b-table-simple>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Kesimpulan</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Alat Kelamin Luar</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Anus</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Meconium</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Miksi</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Vernik Caseosa / Lanugo</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Caput Succedanium</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Cephal Haematom</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Kepala</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Sutura</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Ubun-ubun Besar</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Ubun-ubun Kecil</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Meninggal Dalam Kehamilan</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Meninggal Dalam Persalinan</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Meninggal sesudah lahir beberapa menit / jam</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Kelainan bawaan</label>
+                            </div>
+                            <div class="col">
+                                <b-textarea rows="3"></b-textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Trauma Bayi</label>
+                            </div>
+                            <div class="col">
+                                <b-textarea rows="3"></b-textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </b-modal>
+
+        <b-modal v-if="isPartograf" v-model="active_act.modal_Partograf" scrollable size="xl" title="Partograf" hide-footer>
+            <section class="col-12">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Data Dasar</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" style="font-size: 14px">
+                            <div class="col-4">
+                                <div class="font-weight-bold">Nama</div>
+                                <div>{{ regData.name }} ({{ parsed_age(regData.birth_date) }})</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">Tanggal Lahir</div>
+                                <div>{{ localDate(regData.birth_date) }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">No RM</div>
+                                <div>{{ regData.norm }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Partograf Kebidanan</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" > 
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <div class="col-lg-6 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Tanggal & Jam Mulai</label>
+                                        <date-picker
+                                            type="datetime"
+                                            v-model="partograf.date_start"
+                                            placeholder="Select datetime"
+                                            :show-time-panel="showTimePanel"
+                                            @close="handleOpenChange"
+                                        >
+                                            <template v-slot:footer>
+                                                <button class="mx-btn mx-btn-text" @click="toggleTimePanel">
+                                                    {{ showTimePanel ? 'select date' : 'select time' }}
+                                                </button>
+                                            </template>
+                                        </date-picker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </b-modal>
+
+        <b-modal v-if="isSPRI" v-model="active_act.modal_SPRI" scrollable size="xl" title="SPRI" hide-footer>
+            <section class="col-12">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Data Dasar</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" style="font-size: 14px">
+                            <div class="col-4">
+                                <div class="font-weight-bold">Nama</div>
+                                <div>{{ regData.name }} ({{ parsed_age(regData.birth_date) }})</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">Tanggal Lahir</div>
+                                <div>{{ localDate(regData.birth_date) }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">No RM</div>
+                                <div>{{ regData.norm }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Permintaan Rawat Inap Pasien</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" > 
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Indikasi Rawat Inap</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <b-textarea v-model="form_igd.family_name" autocomplete="off"></b-textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-2">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Diagnosis</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <b-table-simple bordered responsive style="font-size: 14px">
+                                            <b-tr>
+                                                <b-th style="width: 60px;">No</b-th>
+                                                <b-th>ICD10</b-th>
+                                            </b-tr>
+                                            <b-tr class="item" v-for="(item,index) in form_igd.icd10">
+                                                <b-td>{{ index+1 }}</b-td>
+                                                <b-td>
+                                                    <!-- <b-form-input style="display:none" v-model="item.value" />
+                                                    <b-form-input type="text" v-model="item.title" disabled /> -->
+                                                    <div>{{ item.title }}</div>
+                                                </b-td>
+                                            </b-tr>
+                                        </b-table-simple>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Rencana Tindakan</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <b-textarea v-model="form_igd.family_name" autocomplete="off"></b-textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-2">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Hasil yang Diharapkan</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <b-textarea v-model="form_igd.family_name" autocomplete="off"></b-textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-2">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Keadaan Umum Pasien</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <b-textarea v-model="form_igd.family_name" autocomplete="off"></b-textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-2">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">DPJP Utama</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <v-select v-model="form_spri.doctor_in_charge_id" class="col px-0" aria-readonly="true" :options="OptionsSpecialistDoctor" :reduce="OptionsSpecialistDoctor => OptionsSpecialistDoctor.value" label="title" placeholder="-- Dokter --"></v-select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12 px-0">
+                                <div class="row mx-0 mt-2">
+                                    <div class="col-lg-3 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Ruang Perawatan</label>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <v-select v-model="form_igd.type_room_id" :options="TypeRoomOptions" :reduce="(TypeRoomOptions) => TypeRoomOptions.value" label="title" placeholder="-- Pilih Tipe Ruangan --"></v-select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div class="modal-footer mt-32">
+                <div class="d-flex justify-content-end">
+                    <b-button :disabled="isDisabledSPRI" @click="resetSPRI" variant="outline-primary" class="mr-2">Reset</b-button>
+                    <b-button :disabled="isDisabledSPRI" @click="validationSPRI" variant="primary">Simpan</b-button>
+                    <b-button @click="openPrintSPRI(regData.registration_destination_id)" variant="primary" class="mr-2">
+                        <b-icon icon="printer" /> <span>Print</span>
+                    </b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-if="isIGD" v-model="active_act.modal_IGD" scrollable size="xl" title="Assessment IGD" hide-footer>
+            <section class="col-12">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Data Dasar</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" style="font-size: 14px">
+                            <div class="col-4">
+                                <div class="font-weight-bold">Nama</div>
+                                <div>{{ regData.name }} ({{ parsed_age(regData.birth_date) }})</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">Tanggal Lahir</div>
+                                <div>{{ localDate(regData.birth_date) }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="font-weight-bold">No RM</div>
+                                <div>{{ regData.norm }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Subjective</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Anamnesa</label>
+                            </div>
+                            <div class="col">
+                                <v-select v-model="form_igd.anamesa_type_id" aria-readonly="true" :options="OptionsAnamesaType" :reduce="OptionsAnamesaType => OptionsAnamesaType.value" label="title" placeholder="-- Pilih Anamnesa --"></v-select>
+                            </div>
+                        </div>
+                        <div class="row" v-if="form_igd.anamesa_type_id === 2">
+                            <div class="col-lg-6 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <div class="col-lg-6 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Nama Keluarga</label>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <b-form-input type="text" v-model="form_igd.family_name" autocomplete="off"></b-form-input>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <div class="col-lg-6 d-lg-flex">
+                                        <label class="m-lg-auto text-semi-14">Hubungan Keluarga</label>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <v-select v-model="form_igd.family_relation_id" aria-readonly="true" :options="OptionsFamilyRelation" :reduce="OptionsFamilyRelation => OptionsFamilyRelation.value" label="title" placeholder="-- Pilih Hubungan Keluarga --"></v-select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Keluhan Utama</label>
+                            </div>
+                            <div class="col">
+                                <b-form-input type="text" v-model="form_igd.main_complaint" autocomplete="off"></b-form-input>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="text-semi-14">Riwayat Penyakit Sekarang</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_igd.history_disease_now" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="text-semi-14">Riwayat Penyakit Dahulu</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_igd.history_disease_past" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="text-semi-14">Riwayat Obat</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_igd.history_drugs" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                        <!-- <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Riwayat Alergi</label>
+                            </div>
+                            <div class="col">
+                                <b-input-group class="mt-3">
+                                    <b-form-input readonly></b-form-input>
+                                    <b-input-group-append>
+                                        <b-button variant="primary">
+                                            <b-icon icon="search" />
+                                        </b-button>
+                                    </b-input-group-append>
+                                </b-input-group>
+                            </div>
+                        </div> -->
+                        <!-- <div class="card border-0">
+                            <div class="card-header rounded bg-indigo">
+                                <span class="fw-bold text-white">Alergi</span>
+                            </div>
+
+                            <div class="card-body">
+                                <div>
+                                    <b-table small responsive :items="form.allergyTable.items" :fields="form.allergyTable.fields" head-variant="light" thead-class="text-bold-14" tbody-tr-class="text-regular-12" class="text-center">
+                                        <template #cell(Aksi)>
+                                            <b-button variant="danger-600" size="sm" @click="deleteAllergy(form.allergyTable.items.index+1)" class="mr-2">
+                                                <feather-icon icon="TrashIcon" />
+                                            </b-button>
+                                        </template>
+                                    </b-table>
+                                </div>
+                                <div class="col px-0 d-flex mt-32">
+                                    <b-button pill size="sm" variant="indigo-200" @click="alergiForm = true" class="ml-auto px-3">
+                                        <feather-icon icon="PlusIcon" class="mr-2" />
+                                        <span class="text-indigo-700 fw-medium">Tambah Alergi</span>
+                                    </b-button>
+                                </div>
+                                <div v-show="alergiForm" class="col px-0 mt-32">
+                                    <form class="c-form">
+                                        <div class="row mx-0">
+                                            <div class="col-12 col-lg px-0 px-lg-3">
+                                                <label>Jenis Alergi</label>
+                                                <v-select :options="OptionsTypeAllergy" v-model="form.allergyInput.type_allergy_id" :reduce="OptionsTypeAllergy => OptionsTypeAllergy" label="title" placeholder="--Pilih Jenis Alergi --"></v-select>
+                                            </div>
+                                            <div class="col-12 col-lg px-0 px-lg-3">
+                                                <label>Alergi *</label>
+                                                <b-form-input autocomplete="off" type="text" v-model="form.allergyInput.name" required></b-form-input>
+                                            </div>
+                                            <div class="col-12 col-lg px-0 px-lg-3">
+                                                <label>Reaksi</label>
+                                                <b-form-input autocomplete="off" type="text" v-model="form.allergyInput.reaction"></b-form-input>
+                                            </div>
+                                        </div>
+                                        <div class="row mx-0 mt-0 mt-lg-12">
+                                            <div class="col-12 col-lg px-0 px-lg-3">
+                                                <label>Tingkat Keparahan</label>
+                                                <b-form-input autocomplete="off" type="text" v-model="form.allergyInput.severity"></b-form-input>
+                                            </div>
+                                            <div class="col-12 col-lg px-0 px-lg-3">
+                                                <label>Efek Samping</label>
+                                                <b-form-input autocomplete="off" type="text" v-model="form.allergyInput.side_effect"></b-form-input>
+                                            </div>
+                                            <div class="col-12 col-lg px-0 px-lg-3">
+                                                <label>Tanggal Kejadian</label>
+                                                <b-form-input autocomplete="off" type="date" v-model="form.allergyInput.date_tragedy"></b-form-input>
+                                            </div>
+                                        </div>
+                                        <div class="col mt-16 mt-lg-24 d-flex">
+                                            <div class="ml-auto row mx-0">
+                                                <b-button pill variant="outline-indigo" class="px-3 mr-2"
+                                                    @click="alergiForm = !alergiForm">Batal</b-button>
+                                                <b-button pill variant="indigo" @click.prevent="validationFormAllergy" class="px-3">Simpan</b-button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div> -->
+
+                    </div>
+                </div>
+            </section>
+
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Objective</span>
+                    </div>
+                    <div class="card-body">
+                        <div>
+                            <div class="col px-0">
+                                <ModernLabel label="Tanda Vital" />
+                                <div class="row mt-12">
+                                    <div class="col-lg-4">
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Systolic</label>
+                                            <b-input-group append="mmHg">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.systolic_blood_pressure"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Diastolic</label>
+                                            <b-input-group append="mmHg">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.diastolic_blood_pressure"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Frekuensi Nadi</label>
+                                            <b-input-group append="x/mnt">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.pulse_frequency"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 border border-top-0 border-bottom-0">
+                                        
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Frekuensi Nafas</label>
+                                            <b-input-group append="x/mnt">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.breath_frequency"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Saturasi Oksigen</label>
+                                            <b-input-group append="%">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.oximetry_frequency"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Suhu</label>
+                                            <b-input-group append="ᵒC">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.temperature"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4">                                        
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Skor Nyeri</label>
+                                            <b-form-input autocomplete="off" v-model="form_igd.sore_score"></b-form-input>
+                                        </div>
+                                        <div class="mt-1">
+                                            <label class="c-form-label">EWS</label>
+                                            <b-form-input autocomplete="off" v-model="form_igd.ews"></b-form-input>
+                                        </div>
+                                        <div class="mt-1">
+                                            <label class="c-form-label">Gula Darah</label>
+                                            <b-input-group append="mg/dL">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.blood_sugar"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col mt-32 px-0">
+                                <ModernLabel label="Antopometri" />
+
+                                <div class="row mt-12">
+                                    <div class="col-lg-4">
+                                        <label class="c-form-label">Berat Badan</label>
+                                        <b-input-group append="kg">
+                                            <b-form-input type="number" autocomplete="off" v-model="form_igd.weight"></b-form-input>
+                                        </b-input-group>
+                                    </div>
+                                    <div class="col-lg-4 mt-10 mt-lg-0">
+                                        <label class="c-form-label">Tinggi Badan</label>
+                                        <b-input-group append="cm">
+                                            <b-form-input type="number" autocomplete="off" v-model="form_igd.height"></b-form-input>
+                                        </b-input-group>
+                                    </div>
+                                    <div class="col-lg-4 mt-10 mt-lg-0">
+                                        <label class="c-form-label">IMT</label>
+                                        <b-input-group append="kg/m²">
+                                            <b-form-input type="number" autocomplete="off" v-model="form_igd.imt"></b-form-input>
+                                        </b-input-group>
+                                    </div>
+                                </div>
+                                <b-collapse id="collapse-anto" v-model="active.advance.antopometri" class="mb-8">
+                                    <div class="row">
+                                        <div class="col-lg-4 mt-10">
+                                            <label class="c-form-label">Lingkar Kepala</label>
+                                            <b-input-group append="cm">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.head_circumference"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="col-lg-4 mt-10">
+                                            <label class="c-form-label">Lingkar Dada</label>
+                                            <b-input-group append="cm">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.chest_circumference"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="col-lg-4 mt-10">
+                                            <label class="c-form-label">Lingkar Lengan Atas</label>
+                                            <b-input-group append="cm">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.arm_circumference"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="col-lg-4 mt-10">
+                                            <label class="c-form-label">Lingkar Perut</label>
+                                            <b-input-group append="cm">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.stomach_circumference"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                        <div class="col-lg-4 mt-10">
+                                            <label class="c-form-label">Lingkar Lutut</label>
+                                            <b-input-group append="cm">
+                                                <b-form-input type="number" autocomplete="off" v-model="form_igd.knee_circumference"></b-form-input>
+                                            </b-input-group>
+                                        </div>
+                                    </div>
+                                </b-collapse>
+                                <small @click="active.advance.antopometri = !active.advance.antopometri" class="font-weight-bold text-primary pointer" :class="active.advance.antopometri ? null : 'collapsed'" :aria-expanded="active.advance.antopometri ? 'true' : 'false'" aria-controls="collapse-anto">
+                                    Advance Antopometri 
+                                    <b-icon :icon="active.advance.antopometri == true ? 'chevron-up' : 'chevron-down'" />
+                                </small>
+                            </div>
+                            <!-- <div class="mt-12">
+                                <label class="c-form-label">Pemeriksaan Fisik</label>
+                                <b-form-textarea rows="6" v-model="form_igd.physical_check" autocomplete="off" ></b-form-textarea>
+                            </div> -->
+                            <!-- <b-form-textarea rows="2" autocomplete="off" ></b-form-textarea> -->
+
+                            <!-- DON'T DELETE THIS COMMENT BELOW -->
+                            <div class="mt-20">
+                                <div class="card">
+                                    <div class="card-header font-weight-bold">STATUS GENERALIS</div>
+                                    <div class="card-body">
+                                        <div>
+                                            <ModernLabel label="Kepala" />
+                                            <div class="row">
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Kepala</label>
+                                                    <v-select v-model="form_igd.head" :options="OptionsHeadCircumference" :reduce="OptionsHeadCircumference => OptionsHeadCircumference.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Warna Rambut</label>
+                                                    <v-select v-model="form_igd.head_hair_color" :options="OptionsHeadHairColor" :reduce="OptionsHeadHairColor => OptionsHeadHairColor.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Kondisi Rambut</label>
+                                                    <v-select v-model="form_igd.head_hair_condition" :options="OptionsHeadHairCondition" :reduce="OptionsHeadHairCondition => OptionsHeadHairCondition.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Mata" />
+                                            <div class="row">
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Conjunctiva</label>
+                                                    <v-select v-model="form_igd.eye_conjunctive" :options="OptionsEyeConjunctiva" :reduce="OptionsEyeConjunctiva => OptionsEyeConjunctiva.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Sklera</label>
+                                                    <v-select v-model="form_igd.eye_sclera" :options="OptionsEyeSclera" :reduce="OptionsEyeSclera => OptionsEyeSclera.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Pupil</label>
+                                                    <v-select v-model="form_igd.eye_pupil" :options="OptionsEyePupil" :reduce="OptionsEyePupil => OptionsEyePupil.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Reflek Cahaya</label>
+                                                    <v-select v-model="form_igd.eye_light_reflex" :options="OptionsEyeReflect" :reduce="OptionsEyeReflect => OptionsEyeReflect.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Mulut" />
+                                            <div class="row">
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Mukosa</label>
+                                                    <v-select v-model="form_igd.mouth_mucosa" :options="OptionsMouthMukosa" :reduce="OptionsMouthMukosa => OptionsMouthMukosa.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Perubahan Warna</label>
+                                                    <v-select v-model="form_igd.mouth_discoloration" :options="OptionsMouthHiperemis" :reduce="OptionsMouthHiperemis => OptionsMouthHiperemis.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Lidah</label>
+                                                    <v-select v-model="form_igd.mouth_tongue" :options="OptionsMouthTongue" :reduce="OptionsMouthTongue => OptionsMouthTongue.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Karies</label>
+                                                    <v-select v-model="form_igd.mouth_caries" :options="OptionsMouthKaries" :reduce="OptionsMouthKaries => OptionsMouthKaries.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Leher" />
+                                            <div class="row">
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">KGB</label>
+                                                    <v-select v-model="form_igd.neck_kgb" :options="OptionsNeckKGB" :reduce="OptionsNeckKGB => OptionsNeckKGB.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Posisi Trakea</label>
+                                                    <v-select v-model="form_igd.neck_trachea_position" :options="OptionsNeckTrakea" :reduce="OptionsNeckTrakea => OptionsNeckTrakea.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Massa</label>
+                                                    <v-select v-model="form_igd.neck_massa" :options="OptionsNeckMassa" :reduce="OptionsNeckMassa => OptionsNeckMassa.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Thoraks" />
+                                            <div class="mt-12">
+                                                <div class="font-weight-bold" style="font-size: 14px">INSPEKSI</div>
+                                                <div class="row">
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Dada</label>
+                                                        <v-select v-model="form_igd.thorax_insp_chest" :options="OptionsInspectionChest" :reduce="OptionsInspectionChest => OptionsInspectionChest.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Retraksi</label>
+                                                        <v-select v-model="form_igd.thorax_insp_retraction" :options="OptionsInspectionRetraction" :reduce="OptionsInspectionRetraction => OptionsInspectionRetraction.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-24">
+                                                <div class="font-weight-bold" style="font-size: 14px">PALPASI</div>
+                                                <div class="row">
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Dada</label>
+                                                        <v-select v-model="form_igd.thorax_palp_chest" :options="OptionsPalpationChest" :reduce="OptionsPalpationChest => OptionsPalpationChest.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Fremitus</label>
+                                                        <v-select v-model="form_igd.thorax_palp_fremitus" :options="OptionsPalpationFremitus" :reduce="OptionsPalpationFremitus => OptionsPalpationFremitus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Krepitasi</label>
+                                                        <v-select v-model="form_igd.thorax_palp_crepitation" :options="OptionsPalpationKrepitasi" :reduce="OptionsPalpationKrepitasi => OptionsPalpationKrepitasi.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-32">
+                                                <div class="font-weight-bold" style="font-size: 14px">AUSKULTASI</div>
+                                                <div class="row">
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Pulmo Vasikuler</label>
+                                                        <v-select v-model="form_igd.thorax_ausk_pul_vasiculer" :options="OptionsAuskultationPulmoVasikuler" :reduce="OptionsAuskultationPulmoVasikuler => OptionsAuskultationPulmoVasikuler.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Pulmo Rhonki</label>
+                                                        <v-select v-model="form_igd.thorax_ausk_pul_rhonki" :options="OptionsAuskultationPulmoRhonki" :reduce="OptionsAuskultationPulmoRhonki => OptionsAuskultationPulmoRhonki.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12 mt-lg-0">
+                                                        <label class="c-form-label">Pulmo Wheezing</label>
+                                                        <v-select v-model="form_igd.thorax_ausk_pul_wheezing" :options="OptionsAuskultationPulmoWheezing" :reduce="OptionsAuskultationPulmoWheezing => OptionsAuskultationPulmoWheezing.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-lg-3 mt-12">
+                                                        <label class="c-form-label">COR Bunyi Jantung</label>
+                                                        <v-select v-model="form_igd.thorax_ausk_cor_heart_sound" :options="OptionsAuskultationCORBJ" :reduce="OptionsAuskultationCORBJ => OptionsAuskultationCORBJ.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12">
+                                                        <label class="c-form-label">COR Murmur</label>
+                                                        <v-select v-model="form_igd.thorax_ausk_cor_murmur" :options="OptionsAuskultationCORMurmur" :reduce="OptionsAuskultationCORMurmur => OptionsAuskultationCORMurmur.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                    <div class="col-lg-3 mt-12">
+                                                        <label class="c-form-label">COR Gallop</label>
+                                                        <v-select v-model="form_igd.thorax_ausk_cor_gallop" :options="OptionsAuskultationCORGallop" :reduce="OptionsAuskultationCORGallop => OptionsAuskultationCORGallop.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Abdomen" />
+                                            <div class="row">
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Supel</label>
+                                                    <v-select v-model="form_igd.abdomen_supel" :options="OptionsAbdomenSupel" :reduce="OptionsAbdomenSupel => OptionsAbdomenSupel.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Bising Usus</label>
+                                                    <v-select v-model="form_igd.abdomen_bowel_sounds" :options="OptionsAbdomenBising" :reduce="OptionsAbdomenBising => OptionsAbdomenBising.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Nyeri Tekan</label>
+                                                    <v-select v-model="form_igd.abdomen_tenderness" :options="OptionsAbdomenPress" :reduce="OptionsAbdomenPress => OptionsAbdomenPress.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Hepar & Lien</label>
+                                                    <v-select v-model="form_igd.abdomen_hepar_lien" :options="OptionsAbdomenHepar" :reduce="OptionsAbdomenHepar => OptionsAbdomenHepar.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg mt-12">
+                                                    <label class="c-form-label">Pemeriksaan Fisik Lainnya</label>
+                                                    <b-form-textarea v-model="form_igd.abdomen_other_physical_check" rows="1" autocomplete="off" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Ekstrimitas" />
+                                            <div class="row">
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Akral</label>
+                                                    <v-select v-model="form_igd.extremity_acral" :options="OptionsEkstremitasAkral" :reduce="OptionsEkstremitasAkral => OptionsEkstremitasAkral.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">CRT</label>
+                                                    <v-select v-model="form_igd.extremity_crt" :options="OptionsEkstremitasCRT" :reduce="OptionsEkstremitasCRT => OptionsEkstremitasCRT.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                                <div class="col-lg-3 mt-12">
+                                                    <label class="c-form-label">Edema</label>
+                                                    <v-select v-model="form_igd.extremity_edema" :options="OptionsEkstremitasEdema" :reduce="OptionsEkstremitasEdema => OptionsEkstremitasEdema.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-32">
+                                            <ModernLabel label="Genitalia" />
+                                            <div class="mt-12 mb-8">
+                                                <b-form-textarea v-model="form_igd.genitalia" rows="2" autocomplete="off" placeholder="(Tuliskan pemeriksaan genitalia)" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Status Lokalis" />
+                                            <div class="mt-12 mb-8">
+                                                <b-form-textarea v-model="form_igd.localist_status" rows="2" autocomplete="off" placeholder="(Tuliskan status lokalis di kolom ini secara lengkap)" />
+                                            </div>
+                                            
+                                            <!-- <small class="mt-16">Advance status lokalis <b-icon icon="chevron-down" /></small> -->
+                                        </div>
+                                        <div class="mt-32">
+                                            <ModernLabel label="Status oftalmologis" />
+                                            <div class="mt-12 mb-8">
+                                                <b-form-textarea v-model="form_igd.ophthal_status" rows="2" autocomplete="off" />
+                                            </div>
+
+                                            <b-collapse id="collapse-ofta" v-model="active.advance.oftalmologis" class="mb-8">
+                                                <div>
+                                                    <b-table-simple bordered responsive>
+                                                        <b-thead>
+                                                            <b-tr class="text-center">
+                                                                <b-th style="width: calc(100%/3)" class="bg-warning-200">OD</b-th>
+                                                                <b-th style="width: calc(100%/3)" class="bg-primary-100">Pemeriksaan</b-th>
+                                                                <b-th style="width: calc(100%/3)" class="bg-warning-200">OS</b-th>
+                                                            </b-tr>
+                                                        </b-thead>
+                                                        <b-tbody>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.visus" :options="OptionsOftalVisus" :reduce="OptionsOftalVisus => OptionsOftalVisus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Visus</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.visus" :options="OptionsOftalVisus" :reduce="OptionsOftalVisus => OptionsOftalVisus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Digital</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.tio_digital" :options="OptionsOftalTIO" :reduce="OptionsOftalTIO => OptionsOftalTIO.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Tonometri Sciotz</label>
+                                                                        <b-form-textarea v-model="form_igd.ophthal_od.tio_tonometri_sciots" rows="2" autocomplete="off" />
+                                                                    </div>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">TIO</b-th>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Digital</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.tio_digital" :options="OptionsOftalTIO" label="title" :reduce="OptionsOftalTIO => OptionsOftalTIO.value" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Tonometri Sciotz</label>
+                                                                        <b-form-textarea v-model="form_igd.ophthal_os.tio_tonometri_sciots" rows="2" autocomplete="off" />
+                                                                    </div>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.eye_position" :options="OptionsOftalEyePosition" :reduce="OptionsOftalEyePosition => OptionsOftalEyePosition.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Posisi Mata</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.eye_position" :options="OptionsOftalEyePosition" :reduce="OptionsOftalEyePosition => OptionsOftalEyePosition.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.eye_movement" :options="OptionsOftalMovement" :reduce="OptionsOftalMovement => OptionsOftalMovement.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Pergerakan Mata</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.eye_movement" :options="OptionsOftalMovement" :reduce="OptionsOftalMovement => OptionsOftalMovement.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.super_silia" :options="OptionsOftalSuperSilia" :reduce="OptionsOftalSuperSilia => OptionsOftalSuperSilia.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Super Silia</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.super_silia" :options="OptionsOftalSuperSilia" :reduce="OptionsOftalSuperSilia => OptionsOftalSuperSilia.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Edema</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.palpebra_edema" :options="OptionsOftalPalpebraEdema" :reduce="OptionsOftalPalpebraEdema => OptionsOftalPalpebraEdema.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Ptosis</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.palpebra_ptosis" :options="OptionsOftalPalpebraPtosis" :reduce="OptionsOftalPalpebraPtosis => OptionsOftalPalpebraPtosis.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Lagophtalmus</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.palpebra_lagophtalmus" :options="OptionsOftalPalpebraLagophtalmus" :reduce="OptionsOftalPalpebraLagophtalmus => OptionsOftalPalpebraLagophtalmus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Tumor</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.palpebra_tumor" :options="OptionsOftalPalpebraTumor" :reduce="OptionsOftalPalpebraTumor => OptionsOftalPalpebraTumor.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Palpebra</b-th>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Edema</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.palpebra_edema" :options="OptionsOftalPalpebraEdema" :reduce="OptionsOftalPalpebraEdema => OptionsOftalPalpebraEdema.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Ptosis</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.palpebra_ptosis" :options="OptionsOftalPalpebraPtosis" :reduce="OptionsOftalPalpebraPtosis => OptionsOftalPalpebraPtosis.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Lagophtalmus</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.palpebra_lagophtalmus" :options="OptionsOftalPalpebraLagophtalmus" :reduce="OptionsOftalPalpebraLagophtalmus => OptionsOftalPalpebraLagophtalmus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Tumor</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.palpebra_tumor" :options="OptionsOftalPalpebraTumor" :reduce="OptionsOftalPalpebraTumor => OptionsOftalPalpebraTumor.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.apparatus_lakrimalis" :options="OptionsOftalApparetus" :reduce="OptionsOftalApparetus => OptionsOftalApparetus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Apparatus Lakrimalis</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.apparatus_lakrimalis" :options="OptionsOftalApparetus" :reduce="OptionsOftalApparetus => OptionsOftalApparetus.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.silia" :options="OptionsOftalSilia" :reduce="OptionsOftalSilia => OptionsOftalSilia.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Silia</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.silia" :options="OptionsOftalSilia" :reduce="OptionsOftalSilia => OptionsOftalSilia.value" label="title" placeholder="-- Pilih --"></v-select>                                                                    
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Hiperemis</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.conjunctive_hiperemis" :options="OptionsOftalConjHiperemis" :reduce="OptionsOftalConjHiperemis => OptionsOftalConjHiperemis.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Pendarahan</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.conjunctive_bleed" :options="OptionsOftalConjBleed" :reduce="OptionsOftalConjBleed => OptionsOftalConjBleed.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Konjungtiva</b-th>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Hiperemis</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.conjunctive_hiperemis" :options="OptionsOftalConjHiperemis" :reduce="OptionsOftalConjHiperemis => OptionsOftalConjHiperemis.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Pendarahan</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.conjunctive_bleed" :options="OptionsOftalConjBleed" :reduce="OptionsOftalConjBleed => OptionsOftalConjBleed.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.cornea" :options="OptionsOftalKornea" :reduce="OptionsOftalKornea => OptionsOftalKornea.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Kornea</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.cornea" :options="OptionsOftalKornea" :reduce="OptionsOftalKornea => OptionsOftalKornea.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.camera_oculi" :options="OptionsOftalAnterior" :reduce="OptionsOftalAnterior => OptionsOftalAnterior.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Camera Oculi Anterior</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.camera_oculi" :options="OptionsOftalAnterior" :reduce="OptionsOftalAnterior => OptionsOftalAnterior.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Warna Iris</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.iris_color" :options="OptionsOftalIrisColor" :reduce="OptionsOftalIrisColor => OptionsOftalIrisColor.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Kripte</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.iris_cripte" :options="OptionsOftalIrisKripte" :reduce="OptionsOftalIrisKripte => OptionsOftalIrisKripte.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Iris</b-th>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Warna Iris</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.iris_color" :options="OptionsOftalIrisColor" :reduce="OptionsOftalIrisColor => OptionsOftalIrisColor.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Kripte</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.iris_cripte" :options="OptionsOftalIrisKripte" :reduce="OptionsOftalIrisKripte => OptionsOftalIrisKripte.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Bentuk Pupil</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.pupil_form" :options="OptionsOftalPupilForm" :reduce="OptionsOftalPupilForm => OptionsOftalPupilForm.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Diameter Pupil</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.pupil_diameter" :options="OptionsOftalPupilDiameter" :reduce="OptionsOftalPupilDiameter => OptionsOftalPupilDiameter.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Refleksi Cahaya Langsung</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.pupil_direct_light" :options="OptionsOftalPupilDirectLight" :reduce="OptionsOftalPupilDirectLight => OptionsOftalPupilDirectLight.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Refleksi Cahaya Tak Langsung</label>
+                                                                        <v-select v-model="form_igd.ophthal_od.pupil_indirect_light" :options="OptionsOftalPupilIndirectLight" :reduce="OptionsOftalPupilIndirectLight => OptionsOftalPupilIndirectLight.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Pupil</b-th>
+                                                                <b-td>
+                                                                    <div>
+                                                                        <label class="c-form-label">Bentuk Pupil</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.pupil_form" :options="OptionsOftalPupilForm" :reduce="OptionsOftalPupilForm => OptionsOftalPupilForm.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Diameter Pupil</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.pupil_diameter" :options="OptionsOftalPupilDiameter" :reduce="OptionsOftalPupilDiameter => OptionsOftalPupilDiameter.value"label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Refleksi Cahaya Langsung</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.pupil_direct_light" :options="OptionsOftalPupilDirectLight" :reduce="OptionsOftalPupilDirectLight => OptionsOftalPupilDirectLight.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                    <div class="mt-12">
+                                                                        <label class="c-form-label">Refleksi Cahaya Tak Langsung</label>
+                                                                        <v-select v-model="form_igd.ophthal_os.pupil_indirect_light" :options="OptionsOftalPupilIndirectLight" :reduce="OptionsOftalPupilIndirectLight => OptionsOftalPupilIndirectLight.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                    </div>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.lens" :options="OptionsOftalLens" :reduce="OptionsOftalLens => OptionsOftalLens.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Lensa</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.lens" :options="OptionsOftalLens" :reduce="OptionsOftalLens => OptionsOftalLens.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.shadow_test" :options="OptionsOftalShadow" :reduce="OptionsOftalShadow => OptionsOftalShadow.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Shadow Test</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.shadow_test" :options="OptionsOftalShadow" :reduce="OptionsOftalShadow => OptionsOftalShadow.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.glandula" :options="OptionsOftalGlandula" :reduce="OptionsOftalGlandula => OptionsOftalGlandula.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Glandula pre-aurikuler</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.glandula" :options="OptionsOftalGlandula" :reduce="OptionsOftalGlandula => OptionsOftalGlandula.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_od.field_view" :options="OptionsOftalLapang" :reduce="OptionsOftalLapang => OptionsOftalLapang.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Lapang Pandang</b-th>
+                                                                <b-td>
+                                                                    <v-select v-model="form_igd.ophthal_os.field_view" :options="OptionsOftalLapang" :reduce="OptionsOftalLapang => OptionsOftalLapang.value" label="title" placeholder="-- Pilih --"></v-select>
+                                                                </b-td>
+                                                            </b-tr>
+                                                            <b-tr>
+                                                                <b-td>
+                                                                    <b-form-textarea v-model="form_igd.ophthal_od.fundus" rows="2" autocomplete="off" />
+                                                                </b-td>
+                                                                <b-th class="text-center bg-primary-100">Fundus</b-th>
+                                                                <b-td>
+                                                                    <b-form-textarea v-model="form_igd.ophthal_os.fundus" rows="2" autocomplete="off" />                                                                    
+                                                                </b-td>
+                                                            </b-tr>
+                                                        </b-tbody>
+                                                    </b-table-simple>
+                                                </div>                                                
+                                            </b-collapse>
+
+                                            <small @click="active.advance.oftalmologis = !active.advance.oftalmologis" class="font-weight-bold text-primary pointer" :class="active.advance.oftalmologis ? null : 'collapsed'" :aria-expanded="active.advance.oftalmologis ? 'true' : 'false'" aria-controls="collapse-ofta">
+                                                Advance status oftalmologis 
+                                                <b-icon :icon="active.advance.oftalmologis == true ? 'chevron-up' : 'chevron-down'" />
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-12">
+                                <label class="c-form-label">Lainnya</label>
+                                <b-form-textarea rows="2" v-model="form_igd.soap_o_anythingelse" autocomplete="off" ></b-form-textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- end card-body -->
+                </div>
+                <!-- end card -->
+            </section>
+
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Assessment</span>
+                    </div>
+                    <div class="card-body">
+                        <div>
+                            <ModernLabel label="Diagnosis (ICD10)" />
+                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                <b-tr>
+                                    <b-th style="width: 60px;">No</b-th>
+                                    <b-th>ICD10</b-th>
+                                    <b-th style="width: 100px;">Aksi</b-th>
+                                </b-tr>
+                                <b-tr class="item" v-for="(item,index) in form_igd.icd10">
+                                    <b-td>{{ index+1 }}</b-td>
+                                    <b-td>
+                                        <!-- <b-form-input style="display:none" v-model="item.value" />
+                                        <b-form-input type="text" v-model="item.title" disabled /> -->
+                                        <div>{{ item.title }}</div>
+                                    </b-td>
+                                    <b-td>
+                                        <b-button variant="danger-600" size="sm" @click="deleteIGD10(index)" class="mr-2">
+                                            <feather-icon icon="TrashIcon" />
+                                        </b-button>
+                                    </b-td>
+                                </b-tr>
+                            </b-table-simple>
+                            <div class="mt-10">
+                                <label class="text-semi-14">Diagnosa</label>
+                                <v-select v-model="IGDicd10_id" aria-readonly="true" @input="onIGDAdd10($event)" @search="onIGDSearchIcd10" :options="OptionsIGDIcd10" :reduce="OptionsIGDIcd10 => OptionsIGDIcd10" label="title" placeholder="-- Diagnosa --"></v-select>
+                            </div>
+                        </div>
+
+                        <b-textarea rows="2" type="text" v-model="form_igd.icd10_notes" autocomplete="off" placeholder="Catatan ICD10" class="mt-12"></b-textarea>
+
+                        <div class="mt-24" >
+                            <ModernLabel label="Diagnosis Non-ICD10" />
+                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                <b-tr>
+                                    <b-th style="width: 60px;">No</b-th>
+                                    <b-th>Non-ICD10</b-th>
+                                    <b-th style="width: 100px;">Aksi</b-th>
+                                </b-tr>
+                                <b-tr class="item" v-for="(item,index) in form_igd.non_icd10">
+                                    <b-td>{{ form_igd.icd10.length+index+1 }}</b-td>
+                                    <b-td>
+                                        <div>{{ item }}</div>
+                                    </b-td>
+                                    <b-td>
+                                        <b-button variant="danger-600" size="sm" @click="removeOther10(index)" class="mr-2">
+                                            <feather-icon icon="TrashIcon" />
+                                        </b-button>
+                                    </b-td>
+                                </b-tr>
+                            </b-table-simple>
+                            <div class="mt-10">
+                                <label class="text-semi-14">Non-ICD10</label>
+                                <b-form-input v-model="input_other10" />
+                                <b-button @click="addOther10" size="sm" variant="outline-primary" class="mt-12">Tambah</b-button>
+                            </div>
+                        </div>
+
+                        <div class="mt-10">
+                            <label class="my-auto text-semi-14">Assessment Lainnya</label>
+                            <b-form-input type="text" v-model="form_igd.soap_a_anythingelse" autocomplete="off"></b-form-input>
+                        </div>
+                    </div>
+                    <!-- end card-body -->
+                </div>
+                <!-- end card -->
+            </section>
+
+            <div class="modal-footer mt-32">
+                <div class="d-flex justify-content-end">
+                    <b-button :disabled="isDisabledIGD" @click="resetIGD" variant="outline-primary" class="mr-2">Reset</b-button>
+                    <b-button :disabled="isDisabledIGD" @click="validationIGD" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+
+            <!-- Start: Dokter IGD -->
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <span class="text-bold-18">DOKTER IGD: {{ form_igd.doctor_in_charge_name }}</span>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Plan</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="pb-32">
+                                        <ModernLabel label="Tindakan (ICD9CM)" />
+                                        <div>
+                                            <b-textarea rows="2" type="text" v-model="form_icd9cm.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>ICD9CM</b-th>
+                                                    <b-th style="width: 100px;">Aksi</b-th>
+                                                </b-tr>
+                                                <tr class="item" v-for="(item,index) in form_icd9cm.icd9cm">
+                                                    <b-td>{{ index+1 }}</b-td>
+                                                    <b-td>
+                                                        <div>{{ item.title }}</div>
+                                                    </b-td>
+                                                    <b-td>
+                                                        <b-button variant="danger-600" size="sm" @click="deleteIGD9cm(index)" class="mr-2">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </b-td>
+                                                </tr>
+                                            </b-table-simple>
+                                            <div class="mt-10">
+                                                <v-select v-model="IGDicd9cm_id" @input="onIGDAdd9cm($event)" aria-readonly="true" @search="onIGDSearchIcd9cm" :options="OptionsIGDIcd9cm" :reduce="OptionsIGDIcd9cm => OptionsIGDIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-24">
+                                            <b-button @click="validationSoapP" :disabled="IGDdisabled.soap_p" variant="primary">Simpan</b-button>
+                                        </div>
+                                    </div>
+
+                                    <hr class="w-100">
+
+                                    <div class="mt-32">
+                                        <ModernLabel label="Procedure" />
+                                        <b-button @click="openModalTransaction('add', form_igd.id, null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+                                        </b-button>
+                                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                            <b-thead>
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>Tanggal & Jam</b-th>
+                                                    <b-th>Tindakan</b-th>
+                                                    <b-th>Jumlah</b-th>
+                                                    <b-th>Keterangan</b-th>
+                                                    <!-- <b-th>Harga</b-th> -->
+                                                    <b-th>Aksi</b-th>
+                                                </b-tr>
+                                            </b-thead>
+                                            <b-tbody>
+                                                <template v-for="(item,index) in transaction_list" >
+                                                    <b-tr>
+                                                        <b-td>{{ index+1 }}</b-td>
+                                                        <b-td>{{ item.date_added }}</b-td>
+                                                        <b-td>{{ item.costing_name }}</b-td>
+                                                        <b-td>{{ item.var_2 }}</b-td>
+                                                        <b-td>{{ item.notes }}</b-td>
+                                                        <!-- <b-td>{{ item.var_1 | currency}}x{{item.var_2}}&nbsp;&nbsp;{{ item.var_3 | currency }}</b-td> -->
+                                                        <b-td>
+                                                            <b-button @click="openModalTransaction('edit', null, item)" size="sm" variant="warning-500" class="mr-2">
+                                                                <feather-icon icon="EditIcon" />
+                                                            </b-button>
+                                                            <b-button @click="removeTransaction(item)" size="sm" variant="danger-700">
+                                                                <feather-icon icon="TrashIcon" />
+                                                            </b-button>
+                                                        </b-td>
+                                                    </b-tr>
+                                                </template>
+                                            </b-tbody>
+                                        </b-table-simple>
+                                    </div>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Laboratorium" />
+                                        <div>
+                                            <b-button @click="openModalIGDLab(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Laboratorium</span>
+                                            </b-button>
+
+                                            <b-table :fields="IGDtable.doctor_igd_lab" :items="laboratory_igd_list" bordered responsive :tbody-tr-class="rowIGDLab" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(laboratory_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalIGDLab(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeIGDLab(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Radiologi" />
+                                        <div>
+                                            <b-button @click="openModalIGDRad(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Radiologi</span>
+                                            </b-button>
+
+                                            <b-table :fields="IGDtable.doctor_igd_rad" :items="radiology_igd_list" bordered responsive :tbody-tr-class="rowIGDRad" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(radiology_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalIGDRad(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeIGDRad(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mt-32">
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Rencana Terapi E-Resep</span>
+                                </div>
+                                <div class="card-body">
+                                    <b-button @click="openModalIGDPresc" pill variant="outline-neutral-400" size="sm" class="px-16">
+                                        <b-icon icon="plus" /> <span>Tambah Resep</span>
+                                    </b-button>
+
+                                    <b-table :fields="IGDtable.doctor_igd_presc" :items="prescription_igd_list" :tbody-tr-class="rowIGDPrescription" bordered responsive class="mt-12" style="font-size: 14px;">
+                                        <template #cell(no)="row">
+                                            <div>{{ row.index+1 }}</div>
+                                        </template>
+                                        <template #cell(form_prescription)="row">
+                                            <div v-for="(category, index) in prescriptionCategories" :key="index" class="mt-8" v-if="hasItemsInCategory(row.value, category.id)">
+                                                <b-table-simple responsive small style="font-size: 13px;">
+                                                    <b-thead>
+                                                        <b-tr>
+                                                            <b-th colspan="5" class="text-uppercase bg-success-100"> {{ category.label }}</b-th>
+                                                        </b-tr>
+                                                        <b-tr>
+                                                            <b-th>Nama</b-th>
+                                                            <b-th style="width: 100px;">Dosis Dokter</b-th>
+                                                            <b-th style="width: 100px;">Jumlah</b-th>
+                                                            <b-th style="width: 100px;">Aturan Pakai</b-th>
+                                                            <b-th style="width: 200px;">Keterangan</b-th>
+                                                        </b-tr>
+                                                    </b-thead>
+                                                    <b-tbody>
+                                                        <template v-for="(item, itemIndex) in row.value">
+                                                            <b-tr :key="itemIndex" v-if="item.prescription_item_type_id == category.id">
+                                                                <b-td>{{ item.pharmacy_catalog_name }}</b-td>
+                                                                <b-td>{{ item.dose }}</b-td>
+                                                                <b-td>{{ item.qty }} {{ item.package_name }}</b-td>
+                                                                <b-td>{{ item.used }}</b-td>
+                                                                <b-td>{{ item.desc }}</b-td>
+                                                            </b-tr>
+                                                        </template>
+                                                    </b-tbody>
+                                                </b-table-simple>
+                                            </div>
+                                        </template>
+                                        
+                                        <template #cell(action)="row">
+                                            <div v-if="row.item.flag == 0">
+                                                <b-button @click="removeIGDPresc(row.item)" size="sm" variant="danger-700">
+                                                    <feather-icon icon="TrashIcon" />
+                                                </b-button>
+                                            </div>
+                                            <div v-else>Resep telah diproses</div>
+                                        </template>
+                                    </b-table>
+                                </div>
+                            </div>
+                        </section>  
+                    </div>
+                </div>
+            </section>
+
+            <!-- Start: Dokter spesialis 1 -->
+             
+            <section class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Tambah Dokter Spesialis 1</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="col-lg-5">
+                            <label class="c-form-label">Dokter Spesialis 1</label>
+                            <div class="row">
+                                <div class="col-10">
+                                    <v-select :disabled="specialist.disabled_doctor_1" @input="changeFirstSpecialistDoctor($event)" v-model="specialist.doctor_1" :options="OptionsSpecialistDoctor" :reduce="OptionsSpecialistDoctor => OptionsSpecialistDoctor" label="title" placeholder="-- Dokter --" />
+                                </div>
+                                <!-- <div v-if="form_igd.doctor_in_charge_id_1" class="col-2">
+                                    <b-button @click="enableFirstSpecialistDoctor" variant="warning">{{ specialist.disabled_doctor_1 ? 'Enable' : 'Disable'  }}</b-button>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="form_igd.doctor_in_charge_id_1" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <span class="text-bold-18">Dokter Spesialis 1: {{ form_igd.doctor_in_charge_name_1 }}</span>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Plan</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="pb-32">
+                                        <ModernLabel label="Tindakan (ICD9CM)" />
+                                        <div>
+                                            <b-textarea rows="2" type="text" v-model="form_FIRST_icd9cm.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>ICD9CM</b-th>
+                                                    <b-th style="width: 100px;">Aksi</b-th>
+                                                </b-tr>
+                                                <tr class="item" v-for="(item,index) in form_FIRST_icd9cm.icd9cm">
+                                                    <b-td>{{ index+1 }}</b-td>
+                                                    <b-td>
+                                                        <div>{{ item.title }}</div>
+                                                    </b-td>
+                                                    <b-td>
+                                                        <b-button variant="danger-600" size="sm" @click="deleteFIRST9cm(index)" class="mr-2">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </b-td>
+                                                </tr>
+                                            </b-table-simple>
+                                            <div class="mt-10">
+                                                <v-select v-model="FIRSTicd9cm_id" @input="onFIRSTAdd9cm($event)" aria-readonly="true" @search="onFIRSTSearchIcd9cm" :options="OptionsFIRSTIcd9cm" :reduce="OptionsFIRSTIcd9cm => OptionsFIRSTIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-24">
+                                            <b-button @click="validationFIRSTSoapP" :disabled="FIRSTdisabled.soap_p" variant="primary">Simpan</b-button>
+                                        </div>
+                                    </div>
+
+                                    <hr class="w-100">
+
+                                    <div class="mt-32">
+                                        <ModernLabel label="Procedure" />
+                                        <b-button @click="openModalFIRSTTransaction('add', form_igd.id, null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+                                        </b-button>
+                                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                            <b-thead>
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>Tanggal & Jam</b-th>
+                                                    <b-th>Tindakan</b-th>
+                                                    <b-th>Jumlah</b-th>
+                                                    <b-th>Keterangan</b-th>
+                                                    <b-th>Aksi</b-th>
+                                                </b-tr>
+                                            </b-thead>
+                                            <b-tbody>
+                                                <template v-for="(item,index) in transaction_FIRST_list" >
+                                                    <b-tr>
+                                                        <b-td>{{ index+1 }}</b-td>
+                                                        <b-td>{{ item.date_added }}</b-td>
+                                                        <b-td>{{ item.costing_name }}</b-td>
+                                                        <b-td>{{ item.var_2 }}</b-td>
+                                                        <b-td>{{ item.notes }}</b-td>
+                                                        <b-td>
+                                                            <b-button @click="openModalFIRSTTransaction('edit', null, item)" size="sm" variant="warning-500" class="mr-2">
+                                                                <feather-icon icon="EditIcon" />
+                                                            </b-button>
+                                                            <b-button @click="removeFIRSTTransaction(item)" size="sm" variant="danger-700">
+                                                                <feather-icon icon="TrashIcon" />
+                                                            </b-button>
+                                                        </b-td>
+                                                    </b-tr>
+                                                </template>
+                                            </b-tbody>
+                                        </b-table-simple>
+                                    </div>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Laboratorium" />
+                                        <div>
+                                            <b-button @click="openModalFIRSTLab(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Laboratorium</span>
+                                            </b-button>
+
+                                            <b-table :fields="FIRSTtable.doctor_FIRST_lab" :items="laboratory_FIRST_list" bordered responsive :tbody-tr-class="rowIGDLab" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(laboratory_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalFIRSTLab(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeFIRSTLab(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Radiologi" />
+                                        <div>
+                                            <b-button @click="openModalFIRSTRad(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Radiologi</span>
+                                            </b-button>
+
+                                            <b-table :fields="FIRSTtable.doctor_FIRST_rad" :items="radiology_FIRST_list" bordered responsive :tbody-tr-class="rowIGDRad" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(radiology_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalFIRSTRad(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeFIRSTRad(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mt-32">
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Rencana Terapi E-Resep</span>
+                                </div>
+                                <div class="card-body">
+                                    <b-button @click="openModalFIRSTPresc" pill variant="outline-neutral-400" size="sm" class="px-16">
+                                        <b-icon icon="plus" /> <span>Tambah Resep</span>
+                                    </b-button>
+
+                                    <b-table :fields="FIRSTtable.doctor_FIRST_presc" :items="prescription_FIRST_list" :tbody-tr-class="rowIGDPrescription" bordered responsive class="mt-12" style="font-size: 14px;">
+                                        <template #cell(no)="row">
+                                            <div>{{ row.index+1 }}</div>
+                                        </template>
+                                        <template #cell(form_prescription)="row">
+                                            <div v-for="(category, index) in prescriptionCategories" :key="index" class="mt-8" v-if="hasItemsInCategory(row.value, category.id)">
+                                                <b-table-simple responsive small style="font-size: 13px;">
+                                                    <b-thead>
+                                                        <b-tr>
+                                                            <b-th colspan="5" class="text-uppercase bg-success-100"> {{ category.label }}</b-th>
+                                                        </b-tr>
+                                                        <b-tr>
+                                                            <b-th>Nama</b-th>
+                                                            <b-th style="width: 100px;">Dosis Dokter</b-th>
+                                                            <b-th style="width: 100px;">Jumlah</b-th>
+                                                            <b-th style="width: 100px;">Aturan Pakai</b-th>
+                                                            <b-th style="width: 200px;">Keterangan</b-th>
+                                                        </b-tr>
+                                                    </b-thead>
+                                                    <b-tbody>
+                                                        <template v-for="(item, itemIndex) in row.value">
+                                                            <b-tr :key="itemIndex" v-if="item.prescription_item_type_id == category.id">
+                                                                <b-td>{{ item.pharmacy_catalog_name }}</b-td>
+                                                                <b-td>{{ item.dose }}</b-td>
+                                                                <b-td>{{ item.qty }} {{ item.package_name }}</b-td>
+                                                                <b-td>{{ item.used }}</b-td>
+                                                                <b-td>{{ item.desc }}</b-td>
+                                                            </b-tr>
+                                                        </template>
+                                                    </b-tbody>
+                                                </b-table-simple>
+                                            </div>
+                                        </template>
+                                        
+                                        <template #cell(action)="row">
+                                            <div v-if="row.item.flag == 0">
+                                                <b-button @click="removeFIRSTPresc(row.item)" size="sm" variant="danger-700">
+                                                    <feather-icon icon="TrashIcon" />
+                                                </b-button>
+                                            </div>
+                                            <div v-else>Resep telah diproses</div>
+                                        </template>
+                                    </b-table>
+                                </div>
+                            </div>
+                        </section>  
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Start: Dokter spesialis 2 -->
+            
+            <section v-if="form_igd.doctor_in_charge_id_1" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Tambah Dokter Spesialis 2</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="col-lg-5">
+                            <label class="c-form-label">Dokter Spesialis 2</label>
+                            <div class="row">
+                                <div class="col-10">
+                                    <v-select :disabled="specialist.disabled_doctor_2" @input="changeSecondSpecialistDoctor($event)" v-model="specialist.doctor_2" :options="OptionsSpecialistDoctor" :reduce="OptionsSpecialistDoctor => OptionsSpecialistDoctor" label="title" placeholder="-- Dokter --" />
+                                </div>
+                                <!-- <div v-if="form_igd.doctor_in_charge_id_2" class="col-2">
+                                    <b-button @click="enableSecondSpecialistDoctor" variant="warning">{{ specialist.disabled_doctor_2 ? 'Enable' : 'Disable'  }}</b-button>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="form_igd.doctor_in_charge_id_2" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <span class="text-bold-18">Dokter Spesialis 2: {{ form_igd.doctor_in_charge_name_2 }}</span>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Plan</span>
+                                </div>
+                                <div class="card-body">
+                                    <section class="pb-32">
+                                        <ModernLabel label="Tindakan (ICD9CM)" />
+                                        <div>
+                                            <b-textarea rows="2" type="text" v-model="form_SECOND_icd9cm.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>ICD9CM</b-th>
+                                                    <b-th style="width: 100px;">Aksi</b-th>
+                                                </b-tr>
+                                                <tr class="item" v-for="(item,index) in form_SECOND_icd9cm.icd9cm">
+                                                    <b-td>{{ index+1 }}</b-td>
+                                                    <b-td>
+                                                        <div>{{ item.title }}</div>
+                                                    </b-td>
+                                                    <b-td>
+                                                        <b-button variant="danger-600" size="sm" @click="deleteSECOND9cm(index)" class="mr-2">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </b-td>
+                                                </tr>
+                                            </b-table-simple>
+                                            <div class="mt-10">
+                                                <v-select v-model="SECONDicd9cm_id" @input="onSECONDAdd9cm($event)" aria-readonly="true" @search="onSECONDSearchIcd9cm" :options="OptionsSECONDIcd9cm" :reduce="OptionsSECONDIcd9cm => OptionsSECONDIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-24">
+                                            <b-button @click="validationSECONDSoapP" :disabled="SECONDdisabled.soap_p" variant="primary">Simpan</b-button>
+                                        </div>
+                                    </section>
+
+                                    <hr class="w-100">
+
+                                    <section class="mt-32">
+                                        <ModernLabel label="Procedure" />
+                                        <b-button @click="openModalSECONDTransaction('add', form_igd.id, null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+                                        </b-button>
+                                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                            <b-thead>
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>Tanggal & Jam</b-th>
+                                                    <b-th>Tindakan</b-th>
+                                                    <b-th>Jumlah</b-th>
+                                                    <b-th>Keterangan</b-th>
+                                                    <b-th>Aksi</b-th>
+                                                </b-tr>
+                                            </b-thead>
+                                            <b-tbody>
+                                                <template v-for="(item,index) in transaction_SECOND_list" >
+                                                    <b-tr>
+                                                        <b-td>{{ index+1 }}</b-td>
+                                                        <b-td>{{ item.date_added }}</b-td>
+                                                        <b-td>{{ item.costing_name }}</b-td>
+                                                        <b-td>{{ item.var_2 }}</b-td>
+                                                        <b-td>{{ item.notes }}</b-td>
+                                                        <b-td>
+                                                            <b-button @click="openModalSECONDTransaction('edit', null, item)" size="sm" variant="warning-500" class="mr-2">
+                                                                <feather-icon icon="EditIcon" />
+                                                            </b-button>
+                                                            <b-button @click="removeSECONDTransaction(item)" size="sm" variant="danger-700">
+                                                                <feather-icon icon="TrashIcon" />
+                                                            </b-button>
+                                                        </b-td>
+                                                    </b-tr>
+                                                </template>
+                                            </b-tbody>
+                                        </b-table-simple>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Laboratorium" />
+                                        <div>
+                                            <b-button @click="openModalSECONDLab(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Laboratorium</span>
+                                            </b-button>
+
+                                            <b-table :fields="SECONDtable.doctor_SECOND_lab" :items="laboratory_SECOND_list" bordered responsive :tbody-tr-class="rowIGDLab" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(laboratory_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalSECONDLab(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeSECONDLab(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Radiologi" />
+                                        <div>
+                                            <b-button @click="openModalSECONDRad(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Radiologi</span>
+                                            </b-button>
+
+                                            <b-table :fields="SECONDtable.doctor_SECOND_rad" :items="radiology_SECOND_list" bordered responsive :tbody-tr-class="rowIGDRad" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(radiology_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalSECONDRad(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeSECONDRad(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mt-32">
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Rencana Terapi E-Resep</span>
+                                </div>
+                                <div class="card-body">
+                                    <b-button @click="openModalSECONDPresc" pill variant="outline-neutral-400" size="sm" class="px-16">
+                                        <b-icon icon="plus" /> <span>Tambah Resep</span>
+                                    </b-button>
+
+                                    <b-table :fields="SECONDtable.doctor_SECOND_presc" :items="prescription_SECOND_list" :tbody-tr-class="rowIGDPrescription" bordered responsive class="mt-12" style="font-size: 14px;">
+                                        <template #cell(no)="row">
+                                            <div>{{ row.index+1 }}</div>
+                                        </template>
+                                        <template #cell(form_prescription)="row">
+                                            <div v-for="(category, index) in prescriptionCategories" :key="index" class="mt-8" v-if="hasItemsInCategory(row.value, category.id)">
+                                                <b-table-simple responsive small style="font-size: 13px;">
+                                                    <b-thead>
+                                                        <b-tr>
+                                                            <b-th colspan="5" class="text-uppercase bg-success-100"> {{ category.label }}</b-th>
+                                                        </b-tr>
+                                                        <b-tr>
+                                                            <b-th>Nama</b-th>
+                                                            <b-th style="width: 100px;">Dosis Dokter</b-th>
+                                                            <b-th style="width: 100px;">Jumlah</b-th>
+                                                            <b-th style="width: 100px;">Aturan Pakai</b-th>
+                                                            <b-th style="width: 200px;">Keterangan</b-th>
+                                                        </b-tr>
+                                                    </b-thead>
+                                                    <b-tbody>
+                                                        <template v-for="(item, itemIndex) in row.value">
+                                                            <b-tr :key="itemIndex" v-if="item.prescription_item_type_id == category.id">
+                                                                <b-td>{{ item.pharmacy_catalog_name }}</b-td>
+                                                                <b-td>{{ item.dose }}</b-td>
+                                                                <b-td>{{ item.qty }} {{ item.package_name }}</b-td>
+                                                                <b-td>{{ item.used }}</b-td>
+                                                                <b-td>{{ item.desc }}</b-td>
+                                                            </b-tr>
+                                                        </template>
+                                                    </b-tbody>
+                                                </b-table-simple>
+                                            </div>
+                                        </template>
+                                        
+                                        <template #cell(action)="row">
+                                            <div v-if="row.item.flag == 0">
+                                                <b-button @click="removeSECONDPresc(row.item)" size="sm" variant="danger-700">
+                                                    <feather-icon icon="TrashIcon" />
+                                                </b-button>
+                                            </div>
+                                            <div v-else>Resep telah diproses</div>
+                                        </template>
+                                    </b-table>
+                                </div>
+                            </div>
+                        </section>  
+                    </div>
+                </div>
+            </section>
+           
+            <!-- Start: Dokter spesialis 3 -->
+            
+            <section v-if="form_igd.doctor_in_charge_id_2" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Tambah Dokter Spesialis 3</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="col-lg-5">
+                            <label class="c-form-label">Dokter Spesialis 3</label>
+                            <div class="row">
+                                <div class="col-10">
+                                    <v-select :disabled="specialist.disabled_doctor_3" @input="changeThirdSpecialistDoctor($event)" v-model="specialist.doctor_3" :options="OptionsSpecialistDoctor" :reduce="OptionsSpecialistDoctor => OptionsSpecialistDoctor" label="title" placeholder="-- Dokter --" />
+                                </div>
+                                <!-- <div v-if="form_igd.doctor_in_charge_id_3" class="col-2">
+                                    <b-button @click="enableSecondSpecialistDoctor" variant="warning">{{ specialist.disabled_doctor_3 ? 'Enable' : 'Disable'  }}</b-button>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="form_igd.doctor_in_charge_id_3" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <span class="text-bold-18">Dokter Spesialis 3: {{ form_igd.doctor_in_charge_name_3 }}</span>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Plan</span>
+                                </div>
+                                <div class="card-body">
+                                    <section class="pb-32">
+                                        <ModernLabel label="Tindakan (ICD9CM)" />
+                                        <div>
+                                            <b-textarea rows="2" type="text" v-model="form_THIRD_icd9cm.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>ICD9CM</b-th>
+                                                    <b-th style="width: 100px;">Aksi</b-th>
+                                                </b-tr>
+                                                <tr class="item" v-for="(item,index) in form_THIRD_icd9cm.icd9cm">
+                                                    <b-td>{{ index+1 }}</b-td>
+                                                    <b-td>
+                                                        <div>{{ item.title }}</div>
+                                                    </b-td>
+                                                    <b-td>
+                                                        <b-button variant="danger-600" size="sm" @click="deleteTHIRD9cm(index)" class="mr-2">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </b-td>
+                                                </tr>
+                                            </b-table-simple>
+                                            <div class="mt-10">
+                                                <v-select v-model="THIRDicd9cm_id" @input="onTHIRDAdd9cm($event)" aria-readonly="true" @search="onTHIRDSearchIcd9cm" :options="OptionsTHIRDIcd9cm" :reduce="OptionsTHIRDIcd9cm => OptionsTHIRDIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-24">
+                                            <b-button @click="validationTHIRDSoapP" :disabled="THIRDdisabled.soap_p" variant="primary">Simpan</b-button>
+                                        </div>
+                                    </section>
+
+                                    <hr class="w-100">
+
+                                    <section class="mt-32">
+                                        <ModernLabel label="Procedure" />
+                                        <b-button @click="openModalTHIRDTransaction('add', form_igd.id, null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+                                        </b-button>
+                                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                            <b-thead>
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>Tanggal & Jam</b-th>
+                                                    <b-th>Tindakan</b-th>
+                                                    <b-th>Jumlah</b-th>
+                                                    <b-th>Keterangan</b-th>
+                                                    <b-th>Aksi</b-th>
+                                                </b-tr>
+                                            </b-thead>
+                                            <b-tbody>
+                                                <template v-for="(item,index) in transaction_THIRD_list" >
+                                                    <b-tr>
+                                                        <b-td>{{ index+1 }}</b-td>
+                                                        <b-td>{{ item.date_added }}</b-td>
+                                                        <b-td>{{ item.costing_name }}</b-td>
+                                                        <b-td>{{ item.var_2 }}</b-td>
+                                                        <b-td>{{ item.notes }}</b-td>
+                                                        <b-td>
+                                                            <b-button @click="openModalTHIRDTransaction('edit', null, item)" size="sm" variant="warning-500" class="mr-2">
+                                                                <feather-icon icon="EditIcon" />
+                                                            </b-button>
+                                                            <b-button @click="removeTHIRDTransaction(item)" size="sm" variant="danger-700">
+                                                                <feather-icon icon="TrashIcon" />
+                                                            </b-button>
+                                                        </b-td>
+                                                    </b-tr>
+                                                </template>
+                                            </b-tbody>
+                                        </b-table-simple>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Laboratorium" />
+                                        <div>
+                                            <b-button @click="openModalTHIRDLab(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Laboratorium</span>
+                                            </b-button>
+
+                                            <b-table :fields="THIRDtable.doctor_THIRD_lab" :items="laboratory_THIRD_list" bordered responsive :tbody-tr-class="rowIGDLab" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(laboratory_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalTHIRDLab(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeTHIRDLab(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Radiologi" />
+                                        <div>
+                                            <b-button @click="openModalTHIRDRad(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Radiologi</span>
+                                            </b-button>
+
+                                            <b-table :fields="THIRDtable.doctor_THIRD_rad" :items="radiology_THIRD_list" bordered responsive :tbody-tr-class="rowIGDRad" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(radiology_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalTHIRDRad(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeTHIRDRad(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mt-32">
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Rencana Terapi E-Resep</span>
+                                </div>
+                                <div class="card-body">
+                                    <b-button @click="openModalTHIRDPresc" pill variant="outline-neutral-400" size="sm" class="px-16">
+                                        <b-icon icon="plus" /> <span>Tambah Resep</span>
+                                    </b-button>
+
+                                    <b-table :fields="THIRDtable.doctor_THIRD_presc" :items="prescription_THIRD_list" :tbody-tr-class="rowIGDPrescription" bordered responsive class="mt-12" style="font-size: 14px;">
+                                        <template #cell(no)="row">
+                                            <div>{{ row.index+1 }}</div>
+                                        </template>
+                                        <template #cell(form_prescription)="row">
+                                            <div v-for="(category, index) in prescriptionCategories" :key="index" class="mt-8" v-if="hasItemsInCategory(row.value, category.id)">
+                                                <b-table-simple responsive small style="font-size: 13px;">
+                                                    <b-thead>
+                                                        <b-tr>
+                                                            <b-th colspan="5" class="text-uppercase bg-success-100"> {{ category.label }}</b-th>
+                                                        </b-tr>
+                                                        <b-tr>
+                                                            <b-th>Nama</b-th>
+                                                            <b-th style="width: 100px;">Dosis Dokter</b-th>
+                                                            <b-th style="width: 100px;">Jumlah</b-th>
+                                                            <b-th style="width: 100px;">Aturan Pakai</b-th>
+                                                            <b-th style="width: 200px;">Keterangan</b-th>
+                                                        </b-tr>
+                                                    </b-thead>
+                                                    <b-tbody>
+                                                        <template v-for="(item, itemIndex) in row.value">
+                                                            <b-tr :key="itemIndex" v-if="item.prescription_item_type_id == category.id">
+                                                                <b-td>{{ item.pharmacy_catalog_name }}</b-td>
+                                                                <b-td>{{ item.dose }}</b-td>
+                                                                <b-td>{{ item.qty }} {{ item.package_name }}</b-td>
+                                                                <b-td>{{ item.used }}</b-td>
+                                                                <b-td>{{ item.desc }}</b-td>
+                                                            </b-tr>
+                                                        </template>
+                                                    </b-tbody>
+                                                </b-table-simple>
+                                            </div>
+                                        </template>
+                                        
+                                        <template #cell(action)="row">
+                                            <div v-if="row.item.flag == 0">
+                                                <b-button @click="removeTHIRDPresc(row.item)" size="sm" variant="danger-700">
+                                                    <feather-icon icon="TrashIcon" />
+                                                </b-button>
+                                            </div>
+                                            <div v-else>Resep telah diproses</div>
+                                        </template>
+                                    </b-table>
+                                </div>
+                            </div>
+                        </section>  
+                    </div>
+                </div>
+            </section>
+
+            <!-- Start: Dokter spesialis 4 -->
+            
+            <section v-if="form_igd.doctor_in_charge_id_3" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Tambah Dokter Spesialis 4</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="col-lg-5">
+                            <label class="c-form-label">Dokter Spesialis 4</label>
+                            <div class="row">
+                                <div class="col-10">
+                                    <v-select :disabled="specialist.disabled_doctor_4" @input="changeFourthSpecialistDoctor($event)" v-model="specialist.doctor_4" :options="OptionsSpecialistDoctor" :reduce="OptionsSpecialistDoctor => OptionsSpecialistDoctor" label="title" placeholder="-- Dokter --" />
+                                </div>
+                                <!-- <div v-if="form_igd.doctor_in_charge_id_3" class="col-2">
+                                    <b-button @click="enableSecondSpecialistDoctor" variant="warning">{{ specialist.disabled_doctor_3 ? 'Enable' : 'Disable'  }}</b-button>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="form_igd.doctor_in_charge_id_4" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <span class="text-bold-18">Dokter Spesialis 4: {{ form_igd.doctor_in_charge_name_4 }}</span>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Plan</span>
+                                </div>
+                                <div class="card-body">
+                                    <section class="pb-32">
+                                        <ModernLabel label="Tindakan (ICD9CM)" />
+                                        <div>
+                                            <b-textarea rows="2" type="text" v-model="form_FOURTH_icd9cm.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>ICD9CM</b-th>
+                                                    <b-th style="width: 100px;">Aksi</b-th>
+                                                </b-tr>
+                                                <tr class="item" v-for="(item,index) in form_FOURTH_icd9cm.icd9cm">
+                                                    <b-td>{{ index+1 }}</b-td>
+                                                    <b-td>
+                                                        <div>{{ item.title }}</div>
+                                                    </b-td>
+                                                    <b-td>
+                                                        <b-button variant="danger-600" size="sm" @click="deleteFOURTH9cm(index)" class="mr-2">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </b-td>
+                                                </tr>
+                                            </b-table-simple>
+                                            <div class="mt-10">
+                                                <v-select v-model="FOURTHicd9cm_id" @input="onFOURTHAdd9cm($event)" aria-readonly="true" @search="onFOURTHSearchIcd9cm" :options="OptionsFOURTHIcd9cm" :reduce="OptionsFOURTHIcd9cm => OptionsFOURTHIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-24">
+                                            <b-button @click="validationFOURTHSoapP" :disabled="FOURTHdisabled.soap_p" variant="primary">Simpan</b-button>
+                                        </div>
+                                    </section>
+
+                                    <hr class="w-100">
+
+                                    <section class="mt-32">
+                                        <ModernLabel label="Procedure" />
+                                        <b-button @click="openModalFOURTHTransaction('add', form_igd.id, null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+                                        </b-button>
+                                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                            <b-thead>
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>Tanggal & Jam</b-th>
+                                                    <b-th>Tindakan</b-th>
+                                                    <b-th>Jumlah</b-th>
+                                                    <b-th>Keterangan</b-th>
+                                                    <b-th>Aksi</b-th>
+                                                </b-tr>
+                                            </b-thead>
+                                            <b-tbody>
+                                                <template v-for="(item,index) in transaction_FOURTH_list" >
+                                                    <b-tr>
+                                                        <b-td>{{ index+1 }}</b-td>
+                                                        <b-td>{{ item.date_added }}</b-td>
+                                                        <b-td>{{ item.costing_name }}</b-td>
+                                                        <b-td>{{ item.var_2 }}</b-td>
+                                                        <b-td>{{ item.notes }}</b-td>
+                                                        <b-td>
+                                                            <b-button @click="openModalFOURTHTransaction('edit', null, item)" size="sm" variant="warning-500" class="mr-2">
+                                                                <feather-icon icon="EditIcon" />
+                                                            </b-button>
+                                                            <b-button @click="removeFOURTHTransaction(item)" size="sm" variant="danger-700">
+                                                                <feather-icon icon="TrashIcon" />
+                                                            </b-button>
+                                                        </b-td>
+                                                    </b-tr>
+                                                </template>
+                                            </b-tbody>
+                                        </b-table-simple>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Laboratorium" />
+                                        <div>
+                                            <b-button @click="openModalFOURTHLab(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Laboratorium</span>
+                                            </b-button>
+
+                                            <b-table :fields="FOURTHtable.doctor_FOURTH_lab" :items="laboratory_FOURTH_list" bordered responsive :tbody-tr-class="rowIGDLab" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(laboratory_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalFOURTHLab(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeFOURTHLab(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Radiologi" />
+                                        <div>
+                                            <b-button @click="openModalFOURTHRad(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Radiologi</span>
+                                            </b-button>
+
+                                            <b-table :fields="FOURTHtable.doctor_FOURTH_rad" :items="radiology_FOURTH_list" bordered responsive :tbody-tr-class="rowIGDRad" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(radiology_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalFOURTHRad(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeFOURTHRad(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mt-32">
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Rencana Terapi E-Resep</span>
+                                </div>
+                                <div class="card-body">
+                                    <b-button @click="openModalFOURTHPresc" pill variant="outline-neutral-400" size="sm" class="px-16">
+                                        <b-icon icon="plus" /> <span>Tambah Resep</span>
+                                    </b-button>
+
+                                    <b-table :fields="FOURTHtable.doctor_FOURTH_presc" :items="prescription_FOURTH_list" :tbody-tr-class="rowIGDPrescription" bordered responsive class="mt-12" style="font-size: 14px;">
+                                        <template #cell(no)="row">
+                                            <div>{{ row.index+1 }}</div>
+                                        </template>
+                                        <template #cell(form_prescription)="row">
+                                            <div v-for="(category, index) in prescriptionCategories" :key="index" class="mt-8" v-if="hasItemsInCategory(row.value, category.id)">
+                                                <b-table-simple responsive small style="font-size: 13px;">
+                                                    <b-thead>
+                                                        <b-tr>
+                                                            <b-th colspan="5" class="text-uppercase bg-success-100"> {{ category.label }}</b-th>
+                                                        </b-tr>
+                                                        <b-tr>
+                                                            <b-th>Nama</b-th>
+                                                            <b-th style="width: 100px;">Dosis Dokter</b-th>
+                                                            <b-th style="width: 100px;">Jumlah</b-th>
+                                                            <b-th style="width: 100px;">Aturan Pakai</b-th>
+                                                            <b-th style="width: 200px;">Keterangan</b-th>
+                                                        </b-tr>
+                                                    </b-thead>
+                                                    <b-tbody>
+                                                        <template v-for="(item, itemIndex) in row.value">
+                                                            <b-tr :key="itemIndex" v-if="item.prescription_item_type_id == category.id">
+                                                                <b-td>{{ item.pharmacy_catalog_name }}</b-td>
+                                                                <b-td>{{ item.dose }}</b-td>
+                                                                <b-td>{{ item.qty }} {{ item.package_name }}</b-td>
+                                                                <b-td>{{ item.used }}</b-td>
+                                                                <b-td>{{ item.desc }}</b-td>
+                                                            </b-tr>
+                                                        </template>
+                                                    </b-tbody>
+                                                </b-table-simple>
+                                            </div>
+                                        </template>
+                                        
+                                        <template #cell(action)="row">
+                                            <div v-if="row.item.flag == 0">
+                                                <b-button @click="removeFOURTHPresc(row.item)" size="sm" variant="danger-700">
+                                                    <feather-icon icon="TrashIcon" />
+                                                </b-button>
+                                            </div>
+                                            <div v-else>Resep telah diproses</div>
+                                        </template>
+                                    </b-table>
+                                </div>
+                            </div>
+                        </section>  
+                    </div>
+                </div>
+            </section>
+
+            <!-- Start: Dokter spesialis 5 -->
+            
+            <section v-if="form_igd.doctor_in_charge_id_4" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-indigo-200">
+                        <span class="text-bold-18">Tambah Dokter Spesialis 5</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="col-lg-5">
+                            <label class="c-form-label">Dokter Spesialis 5</label>
+                            <div class="row">
+                                <div class="col-10">
+                                    <v-select :disabled="specialist.disabled_doctor_5" @input="changeFifthSpecialistDoctor($event)" v-model="specialist.doctor_5" :options="OptionsSpecialistDoctor" :reduce="OptionsSpecialistDoctor => OptionsSpecialistDoctor" label="title" placeholder="-- Dokter --" />
+                                </div>
+                                <!-- <div v-if="form_igd.doctor_in_charge_id_5" class="col-2">
+                                    <b-button @click="enableSecondSpecialistDoctor" variant="warning">{{ specialist.disabled_doctor_5 ? 'Enable' : 'Disable'  }}</b-button>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="form_igd.doctor_in_charge_id_5" class="px-3 mt-20 mt-lg-32">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <span class="text-bold-18">Dokter Spesialis 5: {{ form_igd.doctor_in_charge_name_5 }}</span>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Plan</span>
+                                </div>
+                                <div class="card-body">
+                                    <section class="pb-32">
+                                        <ModernLabel label="Tindakan (ICD9CM)" />
+                                        <div>
+                                            <b-textarea rows="2" type="text" v-model="form_FIFTH_icd9cm.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                                            <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>ICD9CM</b-th>
+                                                    <b-th style="width: 100px;">Aksi</b-th>
+                                                </b-tr>
+                                                <tr class="item" v-for="(item,index) in form_FIFTH_icd9cm.icd9cm">
+                                                    <b-td>{{ index+1 }}</b-td>
+                                                    <b-td>
+                                                        <div>{{ item.title }}</div>
+                                                    </b-td>
+                                                    <b-td>
+                                                        <b-button variant="danger-600" size="sm" @click="deleteFIFTH9cm(index)" class="mr-2">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </b-td>
+                                                </tr>
+                                            </b-table-simple>
+                                            <div class="mt-10">
+                                                <v-select v-model="FIFTHicd9cm_id" @input="onFIFTHAdd9cm($event)" aria-readonly="true" @search="onFIFTHSearchIcd9cm" :options="OptionsFIFTHIcd9cm" :reduce="OptionsFIFTHIcd9cm => OptionsFIFTHIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-24">
+                                            <b-button @click="validationFIFTHSoapP" :disabled="FIFTHdisabled.soap_p" variant="primary">Simpan</b-button>
+                                        </div>
+                                    </section>
+
+                                    <hr class="w-100">
+
+                                    <section class="mt-32">
+                                        <ModernLabel label="Procedure" />
+                                        <b-button @click="openModalFIFTHTransaction('add', form_igd.id, null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                            <b-icon icon="plus" /> <span>Tambah Procedure</span>
+                                        </b-button>
+                                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                                            <b-thead>
+                                                <b-tr>
+                                                    <b-th style="width: 60px;">No</b-th>
+                                                    <b-th>Tanggal & Jam</b-th>
+                                                    <b-th>Tindakan</b-th>
+                                                    <b-th>Jumlah</b-th>
+                                                    <b-th>Keterangan</b-th>
+                                                    <b-th>Aksi</b-th>
+                                                </b-tr>
+                                            </b-thead>
+                                            <b-tbody>
+                                                <template v-for="(item,index) in transaction_FIFTH_list" >
+                                                    <b-tr>
+                                                        <b-td>{{ index+1 }}</b-td>
+                                                        <b-td>{{ item.date_added }}</b-td>
+                                                        <b-td>{{ item.costing_name }}</b-td>
+                                                        <b-td>{{ item.var_2 }}</b-td>
+                                                        <b-td>{{ item.notes }}</b-td>
+                                                        <b-td>
+                                                            <b-button @click="openModalFIFTHTransaction('edit', null, item)" size="sm" variant="warning-500" class="mr-2">
+                                                                <feather-icon icon="EditIcon" />
+                                                            </b-button>
+                                                            <b-button @click="removeFIFTHTransaction(item)" size="sm" variant="danger-700">
+                                                                <feather-icon icon="TrashIcon" />
+                                                            </b-button>
+                                                        </b-td>
+                                                    </b-tr>
+                                                </template>
+                                            </b-tbody>
+                                        </b-table-simple>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Laboratorium" />
+                                        <div>
+                                            <b-button @click="openModalFIFTHLab(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Laboratorium</span>
+                                            </b-button>
+
+                                            <b-table :fields="FIFTHtable.doctor_FIFTH_lab" :items="laboratory_FIFTH_list" bordered responsive :tbody-tr-class="rowIGDLab" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(laboratory_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalFIFTHLab(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeFIFTHLab(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+
+                                    <hr class="my-32 w-100">
+
+                                    <section>
+                                        <ModernLabel label="Radiologi" />
+                                        <div>
+                                            <b-button @click="openModalFIFTHRad(null)" pill variant="outline-neutral-400" size="sm" class="px-16 mt-12">
+                                                <b-icon icon="plus" /> <span>Tambah Order Radiologi</span>
+                                            </b-button>
+
+                                            <b-table :fields="FIFTHtable.doctor_FIFTH_rad" :items="radiology_FIFTH_list" bordered responsive :tbody-tr-class="rowIGDRad" class="mt-12" style="font-size: 14px;">
+                                                <template #cell(no)="row">
+                                                    <div>{{ row.index+1 }}</div>
+                                                </template>
+                                                <template #cell(radiology_request_item)="row">
+                                                    <li v-for="(item, index) in row.value" :key="index">{{ item.costing_name }}</li>
+                                                </template>
+                                                <template #cell(action)="row">
+                                                    <div v-if="row.item.status == 2 || row.item.status == 3">Order telah diproses</div>
+                                                    <div v-else class="d-flex">
+                                                        <b-button @click="openModalFIFTHRad(row.item)" size="sm" variant="warning-500" class="mr-2">
+                                                            <feather-icon icon="EditIcon" />
+                                                        </b-button>
+                                                        <b-button @click="removeFIFTHRad(row.item)" size="sm" variant="danger-700">
+                                                            <feather-icon icon="TrashIcon" />
+                                                        </b-button>
+                                                    </div>
+                                                </template>
+                                            </b-table>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="mt-32">
+                            <div class="card">
+                                <div class="card-header bg-indigo-200">
+                                    <span class="text-bold-18">Rencana Terapi E-Resep</span>
+                                </div>
+                                <div class="card-body">
+                                    <b-button @click="openModalFIFTHPresc" pill variant="outline-neutral-400" size="sm" class="px-16">
+                                        <b-icon icon="plus" /> <span>Tambah Resep</span>
+                                    </b-button>
+
+                                    <b-table :fields="FIFTHtable.doctor_FIFTH_presc" :items="prescription_FIFTH_list" :tbody-tr-class="rowIGDPrescription" bordered responsive class="mt-12" style="font-size: 14px;">
+                                        <template #cell(no)="row">
+                                            <div>{{ row.index+1 }}</div>
+                                        </template>
+                                        <template #cell(form_prescription)="row">
+                                            <div v-for="(category, index) in prescriptionCategories" :key="index" class="mt-8" v-if="hasItemsInCategory(row.value, category.id)">
+                                                <b-table-simple responsive small style="font-size: 13px;">
+                                                    <b-thead>
+                                                        <b-tr>
+                                                            <b-th colspan="5" class="text-uppercase bg-success-100"> {{ category.label }}</b-th>
+                                                        </b-tr>
+                                                        <b-tr>
+                                                            <b-th>Nama</b-th>
+                                                            <b-th style="width: 100px;">Dosis Dokter</b-th>
+                                                            <b-th style="width: 100px;">Jumlah</b-th>
+                                                            <b-th style="width: 100px;">Aturan Pakai</b-th>
+                                                            <b-th style="width: 200px;">Keterangan</b-th>
+                                                        </b-tr>
+                                                    </b-thead>
+                                                    <b-tbody>
+                                                        <template v-for="(item, itemIndex) in row.value">
+                                                            <b-tr :key="itemIndex" v-if="item.prescription_item_type_id == category.id">
+                                                                <b-td>{{ item.pharmacy_catalog_name }}</b-td>
+                                                                <b-td>{{ item.dose }}</b-td>
+                                                                <b-td>{{ item.qty }} {{ item.package_name }}</b-td>
+                                                                <b-td>{{ item.used }}</b-td>
+                                                                <b-td>{{ item.desc }}</b-td>
+                                                            </b-tr>
+                                                        </template>
+                                                    </b-tbody>
+                                                </b-table-simple>
+                                            </div>
+                                        </template>
+                                        
+                                        <template #cell(action)="row">
+                                            <div v-if="row.item.flag == 0">
+                                                <b-button @click="removeFIFTHPresc(row.item)" size="sm" variant="danger-700">
+                                                    <feather-icon icon="TrashIcon" />
+                                                </b-button>
+                                            </div>
+                                            <div v-else>Resep telah diproses</div>
+                                        </template>
+                                    </b-table>
+                                </div>
+                            </div>
+                        </section>  
+                    </div>
+                </div>
+            </section>
+
+        </b-modal>
+        
+
+        <!-- START: ALL MODAL IN IGD-DOCTOR -->
+        <b-modal v-model="active_act.modal_procedure" title="Tambah Rincian" hide-footer>
+            <div>
+                <div class="mt-12">
+                    <label class="c-form-label">Tindakan Procedure</label>
+                    <v-select v-model="form_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Jumlah</label>
+                    <b-form-input type="number" v-model="form_transaction.var_2" />
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Keterangan</label>
+                    <b-textarea v-model="form_transaction.notes" rows="3"></b-textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-24">
+                    <b-button :disabled="IGDdisabled.transaction" variant="primary" @click.prevent="validationFormTransaction" class="px-3">Save</b-button>
+                </div>
+            </div>
+        </b-modal>
+        
+        <b-modal v-model="active_act.modal_lab_igd" size="lg" title="Order Laboratorium" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_laboratory_igd.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchIGDlab" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_laboratory_igd.laboratory_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_laboratory_igd.laboratory_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_laboratory_igd.laboratory_request_items">
+                                <div v-for="(item, index) in filteredListIGDLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationLaboratory" :disabled="IGDdisabled.laboratory" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_act.modal_rad_igd" size="lg" title="Order Radiologi" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_radiology_igd.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchIGDrad" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_radiology_igd.radiology_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_radiology_igd.radiology_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_radiology_igd.radiology_request_items">
+                                <div v-for="(item, index) in filteredListIGDRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationRadiology" :disabled="IGDdisabled.radiology" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+        
+        <b-modal v-model="active_act.modal_presc_igd" size="lg" title="Order Resep" hide-footer>
+            <table class="table table-bordered">
+                <thead class="text-center text-bold-14">
+                    <tr>
+                        <th rowspan="2">
+                        </th>
+                        <th rowspan="2" style="min-width: 300px;">NAMA BARANG</th>
+                        <th colspan="4">ESTIMASI ORDER</th>
+                    </tr>
+                    <tr>
+                        <th style="min-width: 50px;">SEDIAAN OBAT</th>
+                        <th style="min-width: 50px;">DOSIS DOKTER</th>
+                        <th style="min-width: 50px;">JUMLAH</th>
+                        <th style="min-width: 140px;">KEMASAN</th>
+                        <th style="min-width: 50px;">KETERANGAN&ATURAN PAKAI</th>
+                    </tr>
+                </thead>
+                <template v-for="(item_p, index_p) in form_prescription_igd.form_prescription_parent">
+                    <tr>
+                        <td>
+                            <label><b>{{ item_p.prescription }}</b></label>
+                        </td>
+                        <td v-if="item_p.id !== 1">
+                            <b-input-group append="Jumlah">
+                                <b-form-input style="width:150px" type="number" v-model="item_p.value" />
+                            </b-input-group>
+                            <b-input-group append="Aturan Pakai">
+                                <b-form-input style="width:150px" type="text" v-model="item_p.used" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                    <tr class="item" v-for="(item, index) in form_prescription_igd.form_prescription" v-if="item_p.id === item.prescription_type_id">
+                        <td>
+                            <b-button variant="danger-600" size="sm" @click="deletePRES(index)" class="mr-2">
+                                <feather-icon icon="TrashIcon" />
+                            </b-button>
+                        </td>
+                        <td>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <b-form-input disabled style="width:100px" type="text" v-model="item.sum_dose" />
+                        </td>
+                        <td>
+                            <template v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:100px" readonly type="number" v-model="item.value_doctor"/>
+                            </template>
+                            <template v-if="item.prescription_type_id !== 1">
+                                <b-form-input style="width:100px" type="number" v-model="item.value_doctor"/>
+                            </template>
+                        </td>
+                        <td>
+                            <b-form-input style="width:100px" type="number" v-model="item.value_package" />
+                        </td>
+                        <td>
+                            <v-select v-model="item.package_id" :options="PackageOptions" :reduce="PackageOptions => PackageOptions.value" label="title" placeholder="Kemasan"></v-select>
+                        </td>
+                        <td>
+                            <b-input-group append="Aturan Pakai" v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:150px" type="text" v-model="item.used" />
+                            </b-input-group>
+                            <b-input-group append="Keterangan">
+                                <b-form-input style="width:150px" type="text" v-model="item.desc" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td></td>
+                    <td colspan="2">
+                        <v-select v-model="prescription" @input="onAddPRES($event)" :options="PrescriptionOptions" :reduce="PrescriptionOptions => PrescriptionOptions" label="title" placeholder="-- Racikan --"></v-select>
+                        <v-select v-model="catalog" @input="onAddCAT($event)" @search="onSearchCatalog" :options="OptionsCatalog" :reduce="CatalogOptions => CatalogOptions" label="title" placeholder="-- Pilih Katalog --"></v-select>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="modal-footer">
+                <b-button @click="validationPrescription" :disabled="IGDdisabled.prescription" variant="primary">Simpan</b-button>
+            </div>
+        </b-modal>
+
+        <!-- START: ALL MODAL IN SPECIALIST-DOCTOR 1 -->
+        <b-modal v-model="active_FIRST.modal_procedure" title="Tambah Rincian" hide-footer>
+            <div>
+                <div class="mt-12">
+                    <label class="c-form-label">Tindakan Procedure</label>
+                    <v-select v-model="form_FIRST_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Jumlah</label>
+                    <b-form-input type="number" v-model="form_FIRST_transaction.var_2" />
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Keterangan</label>
+                    <b-textarea v-model="form_FIRST_transaction.notes" rows="3"></b-textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-24">
+                    <b-button :disabled="FIRSTdisabled.transaction" variant="primary" @click.prevent="validationFormFIRSTTransaction" class="px-3">Save</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FIRST.modal_lab" size="lg" title="Order Laboratorium" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_FIRST_laboratory.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchFIRSTlab" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_FIRST_laboratory.laboratory_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_FIRST_laboratory.laboratory_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_FIRST_laboratory.laboratory_request_items">
+                                <div v-for="(item, index) in filteredListFIRSTLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationFIRSTLaboratory" :disabled="FIRSTdisabled.laboratory" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FIRST.modal_rad" size="lg" title="Order Radiologi" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_FIRST_radiology.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchFIRSTrad" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_FIRST_radiology.radiology_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_FIRST_radiology.radiology_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_FIRST_radiology.radiology_request_items">
+                                <div v-for="(item, index) in filteredListFIRSTRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationFIRSTRadiology" :disabled="FIRSTdisabled.radiology" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FIRST.modal_presc" size="lg" title="Order Resep" hide-footer>
+            <table class="table table-bordered">
+                <thead class="text-center text-bold-14">
+                    <tr>
+                        <th rowspan="2">
+                        </th>
+                        <th rowspan="2" style="min-width: 300px;">NAMA BARANG</th>
+                        <th colspan="4">ESTIMASI ORDER</th>
+                    </tr>
+                    <tr>
+                        <th style="min-width: 50px;">SEDIAAN OBAT</th>
+                        <th style="min-width: 50px;">DOSIS DOKTER</th>
+                        <th style="min-width: 50px;">JUMLAH</th>
+                        <th style="min-width: 140px;">KEMASAN</th>
+                        <th style="min-width: 50px;">KETERANGAN&ATURAN PAKAI</th>
+                    </tr>
+                </thead>
+                <template v-for="(item_p, index_p) in form_FIRST_prescription.form_prescription_parent">
+                    <tr>
+                        <td>
+                            <label><b>{{ item_p.prescription }}</b></label>
+                        </td>
+                        <td v-if="item_p.id !== 1">
+                            <b-input-group append="Jumlah">
+                                <b-form-input style="width:150px" type="number" v-model="item_p.value" />
+                            </b-input-group>
+                            <b-input-group append="Aturan Pakai">
+                                <b-form-input style="width:150px" type="text" v-model="item_p.used" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                    <tr class="item" v-for="(item, index) in form_FIRST_prescription.form_prescription" v-if="item_p.id === item.prescription_type_id">
+                        <td>
+                            <b-button variant="danger-600" size="sm" @click="deleteFIRSTPRES(index)" class="mr-2">
+                                <feather-icon icon="TrashIcon" />
+                            </b-button>
+                        </td>
+                        <td>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <b-form-input disabled style="width:100px" type="text" v-model="item.sum_dose" />
+                        </td>
+                        <td>
+                            <template v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:100px" readonly type="number" v-model="item.value_doctor"/>
+                            </template>
+                            <template v-if="item.prescription_type_id !== 1">
+                                <b-form-input style="width:100px" type="number" v-model="item.value_doctor"/>
+                            </template>
+                        </td>
+                        <td>
+                            <b-form-input style="width:100px" type="number" v-model="item.value_package" />
+                        </td>
+                        <td>
+                            <v-select v-model="item.package_id" :options="PackageOptions" :reduce="PackageOptions => PackageOptions.value" label="title" placeholder="Kemasan"></v-select>
+                        </td>
+                        <td>
+                            <b-input-group append="Aturan Pakai" v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:150px" type="text" v-model="item.used" />
+                            </b-input-group>
+                            <b-input-group append="Keterangan">
+                                <b-form-input style="width:150px" type="text" v-model="item.desc" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td></td>
+                    <td colspan="2">
+                        <v-select v-model="FIRST_prescription" @input="onAddFIRSTPRES($event)" :options="PrescriptionOptions" :reduce="PrescriptionOptions => PrescriptionOptions" label="title" placeholder="-- Racikan --"></v-select>
+                        <v-select v-model="FIRST_catalog" @input="onAddFIRSTCAT($event)" @search="onSearchFIRSTCatalog" :options="FIRST_OptionsCatalog" :reduce="FIRST_OptionsCatalog => FIRST_OptionsCatalog" label="title" placeholder="-- Pilih Katalog --"></v-select>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="modal-footer">
+                <b-button @click="validationFIRSTPrescription" :disabled="FIRSTdisabled.prescription" variant="primary">Simpan</b-button>
+            </div>
+        </b-modal>
+
+        <!-- START: ALL MODAL IN SPECIALIST-DOCTOR 2 -->
+        <b-modal v-model="active_SECOND.modal_procedure" title="Tambah Rincian" hide-footer>
+            <div>
+                <div class="mt-12">
+                    <label class="c-form-label">Tindakan Procedure</label>
+                    <v-select v-model="form_SECOND_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Jumlah</label>
+                    <b-form-input type="number" v-model="form_SECOND_transaction.var_2" />
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Keterangan</label>
+                    <b-textarea v-model="form_SECOND_transaction.notes" rows="3"></b-textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-24">
+                    <b-button :disabled="SECONDdisabled.transaction" variant="primary" @click.prevent="validationFormSECONDTransaction" class="px-3">Save</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_SECOND.modal_lab" size="lg" title="Order Laboratorium" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_SECOND_laboratory.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchSECONDlab" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_SECOND_laboratory.laboratory_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_SECOND_laboratory.laboratory_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_SECOND_laboratory.laboratory_request_items">
+                                <div v-for="(item, index) in filteredListSECONDLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationSECONDLaboratory" :disabled="SECONDdisabled.laboratory" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_SECOND.modal_rad" size="lg" title="Order Radiologi" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_SECOND_radiology.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchSECONDrad" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_SECOND_radiology.radiology_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_SECOND_radiology.radiology_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 200px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_SECOND_radiology.radiology_request_items">
+                                <div v-for="(item, index) in filteredListSECONDRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationSECONDRadiology" :disabled="SECONDdisabled.radiology" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_SECOND.modal_presc" size="lg" title="Order Resep" hide-footer>
+            <table class="table table-bordered">
+                <thead class="text-center text-bold-14">
+                    <tr>
+                        <th rowspan="2">
+                        </th>
+                        <th rowspan="2" style="min-width: 300px;">NAMA BARANG</th>
+                        <th colspan="4">ESTIMASI ORDER</th>
+                    </tr>
+                    <tr>
+                        <th style="min-width: 50px;">SEDIAAN OBAT</th>
+                        <th style="min-width: 50px;">DOSIS DOKTER</th>
+                        <th style="min-width: 50px;">JUMLAH</th>
+                        <th style="min-width: 140px;">KEMASAN</th>
+                        <th style="min-width: 50px;">KETERANGAN&ATURAN PAKAI</th>
+                    </tr>
+                </thead>
+                <template v-for="(item_p, index_p) in form_SECOND_prescription.form_prescription_parent">
+                    <tr>
+                        <td>
+                            <label><b>{{ item_p.prescription }}</b></label>
+                        </td>
+                        <td v-if="item_p.id !== 1">
+                            <b-input-group append="Jumlah">
+                                <b-form-input style="width:150px" type="number" v-model="item_p.value" />
+                            </b-input-group>
+                            <b-input-group append="Aturan Pakai">
+                                <b-form-input style="width:150px" type="text" v-model="item_p.used" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                    <tr class="item" v-for="(item, index) in form_SECOND_prescription.form_prescription" v-if="item_p.id === item.prescription_type_id">
+                        <td>
+                            <b-button variant="danger-600" size="sm" @click="deleteSECONDPRES(index)" class="mr-2">
+                                <feather-icon icon="TrashIcon" />
+                            </b-button>
+                        </td>
+                        <td>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <b-form-input disabled style="width:100px" type="text" v-model="item.sum_dose" />
+                        </td>
+                        <td>
+                            <template v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:100px" readonly type="number" v-model="item.value_doctor"/>
+                            </template>
+                            <template v-if="item.prescription_type_id !== 1">
+                                <b-form-input style="width:100px" type="number" v-model="item.value_doctor"/>
+                            </template>
+                        </td>
+                        <td>
+                            <b-form-input style="width:100px" type="number" v-model="item.value_package" />
+                        </td>
+                        <td>
+                            <v-select v-model="item.package_id" :options="PackageOptions" :reduce="PackageOptions => PackageOptions.value" label="title" placeholder="Kemasan"></v-select>
+                        </td>
+                        <td>
+                            <b-input-group append="Aturan Pakai" v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:150px" type="text" v-model="item.used" />
+                            </b-input-group>
+                            <b-input-group append="Keterangan">
+                                <b-form-input style="width:150px" type="text" v-model="item.desc" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td></td>
+                    <td colspan="2">
+                        <v-select v-model="SECOND_prescription" @input="onAddSECONDPRES($event)" :options="PrescriptionOptions" :reduce="PrescriptionOptions => PrescriptionOptions" label="title" placeholder="-- Racikan --"></v-select>
+                        <v-select v-model="SECOND_catalog" @input="onAddSECONDCAT($event)" @search="onSearchSECONDCatalog" :options="SECOND_OptionsCatalog" :reduce="SECOND_OptionsCatalog => SECOND_OptionsCatalog" label="title" placeholder="-- Pilih Katalog --"></v-select>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="modal-footer">
+                <b-button @click="validationSECONDPrescription" :disabled="SECONDdisabled.prescription" variant="primary">Simpan</b-button>
+            </div>
+        </b-modal>
+
+        <!-- START: ALL MODAL IN SPECIALIST-DOCTOR 3 -->
+        <b-modal v-model="active_THIRD.modal_procedure" title="Tambah Rincian" hide-footer>
+            <div>
+                <div class="mt-12">
+                    <label class="c-form-label">Tindakan Procedure</label>
+                    <v-select v-model="form_THIRD_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Jumlah</label>
+                    <b-form-input type="number" v-model="form_THIRD_transaction.var_2" />
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Keterangan</label>
+                    <b-textarea v-model="form_THIRD_transaction.notes" rows="3"></b-textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-24">
+                    <b-button :disabled="THIRDdisabled.transaction" variant="primary" @click.prevent="validationFormTHIRDTransaction" class="px-3">Save</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_THIRD.modal_lab" size="lg" title="Order Laboratorium" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_THIRD_laboratory.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchTHIRDlab" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_THIRD_laboratory.laboratory_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_THIRD_laboratory.laboratory_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_THIRD_laboratory.laboratory_request_items">
+                                <div v-for="(item, index) in filteredListTHIRDLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationTHIRDLaboratory" :disabled="THIRDdisabled.laboratory" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_THIRD.modal_rad" size="lg" title="Order Radiologi" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_THIRD_radiology.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchTHIRDrad" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_THIRD_radiology.radiology_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_THIRD_radiology.radiology_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 200px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_THIRD_radiology.radiology_request_items">
+                                <div v-for="(item, index) in filteredListTHIRDRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationTHIRDRadiology" :disabled="THIRDdisabled.radiology" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_THIRD.modal_presc" size="lg" title="Order Resep" hide-footer>
+            <table class="table table-bordered">
+                <thead class="text-center text-bold-14">
+                    <tr>
+                        <th rowspan="2">
+                        </th>
+                        <th rowspan="2" style="min-width: 300px;">NAMA BARANG</th>
+                        <th colspan="4">ESTIMASI ORDER</th>
+                    </tr>
+                    <tr>
+                        <th style="min-width: 50px;">SEDIAAN OBAT</th>
+                        <th style="min-width: 50px;">DOSIS DOKTER</th>
+                        <th style="min-width: 50px;">JUMLAH</th>
+                        <th style="min-width: 140px;">KEMASAN</th>
+                        <th style="min-width: 50px;">KETERANGAN&ATURAN PAKAI</th>
+                    </tr>
+                </thead>
+                <template v-for="(item_p, index_p) in form_THIRD_prescription.form_prescription_parent">
+                    <tr>
+                        <td>
+                            <label><b>{{ item_p.prescription }}</b></label>
+                        </td>
+                        <td v-if="item_p.id !== 1">
+                            <b-input-group append="Jumlah">
+                                <b-form-input style="width:150px" type="number" v-model="item_p.value" />
+                            </b-input-group>
+                            <b-input-group append="Aturan Pakai">
+                                <b-form-input style="width:150px" type="text" v-model="item_p.used" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                    <tr class="item" v-for="(item, index) in form_THIRD_prescription.form_prescription" v-if="item_p.id === item.prescription_type_id">
+                        <td>
+                            <b-button variant="danger-600" size="sm" @click="deleteTHIRDPRES(index)" class="mr-2">
+                                <feather-icon icon="TrashIcon" />
+                            </b-button>
+                        </td>
+                        <td>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <b-form-input disabled style="width:100px" type="text" v-model="item.sum_dose" />
+                        </td>
+                        <td>
+                            <template v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:100px" readonly type="number" v-model="item.value_doctor"/>
+                            </template>
+                            <template v-if="item.prescription_type_id !== 1">
+                                <b-form-input style="width:100px" type="number" v-model="item.value_doctor"/>
+                            </template>
+                        </td>
+                        <td>
+                            <b-form-input style="width:100px" type="number" v-model="item.value_package" />
+                        </td>
+                        <td>
+                            <v-select v-model="item.package_id" :options="PackageOptions" :reduce="PackageOptions => PackageOptions.value" label="title" placeholder="Kemasan"></v-select>
+                        </td>
+                        <td>
+                            <b-input-group append="Aturan Pakai" v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:150px" type="text" v-model="item.used" />
+                            </b-input-group>
+                            <b-input-group append="Keterangan">
+                                <b-form-input style="width:150px" type="text" v-model="item.desc" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td></td>
+                    <td colspan="2">
+                        <v-select v-model="THIRD_prescription" @input="onAddTHIRDPRES($event)" :options="PrescriptionOptions" :reduce="PrescriptionOptions => PrescriptionOptions" label="title" placeholder="-- Racikan --"></v-select>
+                        <v-select v-model="THIRD_catalog" @input="onAddTHIRDCAT($event)" @search="onSearchTHIRDCatalog" :options="THIRD_OptionsCatalog" :reduce="THIRD_OptionsCatalog => THIRD_OptionsCatalog" label="title" placeholder="-- Pilih Katalog --"></v-select>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="modal-footer">
+                <b-button @click="validationTHIRDPrescription" :disabled="THIRDdisabled.prescription" variant="primary">Simpan</b-button>
+            </div>
+        </b-modal>
+
+        <!-- START: ALL MODAL IN SPECIALIST-DOCTOR 4 -->
+        <b-modal v-model="active_FOURTH.modal_procedure" title="Tambah Rincian" hide-footer>
+            <div>
+                <div class="mt-12">
+                    <label class="c-form-label">Tindakan Procedure</label>
+                    <v-select v-model="form_FOURTH_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Jumlah</label>
+                    <b-form-input type="number" v-model="form_FOURTH_transaction.var_2" />
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Keterangan</label>
+                    <b-textarea v-model="form_FOURTH_transaction.notes" rows="3"></b-textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-24">
+                    <b-button :disabled="FOURTHdisabled.transaction" variant="primary" @click.prevent="validationFormFOURTHTransaction" class="px-3">Save</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FOURTH.modal_lab" size="lg" title="Order Laboratorium" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_FOURTH_laboratory.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchFOURTHlab" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_FOURTH_laboratory.laboratory_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_FOURTH_laboratory.laboratory_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_FOURTH_laboratory.laboratory_request_items">
+                                <div v-for="(item, index) in filteredListFOURTHLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationFOURTHLaboratory" :disabled="FOURTHdisabled.laboratory" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FOURTH.modal_rad" size="lg" title="Order Radiologi" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_FOURTH_radiology.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchFOURTHrad" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_FOURTH_radiology.radiology_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_FOURTH_radiology.radiology_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 200px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_FOURTH_radiology.radiology_request_items">
+                                <div v-for="(item, index) in filteredListFOURTHRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationFOURTHRadiology" :disabled="FOURTHdisabled.radiology" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FOURTH.modal_presc" size="lg" title="Order Resep" hide-footer>
+            <table class="table table-bordered">
+                <thead class="text-center text-bold-14">
+                    <tr>
+                        <th rowspan="2">
+                        </th>
+                        <th rowspan="2" style="min-width: 300px;">NAMA BARANG</th>
+                        <th colspan="4">ESTIMASI ORDER</th>
+                    </tr>
+                    <tr>
+                        <th style="min-width: 50px;">SEDIAAN OBAT</th>
+                        <th style="min-width: 50px;">DOSIS DOKTER</th>
+                        <th style="min-width: 50px;">JUMLAH</th>
+                        <th style="min-width: 140px;">KEMASAN</th>
+                        <th style="min-width: 50px;">KETERANGAN&ATURAN PAKAI</th>
+                    </tr>
+                </thead>
+                <template v-for="(item_p, index_p) in form_FOURTH_prescription.form_prescription_parent">
+                    <tr>
+                        <td>
+                            <label><b>{{ item_p.prescription }}</b></label>
+                        </td>
+                        <td v-if="item_p.id !== 1">
+                            <b-input-group append="Jumlah">
+                                <b-form-input style="width:150px" type="number" v-model="item_p.value" />
+                            </b-input-group>
+                            <b-input-group append="Aturan Pakai">
+                                <b-form-input style="width:150px" type="text" v-model="item_p.used" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                    <tr class="item" v-for="(item, index) in form_FOURTH_prescription.form_prescription" v-if="item_p.id === item.prescription_type_id">
+                        <td>
+                            <b-button variant="danger-600" size="sm" @click="deleteFOURTHPRES(index)" class="mr-2">
+                                <feather-icon icon="TrashIcon" />
+                            </b-button>
+                        </td>
+                        <td>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <b-form-input disabled style="width:100px" type="text" v-model="item.sum_dose" />
+                        </td>
+                        <td>
+                            <template v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:100px" readonly type="number" v-model="item.value_doctor"/>
+                            </template>
+                            <template v-if="item.prescription_type_id !== 1">
+                                <b-form-input style="width:100px" type="number" v-model="item.value_doctor"/>
+                            </template>
+                        </td>
+                        <td>
+                            <b-form-input style="width:100px" type="number" v-model="item.value_package" />
+                        </td>
+                        <td>
+                            <v-select v-model="item.package_id" :options="PackageOptions" :reduce="PackageOptions => PackageOptions.value" label="title" placeholder="Kemasan"></v-select>
+                        </td>
+                        <td>
+                            <b-input-group append="Aturan Pakai" v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:150px" type="text" v-model="item.used" />
+                            </b-input-group>
+                            <b-input-group append="Keterangan">
+                                <b-form-input style="width:150px" type="text" v-model="item.desc" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td></td>
+                    <td colspan="2">
+                        <v-select v-model="FOURTH_prescription" @input="onAddFOURTHPRES($event)" :options="PrescriptionOptions" :reduce="PrescriptionOptions => PrescriptionOptions" label="title" placeholder="-- Racikan --"></v-select>
+                        <v-select v-model="FOURTH_catalog" @input="onAddFOURTHCAT($event)" @search="onSearchFOURTHCatalog" :options="FOURTH_OptionsCatalog" :reduce="FOURTH_OptionsCatalog => FOURTH_OptionsCatalog" label="title" placeholder="-- Pilih Katalog --"></v-select>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="modal-footer">
+                <b-button @click="validationFOURTHPrescription" :disabled="FOURTHdisabled.prescription" variant="primary">Simpan</b-button>
+            </div>
+        </b-modal>
+
+        <!-- START: ALL MODAL IN SPECIALIST-DOCTOR 5 -->
+        <b-modal v-model="active_FIFTH.modal_procedure" title="Tambah Rincian" hide-footer>
+            <div>
+                <div class="mt-12">
+                    <label class="c-form-label">Tindakan Procedure</label>
+                    <v-select v-model="form_FIFTH_transaction.costing_id" aria-readonly="true" :options="OptionsCosting" :reduce="OptionsCosting => OptionsCosting" label="title" placeholder="-- Tindakan Procedure --"></v-select>
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Jumlah</label>
+                    <b-form-input type="number" v-model="form_FIFTH_transaction.var_2" />
+                </div>
+                <div class="mt-12">
+                    <label class="c-form-label">Keterangan</label>
+                    <b-textarea v-model="form_FIFTH_transaction.notes" rows="3"></b-textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-24">
+                    <b-button :disabled="FIFTHdisabled.transaction" variant="primary" @click.prevent="validationFormFIFTHTransaction" class="px-3">Save</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FIFTH.modal_lab" size="lg" title="Order Laboratorium" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_FIFTH_laboratory.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchFIFTHlab" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_FIFTH_laboratory.laboratory_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_FIFTH_laboratory.laboratory_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 400px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_FIFTH_laboratory.laboratory_request_items">
+                                <div v-for="(item, index) in filteredListFIFTHLab" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'laboratory_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationFIFTHLaboratory" :disabled="FIFTHdisabled.laboratory" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FIFTH.modal_rad" size="lg" title="Order Radiologi" hide-footer>
+            <div class="row">
+                <div class="col-lg-4">
+                    <label class="c-form-label">Tanggal Permintaan</label>
+                    <b-form-input v-model="form_FIFTH_radiology.date_request" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mt-12">
+                <b-form-input type="text" v-model="searchFIFTHrad" placeholder="Pencarian"></b-form-input>
+                <div class="col-lg-12 mt-3">
+                    <h5>Checked Items:</h5>
+                    <b-form-checkbox-group v-model="form_FIFTH_radiology.radiology_request_items">
+                        <b-form-checkbox
+                        v-for="(item, index) in form_FIFTH_radiology.radiology_request_items"
+                        :key="index"
+                        :value="item"
+                        >
+                        {{ item.costing_name }}
+                        </b-form-checkbox>
+                    </b-form-checkbox-group>
+                </div>
+                <div class="col mt-12 py-2 bg-neutral-100" style="height: 200px; overflow-y: scroll;">
+                    <div class="row">
+                        <b-form-checkbox-group size="sm" stacked>
+                            <b-form-checkbox-group class="col-lg-12" v-model="form_FIFTH_radiology.radiology_request_items">
+                                <div v-for="(item, index) in filteredListFIFTHRad" :key="index" :class="index != 0 ? 'mt-32' : 'mt-0'">
+                                    <div class="font-weight-bold text-uppercase">{{ item.category_name }}</div>
+                                    <div class="row mx-0"> 
+                                        <b-form-checkbox v-for="(list, packIndex) in item.category_items" v-bind:key="packIndex" :value="{'service_class_id': list.costing_services_class.service_class_id ,'radiology_package_id':list.id, 'costing_name':list.costing_name}" class="col-lg-5">{{list.costing_name }}</b-form-checkbox>
+                                    </div>
+                                </div>
+                            </b-form-checkbox-group>
+                        </b-form-checkbox-group>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mt-24">
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationFIFTHRadiology" :disabled="FIFTHdisabled.radiology" variant="primary">Simpan</b-button>
+                </div>
+            </div>
+        </b-modal>
+
+        <b-modal v-model="active_FIFTH.modal_presc" size="lg" title="Order Resep" hide-footer>
+            <table class="table table-bordered">
+                <thead class="text-center text-bold-14">
+                    <tr>
+                        <th rowspan="2">
+                        </th>
+                        <th rowspan="2" style="min-width: 300px;">NAMA BARANG</th>
+                        <th colspan="4">ESTIMASI ORDER</th>
+                    </tr>
+                    <tr>
+                        <th style="min-width: 50px;">SEDIAAN OBAT</th>
+                        <th style="min-width: 50px;">DOSIS DOKTER</th>
+                        <th style="min-width: 50px;">JUMLAH</th>
+                        <th style="min-width: 140px;">KEMASAN</th>
+                        <th style="min-width: 50px;">KETERANGAN&ATURAN PAKAI</th>
+                    </tr>
+                </thead>
+                <template v-for="(item_p, index_p) in form_FIFTH_prescription.form_prescription_parent">
+                    <tr>
+                        <td>
+                            <label><b>{{ item_p.prescription }}</b></label>
+                        </td>
+                        <td v-if="item_p.id !== 1">
+                            <b-input-group append="Jumlah">
+                                <b-form-input style="width:150px" type="number" v-model="item_p.value" />
+                            </b-input-group>
+                            <b-input-group append="Aturan Pakai">
+                                <b-form-input style="width:150px" type="text" v-model="item_p.used" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                    <tr class="item" v-for="(item, index) in form_FIFTH_prescription.form_prescription" v-if="item_p.id === item.prescription_type_id">
+                        <td>
+                            <b-button variant="danger-600" size="sm" @click="deleteFIFTHPRES(index)" class="mr-2">
+                                <feather-icon icon="TrashIcon" />
+                            </b-button>
+                        </td>
+                        <td>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <b-form-input disabled style="width:100px" type="text" v-model="item.sum_dose" />
+                        </td>
+                        <td>
+                            <template v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:100px" readonly type="number" v-model="item.value_doctor"/>
+                            </template>
+                            <template v-if="item.prescription_type_id !== 1">
+                                <b-form-input style="width:100px" type="number" v-model="item.value_doctor"/>
+                            </template>
+                        </td>
+                        <td>
+                            <b-form-input style="width:100px" type="number" v-model="item.value_package" />
+                        </td>
+                        <td>
+                            <v-select v-model="item.package_id" :options="PackageOptions" :reduce="PackageOptions => PackageOptions.value" label="title" placeholder="Kemasan"></v-select>
+                        </td>
+                        <td>
+                            <b-input-group append="Aturan Pakai" v-if="item.prescription_type_id === 1">
+                                <b-form-input style="width:150px" type="text" v-model="item.used" />
+                            </b-input-group>
+                            <b-input-group append="Keterangan">
+                                <b-form-input style="width:150px" type="text" v-model="item.desc" />
+                            </b-input-group>
+                        </td>
+                    </tr>
+                </template>
+                <tr>
+                    <td></td>
+                    <td colspan="2">
+                        <v-select v-model="FIFTH_prescription" @input="onAddFIFTHPRES($event)" :options="PrescriptionOptions" :reduce="PrescriptionOptions => PrescriptionOptions" label="title" placeholder="-- Racikan --"></v-select>
+                        <v-select v-model="FIFTH_catalog" @input="onAddFIFTHCAT($event)" @search="onSearchFIFTHCatalog" :options="FIFTH_OptionsCatalog" :reduce="FIFTH_OptionsCatalog => FIFTH_OptionsCatalog" label="title" placeholder="-- Pilih Katalog --"></v-select>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="modal-footer">
+                <b-button @click="validationFIFTHPrescription" :disabled="FIFTHdisabled.prescription" variant="primary">Simpan</b-button>
+            </div>
+        </b-modal>
+
+    </div>
+</template>
+<script>
+import { mapState } from 'vuex'
+import patientMenu from '@/@core/components/tab-menu/patientMenu.vue';
+import administration from '@/views/layouts/patient/doctor/administration.vue';
+import ModernLabel from '@/@core/components/label/ModernLabel.vue';
+import modalDokter from '@/views/layouts/patient/doctor/modalDokter.vue';
+import modalDokterEdit from '@/views/layouts/patient/doctor/modalDokterEdit.vue';
+import vSelect from 'vue-select'
+import router from '@/router/index.js'
+import ToastificationContent from '@core/components/toastification/ToastificationContent.vue'
+import moment from 'moment'
+import DatePicker from 'vue2-datepicker';
+import 'vue2-datepicker/index.css';
+
+export default {
+    name: 'DoctorStudies',
+    components: {
+        patientMenu, administration, ModernLabel, modalDokter, modalDokterEdit, vSelect, DatePicker
+    },
+    data() {
+        return {
+            showTimePanel: false,
+            showTimeRangePanel: false,
+            partograf:{date_start:''},
+            supportPackage: {
+                lab_package_list: [],
+                rad_package_list: [],
+                
+                lab_IGD_package_list: [],
+                rad_IGD_package_list: [],
+                lab_FIRST_package_list: [],
+                rad_FIRST_package_list: [],
+                lab_SECOND_package_list: [],
+                rad_SECOND_package_list: [],
+                lab_THIRD_package_list: [],
+                rad_THIRD_package_list: [],
+                lab_FOURTH_package_list: [],
+                rad_FOURTH_package_list: [],
+                lab_FIFTH_package_list: [],
+                rad_FIFTH_package_list: [],
+            },
+            prescriptionCategories: [
+                { id: 1, label: "Obat Satuan" },
+                { id: 2, label: "Racik 1" },
+                { id: 3, label: "Racik 2" },
+                { id: 4, label: "Racik 3" },
+                { id: 5, label: "Racik 4" },
+            ],
+            reg_des_id: '',
+            isPartograf: true,
+            isNewBorn: false,
+            isSPRI: true,
+            isIGD: false,
+            isRanap: false,
+            isRajal: false,
+            radiologyResultField: [
+                { key: 'no', label: 'No', thStyle:'width: 50px' },
+                { key: 'expertise', label: 'Expertise', thStyle:'width: 500px' },
+                { key: 'url', label: 'Gambar' },
+                { key: 'action', label: 'Aksi' },
+            ],
+            dataFromEdit:{},
+            imageview:'',
+            active: {
+                refcontrol: false,
+                booking_view: 'ADD',
+                editAccess: {
+                    laboratory: true,
+                    radiology: true,
+                },
+                advance: {
+                    antopometri: false,
+                    loclaist: false,
+                    oftalmologis: false,
+                }
+            },
+            urlbe:process.env.VUE_APP_IMAGE,
+            active_act: {
+                modal_allergy: false,
+                modal_booking: false,
+                modal_SPRI: false,
+                modal_NewBorn: true,
+                modal_Partograf: true,
+                modal_IGD: false,
+                tab_penunjang: 'menu1',
+                modal_procedure: false,
+                modal_lab_igd: false,
+                modal_rad_igd: false,
+                modal_presc_igd: false,
+            },
+            userData: JSON.parse(localStorage.getItem('userData')),
+            regData: {},
+            // doctor: {
+            //     fields: [
+            //         { key: 'no', label: 'No' },
+            //         { key: 'tindakan', label: 'Tindakan Dokter' },
+            //         { key: 'notes', label: 'Keterangan' },
+            //         { key: 'tanggal', label: 'Tanggal & Jam' },
+            //     ],  
+            //     items: [
+            //         { no: '1', tindakan: 'MC- Suntikan Hepatitis B - SEA', notes: 'Lorem ipsum dolor sit amet consectetur adipiscing elit nulla non hendrerit arcu, eget tincidunt augue.', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //         { no: '2', tindakan: 'MC- Suntikan Hepatitis B - SEA', notes: '-', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //     ]
+            // },
+            // diag_primer: {
+            //     fields: [
+            //         { key: 'no', label: 'No' },
+            //         { key: 'primer_code', label: 'Kode Diagnosis' },
+            //         { key: 'primer_diag', label: 'Diagnosis' },
+            //         { key: 'tanggal', label: 'Tanggal & Jam' },
+            //     ],
+            //     items: [
+            //         { no: '1', primer_code: 'Diagnosa Manual', primer_diag: 'Lorem ipsum dolor sit amet consectetur adipiscing elit nulla non hendrerit arcu, eget tincidunt augue.', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //         { no: '2', primer_code: 'Diagnosa Manual', primer_diag: '-', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //     ]
+            // },
+            // diag_sekunder: {
+            //     fields: [
+            //         { key: 'no', label: 'No' },
+            //         { key: 'sekunder_code', label: 'Kode Diagnosis sekunder' },
+            //         { key: 'sekunder_diag', label: 'Diagnosis sekunder' },
+            //         { key: 'tanggal', label: 'Tanggal & Jam' },
+            //     ],
+            //     items: [
+            //         { no: '1', sekunder_code: 'Diagnosa Manual', sekunder_diag: 'Lorem ipsum dolor sit amet consectetur adipiscing elit nulla non hendrerit arcu, eget tincidunt augue.', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //         { no: '2', sekunder_code: 'Diagnosa Manual', sekunder_diag: '-', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //     ]
+            // },
+            // ICD9CM: {
+            //     fields: [
+            //         { key: 'no', label: 'No' },
+            //         { key: 'ICD9CM_code', label: 'Kode ICD9CM' },
+            //         { key: 'rencana', label: 'ICD9CM (Rencana Terapi)' },
+            //         { key: 'tanggal', label: 'Tanggal & Jam' },
+            //     ],
+            //     items: [
+            //         { no: '1', ICD9CM_code: 'Diagnosa Manual', rencana: 'Lorem ipsum dolor sit amet consectetur adipiscing elit nulla non hendrerit arcu, eget tincidunt augue.', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //         { no: '2', ICD9CM_code: 'Diagnosa Manual', rencana: '-', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //     ]
+            // },
+            // laboratorium: {
+            //     fields: [
+            //         { key: 'no_request', label: 'No' },
+            //         { key: 'costing_name', label: 'Nama' },
+            //         { key: 'date_request', label: 'Tanggal & Jam' },
+            //         { key: 'result', label: '' },
+            //     ],
+            //     items: []
+            // },
+            // radiologi: {
+            //     fields: [
+            //         { key: 'no_request', label: 'No' },
+            //         { key: 'costing_name', label: 'Nama' },
+            //         { key: 'date_request', label: 'Tanggal & Jam' },
+            //         { key: 'url', label: '' },
+            //     ],
+            //     items: []
+            // },
+            // fisioterapi: {
+            //     fields: [
+            //         { key: 'no', label: 'No' },
+            //         { key: 'nama', label: 'Nama' },
+            //         { key: 'kelas', label: 'Kelas' },
+            //         { key: 'tarif', label: 'Tarif' },
+            //         { key: 'tanggal', label: 'Tanggal & Jam' },
+            //     ],
+            //     items: [
+            //         { no: '1', nama: 'RAD', kelas: 'Non Kelas', tarif: 'Rp. 2.000.000,-', tanggal: '11 Oktober 2022 - 05:06:55' },
+            //     ]
+            // },
+            searchlab: '',
+            searchrad: '',
+            form_booking: {
+                id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                icd10: [],
+                date_request: moment(new Date()).format('YYYY-MM-DD'),
+                laboratory_request_items: [],
+                radiology_request_items: [],
+            },
+            OptionsIcd10:[],
+            icd10_id: '',
+            isDisable: false,
+            OptionsAnamesaType:[
+                { value: 1, title: 'Auto Anamnesa' },
+                { value: 2, title: 'Allo Anamnesa' }
+            ],
+            OptionsFamilyRelation:[
+                { value: 1, title: 'Ayah' },
+                { value: 2, title: 'Ibu' },
+                { value: 3, title: 'Kakak' },
+                { value: 4, title: 'Adik' },
+            ],
+            // OptionsClassificationBloodPressureType:[
+            //     { value: 0, title: '-' },
+            //     { value: 1, title: 'Normal' },
+            //     { value: 2, title: 'Prephypertension' },
+            //     { value: 3, title: 'Stage 1 HTN' },
+            //     { value: 4, title: 'Stage 2 HTN' },
+            // ],
+            // OptionsClassificationOximetryType:[
+            //     { value: 0, title: '-' },
+            //     { value: 1, title: 'Normal' },
+            //     { value: 2, title: 'Hipoksia Ringan Sampai Sedang' },
+            //     { value: 3, title: 'Hipoksia Sedang Sampai Berat' },
+            //     { value: 4, title: 'Hipoksia Berat Mengancam Jiwa' },
+            // ],
+            // OptionsClassificationTemperatureType:[
+            //     { value: 0, title: '-' },
+            //     { value: 1, title: 'Normal' },
+            //     { value: 2, title: 'Febris' },
+            //     { value: 3, title: 'Hiperpireksis' },
+            //     { value: 4, title: 'Hipotermi' },
+            //     { value: 5, title: 'Hipertermi' },
+            //     { value: 6, title: 'Hipotensi' },
+            // ],
+
+            
+            // IGD
+            IGDicd10_id: '',
+            OptionsIGDIcd10: [],
+            IGDicd9cm_id: '',
+            OptionsIGDIcd9cm: [],
+            isDisabledIGD: false,
+            isDisabledSPRI: false,
+            form_spri: {
+                id:'',
+                doctor_in_charge_id:'',
+                icd10:[],
+            },
+            form_igd: {
+                id:'', 
+                doctor_in_charge_id: '',
+                doctor_in_charge_id_1: '',
+                doctor_in_charge_id_2: '',
+                doctor_in_charge_name: '',
+                doctor_in_charge_name_1: '',
+                doctor_in_charge_name_2: '',
+                registration_destination_id: '',
+                anamesa_type_id: 1, 
+                family_relation_id: '',
+                family_name: '',
+                main_complaint: '',
+                history_disease_now: '',
+                history_disease_past: '',
+                history_drugs: '',
+                systolic_blood_pressure: '',
+                diastolic_blood_pressure: '',
+                classification_blood_pressure_type_id: '',
+                pulse_frequency: '',
+                breath_frequency: '',
+                oximetry_frequency: '',
+                classification_oximetry_type_id: '',
+                temperature: '',
+                classification_temperature_type_id: '',
+                blood_sugar: '',
+                weight: '',
+                height: '',
+                imt: '',
+                head_circumference: '',
+                chest_circumference: '',
+                arm_circumference: '',
+                stomach_circumference: '',
+                knee_circumference: '',
+                physical_check: '',
+                soap_o_anythingelse: '',
+                icd10: [],
+                icd10_notes: '',
+                soap_a_anythingelse: '',
+                
+                sore_score: '',
+                ews: '',
+                non_icd10: [],
+                head: 1,
+                head_hair_color: 1,
+                head_hair_condition: 1,
+                eye_conjunctive: 1,
+                eye_sclera: 1,
+                eye_pupil: 1,
+                eye_light_reflex: 1,
+                mouth_mucosa: 1,
+                mouth_discoloration: 1,
+                mouth_tongue: 1,
+                mouth_caries: 1,
+                neck_kgb: 1,
+                neck_trachea_position: 1,
+                neck_massa: 1,
+                thorax_insp_chest: 1,
+                thorax_insp_retraction: 1,
+                thorax_palp_chest: 1,
+                thorax_palp_fremitus: 1,
+                thorax_palp_crepitation: 1,
+                thorax_ausk_pul_vasiculer: 1,
+                thorax_ausk_pul_rhonki: 1,
+                thorax_ausk_pul_wheezing: 1,
+                thorax_ausk_cor_heart_sound: 1,
+                thorax_ausk_cor_murmur: 1,
+                thorax_ausk_cor_gallop: 1,
+                abdomen_supel: 1,
+                abdomen_bowel_sounds: 1,
+                abdomen_tenderness: 1,
+                abdomen_hepar_lien: 1,
+                abdomen_other_physical_check: '',
+                extremity_acral: 1,
+                extremity_crt: 1,
+                extremity_edema: 1,
+                genitalia: '',
+                localist_status: '',
+                ophthal_status: '',
+                ophthal_od: {
+                    visus: 12,
+                    tio_digital: 1,
+                    tio_tonometri_sciots: '',
+                    eye_position: 1,
+                    eye_movement: 1,
+                    super_silia: 1,
+                    palpebra_edema: 1,
+                    palpebra_ptosis: 1,
+                    palpebra_lagophtalmus: 1,
+                    palpebra_tumor: 1,
+                    apparatus_lakrimalis: 1,
+                    silia: 1,
+                    conjunctive_hiperemis: 1,
+                    conjunctive_bleed: 1,
+                    cornea: 1,
+                    camera_oculi: 1,
+                    iris_color: 2,
+                    iris_cripte: 1,
+                    pupil_form: 1,
+                    pupil_diameter: 4,
+                    pupil_direct_light: 1,
+                    pupil_indirect_light: 1,
+                    lens: 1,
+                    shadow_test: 1,
+                    glandula: 1,
+                    field_view: 1,
+                    fundus: '',
+                },
+                ophthal_os: {
+                    visus: 12,
+                    tio_digital: 1,
+                    tio_tonometri_sciots: '',
+                    eye_position: 1,
+                    eye_movement: 1,
+                    super_silia: 1,
+                    palpebra_edema: 1,
+                    palpebra_ptosis: 1,
+                    palpebra_lagophtalmus: 1,
+                    palpebra_tumor: 1,
+                    apparatus_lakrimalis: 1,
+                    silia: 1,
+                    conjunctive_hiperemis: 1,
+                    conjunctive_bleed: 1,
+                    cornea: 1,
+                    camera_oculi: 1,
+                    iris_color: 2,
+                    iris_cripte: 1,
+                    pupil_form: 1,
+                    pupil_diameter: 4,
+                    pupil_direct_light: 1,
+                    pupil_indirect_light: 1,
+                    lens: 1,
+                    shadow_test: 1,
+                    glandula: 1,
+                    field_view: 1,
+                    fundus: '',
+                },
+            },
+            input_other10: '',
+            form_icd9cm: {
+                id: '',
+                soap_id: '',
+                icd9cm: [],
+                therapy_plan: '',
+                doctor_in_charge_id: '',
+            },
+            form_transaction: {
+                id:'',
+                soap_id: '',
+                view:'add',
+                costing_id: '',
+                var_1: '',
+                var_2: 1,
+                var_3: '',
+                notes: '',
+                doctor_in_charge_id: '',
+            },
+            transaction_list: [],
+            searchIGDlab: '',
+            form_laboratory_igd: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                laboratory_request_items: [],
+            },
+            laboratory_igd_list: [],
+            
+            searchIGDrad: '',
+            form_radiology_igd: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                radiology_request_items: [],
+            },
+            radiology_igd_list: [],
+
+            form_prescription_igd: {
+                id: '',
+                soap_id: '',
+                pharmacy_depo_id: '',
+                soap_p_id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                form_prescription_parent: [],
+                form_prescription: []
+            },
+            prescription:'',
+            catalog:'',
+            prescription_igd_list: [],
+            PrescriptionOptions:[
+                { value: 1, title: 'OBAT SATUAN' },
+                { value: 2, title: 'RACIK 1' },
+                { value: 3, title: 'RACIK 2' },
+                { value: 4, title: 'RACIK 3' },
+                { value: 5, title: 'RACIK 4' }
+            ],
+            OptionsCatalog: [],
+            prescription_type: {},
+
+            IGDtable: {
+                doctor_igd_lab: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'laboratory_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_igd_rad: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'radiology_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_igd_presc: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_order', label: 'Nomor Order', thStyle: 'width: 200px' },
+                    { key: 'form_prescription', label: 'Resep' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+            },
+            IGDdisabled: {
+                transaction: false,
+                soap_p: false,
+                laboratory: false,
+                radiology: false,
+                prescription: false,
+            },
+
+            specialist: {
+                doctor_1: '',
+                disabled_doctor_1: false,
+                doctor_2: '',
+                disabled_doctor_2: false,
+                doctor_3: '',
+                disabled_doctor_3: false,
+                doctor_4: '',
+                disabled_doctor_4: false,
+                doctor_5: '',
+                disabled_doctor_5: false,
+            },
+
+            // SPECIALIST 1
+            form_FIRST_icd9cm: {
+                id: '',
+                soap_id: '',
+                icd9cm: [],
+                therapy_plan: '',
+                doctor_in_charge_id: '',
+            },
+            FIRSTicd9cm_id: '',
+            OptionsFIRSTIcd9cm: [],
+
+            form_FIRST_transaction: {
+                id:'',
+                soap_id: '',
+                view:'add',
+                costing_id: '',
+                var_1: '',
+                var_2: 1,
+                var_3: '',
+                notes: '',
+                doctor_in_charge_id: '',
+            },
+            transaction_FIRST_list: [],
+
+            form_FIRST_laboratory: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                laboratory_request_items: [],
+            },
+            laboratory_FIRST_list: [],
+            searchFIRSTlab: '',
+
+            form_FIRST_radiology: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                radiology_request_items: [],
+            },
+            radiology_FIRST_list: [],
+            searchFIRSTrad: '',
+
+            form_FIRST_prescription: {
+                id: '',
+                soap_id: '',
+                pharmacy_depo_id: '',
+                soap_p_id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                form_prescription_parent: [],
+                form_prescription: []
+            },
+            FIRST_prescription:'',
+            FIRST_catalog:'',
+            prescription_FIRST_list: [],
+            FIRST_OptionsCatalog: [],
+            FIRST_prescription_type: {},
+
+            active_FIRST: {
+                modal_procedure: false,
+                modal_lab: false,
+                modal_rad: false,
+                modal_presc: false,
+            },
+            FIRSTtable: {
+                doctor_FIRST_lab: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'laboratory_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_FIRST_rad: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'radiology_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_FIRST_presc: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_order', label: 'Nomor Order', thStyle: 'width: 200px' },
+                    { key: 'form_prescription', label: 'Resep' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+            },
+            FIRSTdisabled: {
+                transaction: false,
+                soap_p: false,
+                laboratory: false,
+                radiology: false,
+                prescription: false,
+            },
+
+            // SPECIALIST 2
+            form_SECOND_icd9cm: {
+                id: '',
+                soap_id: '',
+                icd9cm: [],
+                therapy_plan: '',
+                doctor_in_charge_id: '',
+            },
+            SECONDicd9cm_id: '',
+            OptionsSECONDIcd9cm: [],
+
+            form_SECOND_transaction: {
+                id:'',
+                soap_id: '',
+                view:'add',
+                costing_id: '',
+                var_1: '',
+                var_2: 1,
+                var_3: '',
+                notes: '',
+                doctor_in_charge_id: '',
+            },
+            transaction_SECOND_list: [],
+
+            form_SECOND_laboratory: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                laboratory_request_items: [],
+            },
+            laboratory_SECOND_list: [],
+            searchSECONDlab: '',
+
+            form_SECOND_radiology: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                radiology_request_items: [],
+            },
+            radiology_SECOND_list: [],
+            searchSECONDrad: '',
+
+            form_SECOND_prescription: {
+                id: '',
+                soap_id: '',
+                pharmacy_depo_id: '',
+                soap_p_id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                form_prescription_parent: [],
+                form_prescription: []
+            },
+            SECOND_prescription:'',
+            SECOND_catalog:'',
+            prescription_SECOND_list: [],
+            SECOND_OptionsCatalog: [],
+            SECOND_prescription_type: {},
+
+            active_SECOND: {
+                modal_procedure: false,
+                modal_lab: false,
+                modal_rad: false,
+                modal_presc: false,
+            },
+            SECONDtable: {
+                doctor_SECOND_lab: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'laboratory_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_SECOND_rad: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'radiology_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_SECOND_presc: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_order', label: 'Nomor Order', thStyle: 'width: 200px' },
+                    { key: 'form_prescription', label: 'Resep' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+            },
+            SECONDdisabled: {
+                transaction: false,
+                soap_p: false,
+                laboratory: false,
+                radiology: false,
+                prescription: false,
+            },
+            
+            // SPECIALIST 3
+            form_THIRD_icd9cm: {
+                id: '',
+                soap_id: '',
+                icd9cm: [],
+                therapy_plan: '',
+                doctor_in_charge_id: '',
+            },
+            THIRDicd9cm_id: '',
+            OptionsTHIRDIcd9cm: [],
+
+            form_THIRD_transaction: {
+                id:'',
+                soap_id: '',
+                view:'add',
+                costing_id: '',
+                var_1: '',
+                var_2: 1,
+                var_3: '',
+                notes: '',
+                doctor_in_charge_id: '',
+            },
+            transaction_THIRD_list: [],
+
+            form_THIRD_laboratory: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                laboratory_request_items: [],
+            },
+            laboratory_THIRD_list: [],
+            searchTHIRDlab: '',
+
+            form_THIRD_radiology: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                radiology_request_items: [],
+            },
+            radiology_THIRD_list: [],
+            searchTHIRDrad: '',
+
+            form_THIRD_prescription: {
+                id: '',
+                soap_id: '',
+                pharmacy_depo_id: '',
+                soap_p_id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                form_prescription_parent: [],
+                form_prescription: []
+            },
+            THIRD_prescription:'',
+            THIRD_catalog:'',
+            prescription_THIRD_list: [],
+            THIRD_OptionsCatalog: [],
+            THIRD_prescription_type: {},
+
+            active_THIRD: {
+                modal_procedure: false,
+                modal_lab: false,
+                modal_rad: false,
+                modal_presc: false,
+            },
+            THIRDtable: {
+                doctor_THIRD_lab: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'laboratory_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_THIRD_rad: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'radiology_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_THIRD_presc: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_order', label: 'Nomor Order', thStyle: 'width: 200px' },
+                    { key: 'form_prescription', label: 'Resep' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+            },
+            THIRDdisabled: {
+                transaction: false,
+                soap_p: false,
+                laboratory: false,
+                radiology: false,
+                prescription: false,
+            },
+            
+            // SPECIALIST 4
+            form_FOURTH_icd9cm: {
+                id: '',
+                soap_id: '',
+                icd9cm: [],
+                therapy_plan: '',
+                doctor_in_charge_id: '',
+            },
+            FOURTHicd9cm_id: '',
+            OptionsFOURTHIcd9cm: [],
+
+            form_FOURTH_transaction: {
+                id:'',
+                soap_id: '',
+                view:'add',
+                costing_id: '',
+                var_1: '',
+                var_2: 1,
+                var_3: '',
+                notes: '',
+                doctor_in_charge_id: '',
+            },
+            transaction_FOURTH_list: [],
+
+            form_FOURTH_laboratory: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                laboratory_request_items: [],
+            },
+            laboratory_FOURTH_list: [],
+            searchFOURTHlab: '',
+
+            form_FOURTH_radiology: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                radiology_request_items: [],
+            },
+            radiology_FOURTH_list: [],
+            searchFOURTHrad: '',
+
+            form_FOURTH_prescription: {
+                id: '',
+                soap_id: '',
+                pharmacy_depo_id: '',
+                soap_p_id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                form_prescription_parent: [],
+                form_prescription: []
+            },
+            FOURTH_prescription:'',
+            FOURTH_catalog:'',
+            prescription_FOURTH_list: [],
+            FOURTH_OptionsCatalog: [],
+            FOURTH_prescription_type: {},
+
+            active_FOURTH: {
+                modal_procedure: false,
+                modal_lab: false,
+                modal_rad: false,
+                modal_presc: false,
+            },
+            FOURTHtable: {
+                doctor_FOURTH_lab: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'laboratory_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_FOURTH_rad: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'radiology_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_FOURTH_presc: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_order', label: 'Nomor Order', thStyle: 'width: 200px' },
+                    { key: 'form_prescription', label: 'Resep' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+            },
+            FOURTHdisabled: {
+                transaction: false,
+                soap_p: false,
+                laboratory: false,
+                radiology: false,
+                prescription: false,
+            },
+            
+            // SPECIALIST 5
+            form_FIFTH_icd9cm: {
+                id: '',
+                soap_id: '',
+                icd9cm: [],
+                therapy_plan: '',
+                doctor_in_charge_id: '',
+            },
+            FIFTHicd9cm_id: '',
+            OptionsFIFTHIcd9cm: [],
+
+            form_FIFTH_transaction: {
+                id:'',
+                soap_id: '',
+                view:'add',
+                costing_id: '',
+                var_1: '',
+                var_2: 1,
+                var_3: '',
+                notes: '',
+                doctor_in_charge_id: '',
+            },
+            transaction_FIFTH_list: [],
+
+            form_FIFTH_laboratory: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                laboratory_request_items: [],
+            },
+            laboratory_FIFTH_list: [],
+            searchFIFTHlab: '',
+
+            form_FIFTH_radiology: {
+                id: '',
+                soap_id: '',
+                doctor_in_charge_id: '',
+                date_request: moment(new Date()).format('YYYY-MM-DD HH:MM'),
+                radiology_request_items: [],
+            },
+            radiology_FIFTH_list: [],
+            searchFIFTHrad: '',
+
+            form_FIFTH_prescription: {
+                id: '',
+                soap_id: '',
+                pharmacy_depo_id: '',
+                soap_p_id: '',
+                registration_destination_id: '',
+                doctor_in_charge_id: '',
+                form_prescription_parent: [],
+                form_prescription: []
+            },
+            FIFTH_prescription:'',
+            FIFTH_catalog:'',
+            prescription_FIFTH_list: [],
+            FIFTH_OptionsCatalog: [],
+            FIFTH_prescription_type: {},
+
+            active_FIFTH: {
+                modal_procedure: false,
+                modal_lab: false,
+                modal_rad: false,
+                modal_presc: false,
+            },
+            paramsInsuranceServiceClassDoctor:{},
+            FIFTHtable: {
+                doctor_FIFTH_lab: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'laboratory_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_FIFTH_rad: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_request', label: 'Nomor Permintaan', thStyle: 'width: 200px' },
+                    { key: 'date_request', label: 'Tanggal Permintaan', thStyle: 'width: 200px' },
+                    { key: 'radiology_request_item', label: 'Permintaan' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+                doctor_FIFTH_presc: [
+                    { key: 'no', label: 'No', thStyle: 'width: 60px' },
+                    { key: 'no_order', label: 'Nomor Order', thStyle: 'width: 200px' },
+                    { key: 'form_prescription', label: 'Resep' },
+                    { key: 'action', label: 'Aksi', thStyle: 'width: 140px' },
+                ],
+            },
+            FIFTHdisabled: {
+                transaction: false,
+                soap_p: false,
+                laboratory: false,
+                radiology: false,
+                prescription: false,
+            },
+            
+        }
+    },
+    filters:{
+        currency(value) {
+            return new Intl.NumberFormat("en-US", { style: "currency", currency: "IDR" }).format(value)
+        },
+    },
+    computed: {
+        ...mapState({ 
+            //SPRI
+            TypeRoomOptions: state => state.helper.options.type_room,
+
+            items: state => state.soap.items, 
+            OptionsCosting: state => state.costing.options.costing,
+            PackageOptions: state => state.packages.options.packages,
+            OptionsDoctor: state => state.employee.options.employee,            
+            OptionsSpecialistDoctor: state => state.employee.options.specialist,         
+            OptionsTypeAllergy: state => state.helper.options.typeallergy,
+                        
+            // generalis option
+            OptionsHeadCircumference: state => state.soap.generalis.OptionsHeadCircumference,
+            OptionsHeadHairColor: state => state.soap.generalis.OptionsHeadHairColor,
+            OptionsHeadHairCondition: state => state.soap.generalis.OptionsHeadHairCondition,
+            OptionsEyeConjunctiva: state => state.soap.generalis.OptionsEyeConjunctiva,
+            OptionsEyeSclera: state => state.soap.generalis.OptionsEyeSclera,
+            OptionsEyePupil: state => state.soap.generalis.OptionsEyePupil,
+            OptionsEyeReflect: state => state.soap.generalis.OptionsEyeReflect,
+            OptionsEyeReflect: state => state.soap.generalis.OptionsEyeReflect,
+            OptionsMouthMukosa: state => state.soap.generalis.OptionsMouthMukosa,
+            OptionsMouthHiperemis: state => state.soap.generalis.OptionsMouthHiperemis,
+            OptionsMouthTongue: state => state.soap.generalis.OptionsMouthTongue,
+            OptionsMouthKaries: state => state.soap.generalis.OptionsMouthKaries,
+            OptionsNeckKGB: state => state.soap.generalis.OptionsNeckKGB,
+            OptionsNeckTrakea: state => state.soap.generalis.OptionsNeckTrakea,
+            OptionsNeckMassa: state => state.soap.generalis.OptionsNeckMassa,
+            OptionsInspectionChest: state => state.soap.generalis.OptionsInspectionChest,
+            OptionsInspectionRetraction: state => state.soap.generalis.OptionsInspectionRetraction,
+            OptionsPalpationChest: state => state.soap.generalis.OptionsPalpationChest,
+            OptionsPalpationFremitus: state => state.soap.generalis.OptionsPalpationFremitus,
+            OptionsPalpationKrepitasi: state => state.soap.generalis.OptionsPalpationKrepitasi,
+            OptionsAuskultationPulmoVasikuler: state => state.soap.generalis.OptionsAuskultationPulmoVasikuler,
+            OptionsAuskultationPulmoRhonki: state => state.soap.generalis.OptionsAuskultationPulmoRhonki,
+            OptionsAuskultationPulmoWheezing: state => state.soap.generalis.OptionsAuskultationPulmoWheezing,
+            OptionsAuskultationCORBJ: state => state.soap.generalis.OptionsAuskultationCORBJ,
+            OptionsAuskultationCORMurmur: state => state.soap.generalis.OptionsAuskultationCORMurmur,
+            OptionsAuskultationCORGallop: state => state.soap.generalis.OptionsAuskultationCORGallop,
+            OptionsAbdomenSupel: state => state.soap.generalis.OptionsAbdomenSupel,
+            OptionsAbdomenBising: state => state.soap.generalis.OptionsAbdomenBising,
+            OptionsAbdomenPress: state => state.soap.generalis.OptionsAbdomenPress,
+            OptionsAbdomenHepar: state => state.soap.generalis.OptionsAbdomenHepar,
+            OptionsEkstremitasAkral: state => state.soap.generalis.OptionsEkstremitasAkral,
+            OptionsEkstremitasCRT: state => state.soap.generalis.OptionsEkstremitasCRT,
+            OptionsEkstremitasEdema: state => state.soap.generalis.OptionsEkstremitasEdema,
+            OptionsOftalVisus: state => state.soap.generalis.OptionsOftalVisus,
+            OptionsOftalTIO: state => state.soap.generalis.OptionsOftalTIO,
+            OptionsOftalEyePosition: state => state.soap.generalis.OptionsOftalEyePosition,
+            OptionsOftalMovement: state => state.soap.generalis.OptionsOftalMovement,
+            OptionsOftalSuperSilia: state => state.soap.generalis.OptionsOftalSuperSilia,
+            OptionsOftalPalpebraEdema: state => state.soap.generalis.OptionsOftalPalpebraEdema,
+            OptionsOftalPalpebraPtosis: state => state.soap.generalis.OptionsOftalPalpebraPtosis,
+            OptionsOftalPalpebraLagophtalmus: state => state.soap.generalis.OptionsOftalPalpebraLagophtalmus,
+            OptionsOftalPalpebraTumor: state => state.soap.generalis.OptionsOftalPalpebraTumor,
+            OptionsOftalApparetus: state => state.soap.generalis.OptionsOftalApparetus,
+            OptionsOftalSilia: state => state.soap.generalis.OptionsOftalSilia,
+            OptionsOftalConjHiperemis: state => state.soap.generalis.OptionsOftalConjHiperemis,
+            OptionsOftalConjBleed: state => state.soap.generalis.OptionsOftalConjBleed,
+            OptionsOftalKornea: state => state.soap.generalis.OptionsOftalKornea,
+            OptionsOftalAnterior: state => state.soap.generalis.OptionsOftalAnterior,
+            OptionsOftalIrisColor: state => state.soap.generalis.OptionsOftalIrisColor,
+            OptionsOftalIrisKripte: state => state.soap.generalis.OptionsOftalIrisKripte,
+            OptionsOftalPupilForm: state => state.soap.generalis.OptionsOftalPupilForm,
+            OptionsOftalPupilDiameter: state => state.soap.generalis.OptionsOftalPupilDiameter,
+            OptionsOftalPupilDirectLight: state => state.soap.generalis.OptionsOftalPupilDirectLight,
+            OptionsOftalPupilIndirectLight: state => state.soap.generalis.OptionsOftalPupilIndirectLight,
+            OptionsOftalLens: state => state.soap.generalis.OptionsOftalLens,
+            OptionsOftalGlandula: state => state.soap.generalis.OptionsOftalGlandula,
+            OptionsOftalLapang: state => state.soap.generalis.OptionsOftalLapang,
+            OptionsOftalShadow: state => state.soap.generalis.OptionsOftalShadow,
+
+        }),
+        filteredListLab() {
+            return this.supportPackage.lab_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListRad() {
+            return this.supportPackage?.rad_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchrad?.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+        filteredListIGDLab() {
+            return this.supportPackage.lab_IGD_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchIGDlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListIGDRad() {
+            return this.supportPackage?.rad_IGD_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchIGDrad.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+        filteredListFIRSTLab() {
+            return this.supportPackage.lab_FIRST_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchFIRSTlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListFIRSTRad() {
+            return this.supportPackage?.rad_FIRST_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchFIRSTrad.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+        filteredListSECONDLab() {
+            return this.supportPackage.lab_SECOND_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchSECONDlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListSECONDRad() {
+            return this.supportPackage?.rad_SECOND_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchSECONDrad.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+        filteredListTHIRDLab() {
+            return this.supportPackage.lab_THIRD_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchTHIRDlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListTHIRDRad() {
+            return this.supportPackage?.rad_THIRD_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchTHIRDrad.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+        filteredListFOURTHLab() {
+            return this.supportPackage.lab_FOURTH_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchFOURTHlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListFOURTHRad() {
+            return this.supportPackage?.rad_FOURTH_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchFOURTHrad.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+        filteredListFIFTHLab() {
+            return this.supportPackage.lab_FIFTH_package_list.map((lab) => {
+                const filteredCategoryItems = lab.category_items.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchFIFTHlab.toLowerCase())
+                );
+
+                return {
+                    ...lab,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(lab => lab.category_items.length > 0); 
+        },
+        filteredListFIFTHRad() {
+            return this.supportPackage?.rad_FIFTH_package_list?.map((rad) => {
+                const filteredCategoryItems = rad?.category_items?.filter((item) =>
+                    item.costing_name.toLowerCase().includes(this.searchFIFTHrad.toLowerCase())
+                );
+
+                return {
+                    ...rad,
+                    category_items: filteredCategoryItems,
+                };
+            }).filter(rad => rad?.category_items?.length > 0); 
+        },
+
+    },
+    watch: {
+        "form_igd.anamesa_type_id"(newValue) {
+            if (newValue == "1") {
+                this.form_igd.family_relation_id = ''
+                this.form_igd.family_name = ''
+            }
+        },
+        "form_igd.pulmo_arry"(newValues) {
+            if (newValues && !newValues.includes("d")) {
+                this.form_igd.pulmo_anythingelse = ""
+            }
+        },
+        // 'items': function( val) {
+        //     console.log('watch:', val)
+        // },
+    },
+    methods: {
+        toggleTimePanel() {
+            this.showTimePanel = !this.showTimePanel;
+        },
+        toggleTimeRangePanel() {
+            this.showTimeRangePanel = !this.showTimeRangePanel;
+        },
+        handleOpenChange() {
+            this.showTimePanel = false;
+        },
+        handleRangeClose() {
+            this.showTimeRangePanel = false;
+        },
+        openPrintSPRI(id){
+            const url = this.$router.resolve({ path: '/prints/spri/'+ id }).href;
+            window.open(url, '_blank');
+        },
+        parsedBody(text){
+            return text ? text.replace(/\n/g,"<br>") : ''
+        },
+        parsed_age(input_date) {
+            const birthDate = moment(input_date, 'YYYY-MM-DD');
+            const currentDate = moment();
+
+            const years = currentDate.diff(birthDate, 'years');
+            birthDate.add(years, 'years');
+            const months = currentDate.diff(birthDate, 'months');
+            birthDate.add(months, 'months');
+            const days = currentDate.diff(birthDate, 'days');
+
+            return `${years} th ${months} bln ${days} hr`;
+        },
+        localDate(input_date) {
+            return moment(input_date).locale("id").format('DD MMMM YYYY')
+        },
+        getFromEdit(data) {
+            this.dataFromEdit = {}
+            this.dataFromEdit = data
+            this.$emit('getFromEdit', data)
+        },
+        isRefcontrol(url,data) {
+            this.imageview = ''
+            this.imageview = data
+            this.active.refcontrol = !this.active.refcontrol
+        },
+        blankToPrint(obj){
+            const url = this.$router.resolve({ path: '/radiology/list/process/print-expertise/'+ obj.radiology_request_id + '/' + obj.radiology_request_item_id + '/' + obj.image_id }).href;
+            window.open(url, '_blank');
+        },
+        expandImage(url){
+            const param = this.urlbe + url;
+            const newWindow = window.open('', '_blank');
+            
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Image Preview</title>
+                        <style>
+                            body, html {
+                                margin: 0;
+                                padding: 0;
+                                height: 100%;
+                                width: 100%;
+                            }
+                            img {
+                                width: 100%;
+                                height: auto;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${param}" alt="Image Preview">
+                    </body>
+                </html>
+            `);
+            newWindow.document.close();
+        },
+        refresh () {
+            router.go(router.currentRoute)
+        },
+        getData (id) {
+			this.$store.dispatch('registration/getById', id).then(data => {
+                this.regData = data[0]
+
+                // if (this.regData.health_facility_id =='40f06534-07ec-4221-ad9d-dea08196079f') {
+                //     this.$router.push({ path: `/patient/cppt/${id}` })
+                // } else {
+                    this.form_booking.registration_destination_id = this.regData.registration_destination_id
+                    this.form_booking.doctor_in_charge_id = this.regData.doctor_in_charge_id
+    
+                    this.$store.dispatch('soap/getByRM', this.regData.norm)
+                    
+                    // IGD
+                    this.form_igd.registration_destination_id = this.regData.registration_destination_id
+                    this.form_igd.doctor_in_charge_id = this.regData.doctor_in_charge_id
+
+                    const emergency_id = "444b3134-5b75-4b67-af72-a558d46716d7"
+                    const inpatient_id = "40f06534-07ec-4221-ad9d-dea08196079f"
+                    const outpatient_id = "3cb626f5-9148-4fb1-8663-3d7f028b01a6"
+                    if (this.regData.health_facility_id === "40f06534-07ec-4221-ad9d-dea08196079f") {
+                        this.paramsInsuranceServiceClassDoctor = {
+                            type_costing_id:3,
+                            health_facility_item_id:'d158a64e-6246-444a-97b7-8d0a2d90e53a',
+                            service_class_id:this.regData.service_class_id
+                            // company_id:this.regData.registration_insurance[0].company_id,
+                            // service_class_id:this.regData.registration_insurance[0].service_class_id
+                        }
+                    } else {
+                        this.paramsInsuranceServiceClassDoctor = {
+                            type_costing_id:3,
+                            health_facility_item_id:this.regData.health_facility_item_id
+                            // company_id:this.regData.registration_insurance[0].company_id,
+                            // service_class_id:this.regData.registration_insurance[0].service_class_id
+                        }
+                    }
+                    // this.$store.dispatch('laboratory/getPackageAll', this.paramsInsuranceServiceClassLab)
+                    this.$store.dispatch('costing/getParam', this.paramsInsuranceServiceClassDoctor)
+                    if (this.regData.health_facility_id == emergency_id) {
+                        this.isIGD = true
+                        this.isRanap = false
+                        this.isRajal = false
+                        
+                        this.handlingIGD(this.regData.registration_destination_id)
+
+                        this.form_prescription_igd.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                        this.form_FIRST_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                        this.form_SECOND_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                        this.form_THIRD_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                        this.form_FOURTH_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                        this.form_FIFTH_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                        
+                    } else if (this.regData.health_facility_id == inpatient_id) {
+                        this.isIGD = false
+                        this.isRanap = true
+                        this.isRajal = false
+                        
+                        this.form_prescription_igd.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_FIRST_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_SECOND_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_THIRD_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_FOURTH_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_FIFTH_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+
+                    } else if (this.regData.health_facility_id == outpatient_id) {
+                        this.isIGD = false
+                        this.isRanap = false
+                        this.isRajal = true
+
+                        this.form_prescription_igd.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_FIRST_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_SECOND_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_THIRD_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_FOURTH_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                        this.form_FIFTH_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    }
+    
+                    // if (this.regData.health_facility_id === '444b3134-5b75-4b67-af72-a558d46716d7') {
+                    //     //INSTALASI IGD
+                    //     this.form_prescription_igd.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                    //     this.form_FIRST_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                    //     this.form_SECOND_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                    //     this.form_THIRD_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                    //     this.form_FOURTH_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                    //     this.form_FIFTH_prescription.pharmacy_depo_id = '4105d8bc-5769-463e-bc67-aae2fc5adf10'
+                    // } else {
+                    //     //INSTALASI FARMASI
+                    //     this.form_prescription_igd.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    //     this.form_FIRST_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    //     this.form_SECOND_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    //     this.form_THIRD_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    //     this.form_FOURTH_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    //     this.form_FIFTH_prescription.pharmacy_depo_id = '297c44f0-12ef-40e6-b9a7-c831065b3372'
+                    // }
+                // }
+                
+            })
+        },
+        goToPenunjangTab(tab){
+            this.active_act.tab_penunjang = tab
+        },
+        // goToIGDPenunjang(tab){
+        //     this.active_act.tab_igd_penunjang = tab
+        // },
+        notification (a,b,c,d) {
+            this.$toast({
+                component: ToastificationContent,
+                employee: 'top-right',
+                props: { title: a, icon: b, variant: c, text: d}
+            })
+        },
+        openModalBooking(view, data){
+            this.resetBooking()
+            this.active_act.tab_penunjang = 'menu1'
+            this.active_act.modal_booking = true
+            this.active.booking_view = view
+            // console.log('data booking: ', data);
+
+            if (this.active.booking_view == 'ADD') {
+                this.form_booking.date_request = moment(new Date()).format('YYYY-MM-DD')
+                this.form_booking.id = ''
+                this.active.editAccess.laboratory = true
+                this.active.editAccess.radiology = true
+                
+            } else {
+                if (data != null) {
+                    console.log('data: ', data);
+                    // Necessary fill data
+                    if (data.laboratory_request && data.radiology_request) {
+                        this.form_booking.date_request = moment(data.laboratory_request.date_request).format('YYYY-MM-DD')
+                    } else if (data.laboratory_request) {
+                        this.form_booking.date_request = moment(data.laboratory_request.date_request).format('YYYY-MM-DD')
+                    } else if (data.radiology_request) {
+                        this.form_booking.date_request = moment(data.radiology_request.date_request).format('YYYY-MM-DD')
+                    }
+
+                    if (data.icd10) {
+                        const mappedIcd10 = data.icd10.map(item => {
+                            return {
+                                icd10_id: item.icd10_id,
+                                value: item.icd10_id,
+                                title: `${item.code} ${item.name}`, 
+                                action: "action"
+                            };
+                        });                
+                        this.form_booking.icd10 = mappedIcd10;
+                    }     
+                    this.form_booking.id = data.id
+                    this.form_booking.laboratory_request_items = data.laboratory_request_items 
+                    this.form_booking.radiology_request_items = data.radiology_request_items
+                    // console.log('booking filled: ', this.form_booking);
+
+                    // handling if request is processed or not
+                    if (data.laboratory_request && data.laboratory_request.status) {
+                        if (data.laboratory_request.status == 2 || data.laboratory_request.status == 3 ) {
+                            this.active.editAccess.laboratory = false
+                        } else {
+                            this.active.editAccess.laboratory = true
+                        }
+                    }
+
+                    if (data.radiology_request && data.radiology_request.status) {
+                        if (data.radiology_request.status == 2 || data.radiology_request.status == 3 ) {
+                            this.active.editAccess.radiology = false
+                        } else {
+                            this.active.editAccess.radiology = true
+                        }
+                    }
+                }
+            }
+
+        },
+        getLabPackageListV2(){
+            this.$store.dispatch('laboratory/getLaboratoryPackageV2').then((response) => {
+                this.supportPackage.lab_package_list = response
+                this.supportPackage.lab_IGD_package_list = response
+                this.supportPackage.lab_FIRST_package_list = response
+                this.supportPackage.lab_SECOND_package_list = response
+
+                this.supportPackage.lab_THIRD_package_list = response
+                this.supportPackage.lab_FOURTH_package_list = response
+                this.supportPackage.lab_FIFTH_package_list = response
+            })
+        },
+        getRadPackageListV2(){
+            this.$store.dispatch('radiology/getRadiologyPackageV2').then((response) => {
+                this.supportPackage.rad_package_list = response
+                this.supportPackage.rad_IGD_package_list = response
+                this.supportPackage.rad_FIRST_package_list = response
+                this.supportPackage.rad_SECOND_package_list = response
+
+                this.supportPackage.rad_THIRD_package_list = response
+                this.supportPackage.rad_FOURTH_package_list = response
+                this.supportPackage.rad_FIFTH_package_list = response
+            })
+        },
+        validationBooking(){
+            // console.log(this.form_booking);
+            this.isDisable = true
+            try {
+                this.$store.dispatch('soap/postPutFullBook', this.form_booking).then(res => {
+                    // console.log('res full book: ', res);
+                    this.active_act.modal_booking = false
+                    this.resetBooking()
+                    this.isDisable = false
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.$store.dispatch('soap/getByRM', this.regData.norm)
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.isDisable = false
+                console.error('ERR at: ', error);
+            }
+        },
+        resetBooking() {
+            this.form_booking.icd10 = []
+            this.form_booking.date_request = ''
+            this.form_booking.laboratory_request_items = []
+            this.form_booking.radiology_request_items = []
+            // this.form_booking.physiotherapy_request_items = []
+            // console.log('this.form_booking: ', this.form_booking);
+        },
+        onAdd10 (event) {
+            localStorage.setItem("soap", JSON.stringify(this.form_soap))
+            this.icd10_id = ''
+            if (this.form_booking.icd10.some(item => item.icd10_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD10 yang sama')
+            } else {
+                this.form_booking.icd10.push({ icd10_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+            // console.log('this.form_booking.icd10', this.form_booking.icd10);
+        },
+        delete10 (index) {
+            localStorage.setItem("soap", JSON.stringify(this.form_booking))
+            this.form_booking.icd10.splice(index, 1)
+        },
+        onSearchIcd10(search, loading) {
+            // console.log('ini:  ',search, loading);
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('icd10/getParam', search).then(data => {
+                    this.OptionsIcd10 = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsIcd10.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onIGDSearchIcd10(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('icd10/getParam', search).then(data => {
+                    this.OptionsIGDIcd10 = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsIGDIcd10.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onIGDAdd10 (event) {
+            this.IGDicd10_id = ''
+
+            if (this.form_igd.icd10.some(item => item.icd10_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD10 yang sama')
+            } else {
+                this.form_igd.icd10.push({ icd10_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+            // console.log('this.form_igd.icd10', this.form_igd.icd10);
+
+        },
+        deleteIGD10 (index) {
+            this.form_igd.icd10.splice(index, 1)
+        },
+
+        addOther10() {
+            let input = ''
+            if (this.input_other10) {
+                input = this.input_other10
+                this.form_igd.non_icd10.push(input)
+                this.input_other10 = ''
+            }
+        },
+
+        removeOther10 (index) {
+            this.form_igd.non_icd10.splice(index, 1)
+        },
+        
+        openModalPartograf(){
+            this.active_act.modal_Partograf = true
+            this.handlingSPRI(this.regData.registration_destination_id)
+        },
+        openModalNewBorn(){
+            this.active_act.modal_NewBorn = true
+            this.handlingSPRI(this.regData.registration_destination_id)
+        },
+
+        openModalSPRI(){
+            this.active_act.modal_SPRI = true
+            this.handlingSPRI(this.regData.registration_destination_id)
+        },
+        handlingSPRI(regDesId){
+            this.$store.dispatch('soap/getByRegId', regDesId).then((response) => {
+                const obj = response[0]
+                // console.log('true at: ', response);
+
+                if (response.length > 0) {
+                    this.form_igd.id = obj.id 
+                    this.form_igd.doctor_in_charge_id = obj.doctor_in_charge_id
+                    this.form_igd.doctor_in_charge_id_1 = obj.doctor_in_charge_id_1
+                    this.form_igd.doctor_in_charge_id_2 = obj.doctor_in_charge_id_2
+                    this.form_igd.doctor_in_charge_id_3 = obj.doctor_in_charge_id_3
+                    this.form_igd.doctor_in_charge_id_4 = obj.doctor_in_charge_id_4
+                    this.form_igd.doctor_in_charge_id_5 = obj.doctor_in_charge_id_5
+                    this.form_igd.doctor_in_charge_name = obj.employee_doctor_name
+                    this.form_igd.doctor_in_charge_name_1 = obj.doctor_in_charge_name_1
+                    this.form_igd.doctor_in_charge_name_2 = obj.doctor_in_charge_name_2
+                    this.form_igd.doctor_in_charge_name_3 = obj.doctor_in_charge_name_3
+                    this.form_igd.doctor_in_charge_name_4 = obj.doctor_in_charge_name_4
+                    this.form_igd.doctor_in_charge_name_5 = obj.doctor_in_charge_name_5
+                    this.form_igd.registration_destination_id = obj.registration_destination_id
+                    this.form_igd.anamesa_type_id = obj.anamesa_type_id, 
+                    this.form_igd.family_relation_id = obj.family_relation_id
+                    this.form_igd.family_name = obj.family_name
+                    this.form_igd.main_complaint = obj.main_complaint
+                    this.form_igd.history_disease_now = obj.history_disease_now
+                    this.form_igd.history_disease_past = obj.history_disease_past
+                    this.form_igd.history_drugs = obj.history_drugs
+                    this.form_igd.systolic_blood_pressure = obj.systolic_blood_pressure
+                    this.form_igd.diastolic_blood_pressure = obj.diastolic_blood_pressure
+                    this.form_igd.classification_blood_pressure_type_id = obj.classification_blood_pressure_type_id
+                    this.form_igd.pulse_frequency = obj.pulse_frequency
+                    this.form_igd.breath_frequency = obj.breath_frequency
+                    this.form_igd.oximetry_frequency = obj.oximetry_frequency
+                    this.form_igd.classification_oximetry_type_id = obj.classification_oximetry_type_id
+                    this.form_igd.temperature = obj.temperature
+                    this.form_igd.classification_temperature_type_id = obj.classification_temperature_type_id
+                    this.form_igd.blood_sugar = obj.blood_sugar
+                    this.form_igd.weight = obj.weight
+                    this.form_igd.height = obj.height
+                    this.form_igd.imt = obj.imt
+                    this.form_igd.head_circumference = obj.head_circumference
+                    this.form_igd.chest_circumference = obj.chest_circumference
+                    this.form_igd.arm_circumference = obj.arm_circumference
+                    this.form_igd.stomach_circumference = obj.stomach_circumference
+                    this.form_igd.knee_circumference = obj.knee_circumference
+                    this.form_igd.physical_check = obj.physical_check
+                    this.form_igd.soap_o_anythingelse = obj.soap_o_anythingelse
+                    this.form_igd.icd10_notes = obj.icd10_notes
+                    this.form_igd.soap_a_anythingelse = obj.soap_a_anythingelse
+
+                    this.form_igd.sore_score = obj.sore_score ? obj.sore_score : null
+                    this.form_igd.ews = obj.ews ? obj.ews : null
+                    this.form_igd.non_icd10 = obj.non_icd10 ? obj.non_icd10 : []
+                    this.form_igd.head = obj.head ? obj.head : 1
+                    this.form_igd.head_hair_color = obj.head_hair_color ? obj.head_hair_color : 1
+                    this.form_igd.head_hair_condition = obj.head_hair_condition ? obj.head_hair_condition : 1
+                    this.form_igd.eye_conjunctive = obj.eye_conjunctive ? obj.eye_conjunctive : 1
+                    this.form_igd.eye_sclera = obj.eye_sclera ? obj.eye_sclera : 1
+                    this.form_igd.eye_pupil = obj.eye_pupil ? obj.eye_pupil : 1
+                    this.form_igd.eye_light_reflex = obj.eye_light_reflex ? obj.eye_light_reflex : 1
+                    this.form_igd.mouth_mucosa = obj.mouth_mucosa ? obj.mouth_mucosa : 1
+                    this.form_igd.mouth_discoloration = obj.mouth_discoloration ? obj.mouth_discoloration : 1
+                    this.form_igd.mouth_tongue = obj.mouth_tongue ? obj.mouth_tongue : 1
+                    this.form_igd.mouth_caries = obj.mouth_caries ? obj.mouth_caries : 1
+                    this.form_igd.neck_kgb = obj.neck_kgb ? obj.neck_kgb : 1
+                    this.form_igd.neck_trachea_position = obj.neck_trachea_position ? obj.neck_trachea_position : 1
+                    this.form_igd.neck_massa = obj.neck_massa ? obj.neck_massa : 1
+                    this.form_igd.thorax_insp_chest = obj.thorax_insp_chest ? obj.thorax_insp_chest : 1
+                    this.form_igd.thorax_insp_retraction = obj.thorax_insp_retraction ? obj.thorax_insp_retraction : 1
+                    this.form_igd.thorax_palp_chest = obj.thorax_palp_chest ? obj.thorax_palp_chest : 1
+                    this.form_igd.thorax_palp_fremitus = obj.thorax_palp_fremitus ? obj.thorax_palp_fremitus : 1
+                    this.form_igd.thorax_palp_crepitation = obj.thorax_palp_crepitation ? obj.thorax_palp_crepitation : 1
+                    this.form_igd.thorax_ausk_pul_vasiculer = obj.thorax_ausk_pul_vasiculer ? obj.thorax_ausk_pul_vasiculer : 1
+                    this.form_igd.thorax_ausk_pul_rhonki = obj.thorax_ausk_pul_rhonki ? obj.thorax_ausk_pul_rhonki : 1
+                    this.form_igd.thorax_ausk_pul_wheezing = obj.thorax_ausk_pul_wheezing ? obj.thorax_ausk_pul_wheezing : 1
+                    this.form_igd.thorax_ausk_cor_heart_sound = obj.thorax_ausk_cor_heart_sound ? obj.thorax_ausk_cor_heart_sound : 1
+                    this.form_igd.thorax_ausk_cor_murmur = obj.thorax_ausk_cor_murmur ? obj.thorax_ausk_cor_murmur : 1
+                    this.form_igd.thorax_ausk_cor_gallop = obj.thorax_ausk_cor_gallop ? obj.thorax_ausk_cor_gallop : 1
+                    this.form_igd.abdomen_supel = obj.abdomen_supel ? obj.abdomen_supel : 1
+                    this.form_igd.abdomen_bowel_sounds = obj.abdomen_bowel_sounds ? obj.abdomen_bowel_sounds : 1
+                    this.form_igd.abdomen_tenderness = obj.abdomen_tenderness ? obj.abdomen_tenderness : 1
+                    this.form_igd.abdomen_hepar_lien = obj.abdomen_hepar_lien ? obj.abdomen_hepar_lien : 1
+                    this.form_igd.abdomen_other_physical_check = obj.abdomen_other_physical_check ? obj.abdomen_other_physical_check : ''
+                    this.form_igd.extremity_acral = obj.extremity_acral ? obj.extremity_acral : 1
+                    this.form_igd.extremity_crt = obj.extremity_crt ? obj.extremity_crt : 1
+                    this.form_igd.extremity_edema = obj.extremity_edema ? obj.extremity_edema : 1
+                    this.form_igd.genitalia = obj.genitalia ? obj.genitalia : ''
+                    this.form_igd.localist_status = obj.localist_status ? obj.localist_status : ''
+                    this.form_igd.ophthal_status = obj.ophthal_status ? obj.ophthal_status : ''
+
+                    this.form_igd.ophthal_od.visus = obj.ophthal_od ? obj.ophthal_od.visus : 12
+                    this.form_igd.ophthal_od.tio_digital = obj.ophthal_od ? obj.ophthal_od.tio_digital : 1
+                    this.form_igd.ophthal_od.tio_tonometri_sciots = obj.ophthal_od ? obj.ophthal_od.tio_tonometri_sciots : ''
+                    this.form_igd.ophthal_od.eye_position = obj.ophthal_od ? obj.ophthal_od.eye_position : 1
+                    this.form_igd.ophthal_od.eye_movement = obj.ophthal_od ? obj.ophthal_od.eye_movement : 1
+                    this.form_igd.ophthal_od.super_silia = obj.ophthal_od ? obj.ophthal_od.super_silia : 1
+                    this.form_igd.ophthal_od.palpebra_edema = obj.ophthal_od ? obj.ophthal_od.palpebra_edema : 1
+                    this.form_igd.ophthal_od.palpebra_ptosis = obj.ophthal_od ? obj.ophthal_od.palpebra_ptosis : 1
+                    this.form_igd.ophthal_od.palpebra_lagophtalmus = obj.ophthal_od ? obj.ophthal_od.palpebra_lagophtalmus : 1
+                    this.form_igd.ophthal_od.palpebra_tumor = obj.ophthal_od ? obj.ophthal_od.palpebra_tumor : 1
+                    this.form_igd.ophthal_od.apparatus_lakrimalis = obj.ophthal_od ? obj.ophthal_od.apparatus_lakrimalis : 1
+                    this.form_igd.ophthal_od.silia = obj.ophthal_od ? obj.ophthal_od.silia : 1
+                    this.form_igd.ophthal_od.conjunctive_hiperemis = obj.ophthal_od ? obj.ophthal_od.conjunctive_hiperemis : 1
+                    this.form_igd.ophthal_od.conjunctive_bleed = obj.ophthal_od ? obj.ophthal_od.conjunctive_bleed : 1
+                    this.form_igd.ophthal_od.cornea = obj.ophthal_od ? obj.ophthal_od.cornea : 1
+                    this.form_igd.ophthal_od.camera_oculi = obj.ophthal_od ? obj.ophthal_od.camera_oculi : 1
+                    this.form_igd.ophthal_od.iris_color = obj.ophthal_od ? obj.ophthal_od.iris_color : 2
+                    this.form_igd.ophthal_od.iris_cripte = obj.ophthal_od ? obj.ophthal_od.iris_cripte : 1
+                    this.form_igd.ophthal_od.pupil_form = obj.ophthal_od ? obj.ophthal_od.pupil_form : 1
+                    this.form_igd.ophthal_od.pupil_diameter = obj.ophthal_od ? obj.ophthal_od.pupil_diameter : 4
+                    this.form_igd.ophthal_od.pupil_direct_light = obj.ophthal_od ? obj.ophthal_od.pupil_direct_light : 1
+                    this.form_igd.ophthal_od.pupil_indirect_light = obj.ophthal_od ? obj.ophthal_od.pupil_indirect_light : 1
+                    this.form_igd.ophthal_od.lens = obj.ophthal_od ? obj.ophthal_od.lens : 1
+                    this.form_igd.ophthal_od.shadow_test = obj.ophthal_od ? obj.ophthal_od.shadow_test : 1
+                    this.form_igd.ophthal_od.glandula = obj.ophthal_od ? obj.ophthal_od.glandula : 1
+                    this.form_igd.ophthal_od.field_view = obj.ophthal_od ? obj.ophthal_od.field_view : 1
+                    this.form_igd.ophthal_od.fundus = obj.ophthal_od ? obj.ophthal_od.fundus : ''
+
+                    this.form_igd.ophthal_os.visus = obj.ophthal_os ? obj.ophthal_os.visus : 12
+                    this.form_igd.ophthal_os.tio_digital = obj.ophthal_os ? obj.ophthal_os.tio_digital : 1
+                    this.form_igd.ophthal_os.tio_tonometri_sciots = obj.ophthal_os ? obj.ophthal_os.tio_tonometri_sciots : ''
+                    this.form_igd.ophthal_os.eye_position = obj.ophthal_os ? obj.ophthal_os.eye_position : 1
+                    this.form_igd.ophthal_os.eye_movement = obj.ophthal_os ? obj.ophthal_os.eye_movement : 1
+                    this.form_igd.ophthal_os.super_silia = obj.ophthal_os ? obj.ophthal_os.super_silia : 1
+                    this.form_igd.ophthal_os.palpebra_edema = obj.ophthal_os ? obj.ophthal_os.palpebra_edema : 1
+                    this.form_igd.ophthal_os.palpebra_ptosis = obj.ophthal_os ? obj.ophthal_os.palpebra_ptosis : 1
+                    this.form_igd.ophthal_os.palpebra_lagophtalmus = obj.ophthal_os ? obj.ophthal_os.palpebra_lagophtalmus : 1
+                    this.form_igd.ophthal_os.palpebra_tumor = obj.ophthal_os ? obj.ophthal_os.palpebra_tumor : 1
+                    this.form_igd.ophthal_os.apparatus_lakrimalis = obj.ophthal_os ? obj.ophthal_os.apparatus_lakrimalis : 1
+                    this.form_igd.ophthal_os.silia = obj.ophthal_os ? obj.ophthal_os.silia : 1
+                    this.form_igd.ophthal_os.conjunctive_hiperemis = obj.ophthal_os ? obj.ophthal_os.conjunctive_hiperemis : 1
+                    this.form_igd.ophthal_os.conjunctive_bleed = obj.ophthal_os ? obj.ophthal_os.conjunctive_bleed : 1
+                    this.form_igd.ophthal_os.cornea = obj.ophthal_os ? obj.ophthal_os.cornea : 1
+                    this.form_igd.ophthal_os.camera_oculi = obj.ophthal_os ? obj.ophthal_os.camera_oculi : 1
+                    this.form_igd.ophthal_os.iris_color = obj.ophthal_os ? obj.ophthal_os.iris_color : 2
+                    this.form_igd.ophthal_os.iris_cripte = obj.ophthal_os ? obj.ophthal_os.iris_cripte : 1
+                    this.form_igd.ophthal_os.pupil_form = obj.ophthal_os ? obj.ophthal_os.pupil_form : 1
+                    this.form_igd.ophthal_os.pupil_diameter = obj.ophthal_os ? obj.ophthal_os.pupil_diameter : 4
+                    this.form_igd.ophthal_os.pupil_direct_light = obj.ophthal_os ? obj.ophthal_os.pupil_direct_light : 1
+                    this.form_igd.ophthal_os.pupil_indirect_light = obj.ophthal_os ? obj.ophthal_os.pupil_indirect_light : 1
+                    this.form_igd.ophthal_os.lens = obj.ophthal_os ? obj.ophthal_os.lens : 1
+                    this.form_igd.ophthal_os.shadow_test = obj.ophthal_os ? obj.ophthal_os.shadow_test : 1
+                    this.form_igd.ophthal_os.glandula = obj.ophthal_os ? obj.ophthal_os.glandula : 1
+                    this.form_igd.ophthal_os.field_view = obj.ophthal_os ? obj.ophthal_os.field_view : 1
+                    this.form_igd.ophthal_os.fundus = obj.ophthal_os ? obj.ophthal_os.fundus : ''
+
+                    if (obj.icd10) {
+                        const mappedIcd10 = obj.icd10.map(item => {
+                            return {
+                                icd10_id: item.icd10_id,
+                                value: item.icd10_id,
+                                title: `${item.code} ${item.name}`, 
+                                action: "action"
+                            };
+                        });                
+                        this.form_spri.icd10 = mappedIcd10;
+                    }  
+
+                } else {
+                    this.validationSPRI()
+                }
+
+                // console.log('this.form_igd', this.form_igd);
+                // console.log('obj', obj);
+            })
+        },
+
+        openModalIGD(){
+            this.active_act.modal_IGD = true
+            this.handlingIGD(this.regData.registration_destination_id)
+        },
+        handlingIGD(regDesId){
+            this.$store.dispatch('soap/getByRegId', regDesId).then((response) => {
+                const obj = response[0]
+                // console.log('true at: ', response);
+
+                if (response.length > 0) {
+                    this.form_igd.id = obj.id 
+                    this.form_igd.doctor_in_charge_id = obj.doctor_in_charge_id
+                    this.form_igd.doctor_in_charge_id_1 = obj.doctor_in_charge_id_1
+                    this.form_igd.doctor_in_charge_id_2 = obj.doctor_in_charge_id_2
+                    this.form_igd.doctor_in_charge_id_3 = obj.doctor_in_charge_id_3
+                    this.form_igd.doctor_in_charge_id_4 = obj.doctor_in_charge_id_4
+                    this.form_igd.doctor_in_charge_id_5 = obj.doctor_in_charge_id_5
+                    this.form_igd.doctor_in_charge_name = obj.employee_doctor_name
+                    this.form_igd.doctor_in_charge_name_1 = obj.doctor_in_charge_name_1
+                    this.form_igd.doctor_in_charge_name_2 = obj.doctor_in_charge_name_2
+                    this.form_igd.doctor_in_charge_name_3 = obj.doctor_in_charge_name_3
+                    this.form_igd.doctor_in_charge_name_4 = obj.doctor_in_charge_name_4
+                    this.form_igd.doctor_in_charge_name_5 = obj.doctor_in_charge_name_5
+                    this.form_igd.registration_destination_id = obj.registration_destination_id
+                    this.form_igd.anamesa_type_id = obj.anamesa_type_id, 
+                    this.form_igd.family_relation_id = obj.family_relation_id
+                    this.form_igd.family_name = obj.family_name
+                    this.form_igd.main_complaint = obj.main_complaint
+                    this.form_igd.history_disease_now = obj.history_disease_now
+                    this.form_igd.history_disease_past = obj.history_disease_past
+                    this.form_igd.history_drugs = obj.history_drugs
+                    this.form_igd.systolic_blood_pressure = obj.systolic_blood_pressure
+                    this.form_igd.diastolic_blood_pressure = obj.diastolic_blood_pressure
+                    this.form_igd.classification_blood_pressure_type_id = obj.classification_blood_pressure_type_id
+                    this.form_igd.pulse_frequency = obj.pulse_frequency
+                    this.form_igd.breath_frequency = obj.breath_frequency
+                    this.form_igd.oximetry_frequency = obj.oximetry_frequency
+                    this.form_igd.classification_oximetry_type_id = obj.classification_oximetry_type_id
+                    this.form_igd.temperature = obj.temperature
+                    this.form_igd.classification_temperature_type_id = obj.classification_temperature_type_id
+                    this.form_igd.blood_sugar = obj.blood_sugar
+                    this.form_igd.weight = obj.weight
+                    this.form_igd.height = obj.height
+                    this.form_igd.imt = obj.imt
+                    this.form_igd.head_circumference = obj.head_circumference
+                    this.form_igd.chest_circumference = obj.chest_circumference
+                    this.form_igd.arm_circumference = obj.arm_circumference
+                    this.form_igd.stomach_circumference = obj.stomach_circumference
+                    this.form_igd.knee_circumference = obj.knee_circumference
+                    this.form_igd.physical_check = obj.physical_check
+                    this.form_igd.soap_o_anythingelse = obj.soap_o_anythingelse
+                    this.form_igd.icd10_notes = obj.icd10_notes
+                    this.form_igd.soap_a_anythingelse = obj.soap_a_anythingelse
+
+                    this.form_igd.sore_score = obj.sore_score ? obj.sore_score : null
+                    this.form_igd.ews = obj.ews ? obj.ews : null
+                    this.form_igd.non_icd10 = obj.non_icd10 ? obj.non_icd10 : []
+                    this.form_igd.head = obj.head ? obj.head : 1
+                    this.form_igd.head_hair_color = obj.head_hair_color ? obj.head_hair_color : 1
+                    this.form_igd.head_hair_condition = obj.head_hair_condition ? obj.head_hair_condition : 1
+                    this.form_igd.eye_conjunctive = obj.eye_conjunctive ? obj.eye_conjunctive : 1
+                    this.form_igd.eye_sclera = obj.eye_sclera ? obj.eye_sclera : 1
+                    this.form_igd.eye_pupil = obj.eye_pupil ? obj.eye_pupil : 1
+                    this.form_igd.eye_light_reflex = obj.eye_light_reflex ? obj.eye_light_reflex : 1
+                    this.form_igd.mouth_mucosa = obj.mouth_mucosa ? obj.mouth_mucosa : 1
+                    this.form_igd.mouth_discoloration = obj.mouth_discoloration ? obj.mouth_discoloration : 1
+                    this.form_igd.mouth_tongue = obj.mouth_tongue ? obj.mouth_tongue : 1
+                    this.form_igd.mouth_caries = obj.mouth_caries ? obj.mouth_caries : 1
+                    this.form_igd.neck_kgb = obj.neck_kgb ? obj.neck_kgb : 1
+                    this.form_igd.neck_trachea_position = obj.neck_trachea_position ? obj.neck_trachea_position : 1
+                    this.form_igd.neck_massa = obj.neck_massa ? obj.neck_massa : 1
+                    this.form_igd.thorax_insp_chest = obj.thorax_insp_chest ? obj.thorax_insp_chest : 1
+                    this.form_igd.thorax_insp_retraction = obj.thorax_insp_retraction ? obj.thorax_insp_retraction : 1
+                    this.form_igd.thorax_palp_chest = obj.thorax_palp_chest ? obj.thorax_palp_chest : 1
+                    this.form_igd.thorax_palp_fremitus = obj.thorax_palp_fremitus ? obj.thorax_palp_fremitus : 1
+                    this.form_igd.thorax_palp_crepitation = obj.thorax_palp_crepitation ? obj.thorax_palp_crepitation : 1
+                    this.form_igd.thorax_ausk_pul_vasiculer = obj.thorax_ausk_pul_vasiculer ? obj.thorax_ausk_pul_vasiculer : 1
+                    this.form_igd.thorax_ausk_pul_rhonki = obj.thorax_ausk_pul_rhonki ? obj.thorax_ausk_pul_rhonki : 1
+                    this.form_igd.thorax_ausk_pul_wheezing = obj.thorax_ausk_pul_wheezing ? obj.thorax_ausk_pul_wheezing : 1
+                    this.form_igd.thorax_ausk_cor_heart_sound = obj.thorax_ausk_cor_heart_sound ? obj.thorax_ausk_cor_heart_sound : 1
+                    this.form_igd.thorax_ausk_cor_murmur = obj.thorax_ausk_cor_murmur ? obj.thorax_ausk_cor_murmur : 1
+                    this.form_igd.thorax_ausk_cor_gallop = obj.thorax_ausk_cor_gallop ? obj.thorax_ausk_cor_gallop : 1
+                    this.form_igd.abdomen_supel = obj.abdomen_supel ? obj.abdomen_supel : 1
+                    this.form_igd.abdomen_bowel_sounds = obj.abdomen_bowel_sounds ? obj.abdomen_bowel_sounds : 1
+                    this.form_igd.abdomen_tenderness = obj.abdomen_tenderness ? obj.abdomen_tenderness : 1
+                    this.form_igd.abdomen_hepar_lien = obj.abdomen_hepar_lien ? obj.abdomen_hepar_lien : 1
+                    this.form_igd.abdomen_other_physical_check = obj.abdomen_other_physical_check ? obj.abdomen_other_physical_check : ''
+                    this.form_igd.extremity_acral = obj.extremity_acral ? obj.extremity_acral : 1
+                    this.form_igd.extremity_crt = obj.extremity_crt ? obj.extremity_crt : 1
+                    this.form_igd.extremity_edema = obj.extremity_edema ? obj.extremity_edema : 1
+                    this.form_igd.genitalia = obj.genitalia ? obj.genitalia : ''
+                    this.form_igd.localist_status = obj.localist_status ? obj.localist_status : ''
+                    this.form_igd.ophthal_status = obj.ophthal_status ? obj.ophthal_status : ''
+
+                    this.form_igd.ophthal_od.visus = obj.ophthal_od ? obj.ophthal_od.visus : 12
+                    this.form_igd.ophthal_od.tio_digital = obj.ophthal_od ? obj.ophthal_od.tio_digital : 1
+                    this.form_igd.ophthal_od.tio_tonometri_sciots = obj.ophthal_od ? obj.ophthal_od.tio_tonometri_sciots : ''
+                    this.form_igd.ophthal_od.eye_position = obj.ophthal_od ? obj.ophthal_od.eye_position : 1
+                    this.form_igd.ophthal_od.eye_movement = obj.ophthal_od ? obj.ophthal_od.eye_movement : 1
+                    this.form_igd.ophthal_od.super_silia = obj.ophthal_od ? obj.ophthal_od.super_silia : 1
+                    this.form_igd.ophthal_od.palpebra_edema = obj.ophthal_od ? obj.ophthal_od.palpebra_edema : 1
+                    this.form_igd.ophthal_od.palpebra_ptosis = obj.ophthal_od ? obj.ophthal_od.palpebra_ptosis : 1
+                    this.form_igd.ophthal_od.palpebra_lagophtalmus = obj.ophthal_od ? obj.ophthal_od.palpebra_lagophtalmus : 1
+                    this.form_igd.ophthal_od.palpebra_tumor = obj.ophthal_od ? obj.ophthal_od.palpebra_tumor : 1
+                    this.form_igd.ophthal_od.apparatus_lakrimalis = obj.ophthal_od ? obj.ophthal_od.apparatus_lakrimalis : 1
+                    this.form_igd.ophthal_od.silia = obj.ophthal_od ? obj.ophthal_od.silia : 1
+                    this.form_igd.ophthal_od.conjunctive_hiperemis = obj.ophthal_od ? obj.ophthal_od.conjunctive_hiperemis : 1
+                    this.form_igd.ophthal_od.conjunctive_bleed = obj.ophthal_od ? obj.ophthal_od.conjunctive_bleed : 1
+                    this.form_igd.ophthal_od.cornea = obj.ophthal_od ? obj.ophthal_od.cornea : 1
+                    this.form_igd.ophthal_od.camera_oculi = obj.ophthal_od ? obj.ophthal_od.camera_oculi : 1
+                    this.form_igd.ophthal_od.iris_color = obj.ophthal_od ? obj.ophthal_od.iris_color : 2
+                    this.form_igd.ophthal_od.iris_cripte = obj.ophthal_od ? obj.ophthal_od.iris_cripte : 1
+                    this.form_igd.ophthal_od.pupil_form = obj.ophthal_od ? obj.ophthal_od.pupil_form : 1
+                    this.form_igd.ophthal_od.pupil_diameter = obj.ophthal_od ? obj.ophthal_od.pupil_diameter : 4
+                    this.form_igd.ophthal_od.pupil_direct_light = obj.ophthal_od ? obj.ophthal_od.pupil_direct_light : 1
+                    this.form_igd.ophthal_od.pupil_indirect_light = obj.ophthal_od ? obj.ophthal_od.pupil_indirect_light : 1
+                    this.form_igd.ophthal_od.lens = obj.ophthal_od ? obj.ophthal_od.lens : 1
+                    this.form_igd.ophthal_od.shadow_test = obj.ophthal_od ? obj.ophthal_od.shadow_test : 1
+                    this.form_igd.ophthal_od.glandula = obj.ophthal_od ? obj.ophthal_od.glandula : 1
+                    this.form_igd.ophthal_od.field_view = obj.ophthal_od ? obj.ophthal_od.field_view : 1
+                    this.form_igd.ophthal_od.fundus = obj.ophthal_od ? obj.ophthal_od.fundus : ''
+
+                    this.form_igd.ophthal_os.visus = obj.ophthal_os ? obj.ophthal_os.visus : 12
+                    this.form_igd.ophthal_os.tio_digital = obj.ophthal_os ? obj.ophthal_os.tio_digital : 1
+                    this.form_igd.ophthal_os.tio_tonometri_sciots = obj.ophthal_os ? obj.ophthal_os.tio_tonometri_sciots : ''
+                    this.form_igd.ophthal_os.eye_position = obj.ophthal_os ? obj.ophthal_os.eye_position : 1
+                    this.form_igd.ophthal_os.eye_movement = obj.ophthal_os ? obj.ophthal_os.eye_movement : 1
+                    this.form_igd.ophthal_os.super_silia = obj.ophthal_os ? obj.ophthal_os.super_silia : 1
+                    this.form_igd.ophthal_os.palpebra_edema = obj.ophthal_os ? obj.ophthal_os.palpebra_edema : 1
+                    this.form_igd.ophthal_os.palpebra_ptosis = obj.ophthal_os ? obj.ophthal_os.palpebra_ptosis : 1
+                    this.form_igd.ophthal_os.palpebra_lagophtalmus = obj.ophthal_os ? obj.ophthal_os.palpebra_lagophtalmus : 1
+                    this.form_igd.ophthal_os.palpebra_tumor = obj.ophthal_os ? obj.ophthal_os.palpebra_tumor : 1
+                    this.form_igd.ophthal_os.apparatus_lakrimalis = obj.ophthal_os ? obj.ophthal_os.apparatus_lakrimalis : 1
+                    this.form_igd.ophthal_os.silia = obj.ophthal_os ? obj.ophthal_os.silia : 1
+                    this.form_igd.ophthal_os.conjunctive_hiperemis = obj.ophthal_os ? obj.ophthal_os.conjunctive_hiperemis : 1
+                    this.form_igd.ophthal_os.conjunctive_bleed = obj.ophthal_os ? obj.ophthal_os.conjunctive_bleed : 1
+                    this.form_igd.ophthal_os.cornea = obj.ophthal_os ? obj.ophthal_os.cornea : 1
+                    this.form_igd.ophthal_os.camera_oculi = obj.ophthal_os ? obj.ophthal_os.camera_oculi : 1
+                    this.form_igd.ophthal_os.iris_color = obj.ophthal_os ? obj.ophthal_os.iris_color : 2
+                    this.form_igd.ophthal_os.iris_cripte = obj.ophthal_os ? obj.ophthal_os.iris_cripte : 1
+                    this.form_igd.ophthal_os.pupil_form = obj.ophthal_os ? obj.ophthal_os.pupil_form : 1
+                    this.form_igd.ophthal_os.pupil_diameter = obj.ophthal_os ? obj.ophthal_os.pupil_diameter : 4
+                    this.form_igd.ophthal_os.pupil_direct_light = obj.ophthal_os ? obj.ophthal_os.pupil_direct_light : 1
+                    this.form_igd.ophthal_os.pupil_indirect_light = obj.ophthal_os ? obj.ophthal_os.pupil_indirect_light : 1
+                    this.form_igd.ophthal_os.lens = obj.ophthal_os ? obj.ophthal_os.lens : 1
+                    this.form_igd.ophthal_os.shadow_test = obj.ophthal_os ? obj.ophthal_os.shadow_test : 1
+                    this.form_igd.ophthal_os.glandula = obj.ophthal_os ? obj.ophthal_os.glandula : 1
+                    this.form_igd.ophthal_os.field_view = obj.ophthal_os ? obj.ophthal_os.field_view : 1
+                    this.form_igd.ophthal_os.fundus = obj.ophthal_os ? obj.ophthal_os.fundus : ''
+
+                    if (obj.icd10) {
+                        const mappedIcd10 = obj.icd10.map(item => {
+                            return {
+                                icd10_id: item.icd10_id,
+                                value: item.icd10_id,
+                                title: `${item.code} ${item.name}`, 
+                                action: "action"
+                            };
+                        });                
+                        this.form_igd.icd10 = mappedIcd10;
+                    }  
+
+                    
+                    // ============================================= DOKTER IGD ============================================= 
+                    if (obj.doctor_in_charge_id) {
+                        // transaction doctor
+                        this.form_transaction.soap_id = obj.id
+                        this.form_transaction.doctor_in_charge_id = obj.doctor_in_charge_id
+                        this.getTransaction(this.form_transaction.soap_id, this.form_transaction.doctor_in_charge_id)
+                        
+                        // soap p
+                        this.form_icd9cm.soap_id = obj.id
+                        this.form_icd9cm.doctor_in_charge_id = obj.doctor_in_charge_id
+                        this.getSoapP(this.form_icd9cm.soap_id, this.form_icd9cm.doctor_in_charge_id)
+                        
+                        // laboratory
+                        this.form_laboratory_igd.soap_id = obj.id
+                        this.form_laboratory_igd.doctor_in_charge_id = obj.doctor_in_charge_id
+                        this.getIGDLaboratory(this.form_laboratory_igd.soap_id, this.form_laboratory_igd.doctor_in_charge_id)
+    
+                        // Radiology
+                        this.form_radiology_igd.soap_id = obj.id
+                        this.form_radiology_igd.doctor_in_charge_id = obj.doctor_in_charge_id
+                        this.getIGDRadiology(this.form_radiology_igd.soap_id, this.form_radiology_igd.doctor_in_charge_id)
+    
+                        // PRESCRIPTION
+                        this.form_prescription_igd.soap_id = obj.id
+                        this.form_prescription_igd.doctor_in_charge_id = obj.doctor_in_charge_id
+                        this.getIGDPrescription(this.form_prescription_igd.soap_id, this.form_prescription_igd.doctor_in_charge_id)
+                        
+                    }
+
+
+                    // ======================================== DOKTER SPESIALIS 1 ======================================== 
+
+                    this.specialist.doctor_1 = {value: obj.doctor_in_charge_id_1, title: obj.doctor_in_charge_name_1 }
+
+                    if (obj.doctor_in_charge_id_1) {
+                        this.specialist.disabled_doctor_1 = true
+
+                        // soap p
+                        this.form_FIRST_icd9cm.soap_id = obj.id
+                        this.form_FIRST_icd9cm.doctor_in_charge_id = obj.doctor_in_charge_id_1
+                        this.getFIRSTSoapP(this.form_FIRST_icd9cm.soap_id, this.form_FIRST_icd9cm.doctor_in_charge_id)
+                        
+                        // transaction doctor
+                        this.form_FIRST_transaction.soap_id = obj.id
+                        this.form_FIRST_transaction.doctor_in_charge_id = obj.doctor_in_charge_id_1
+                        this.getFIRSTTransaction(this.form_FIRST_transaction.soap_id, this.form_FIRST_transaction.doctor_in_charge_id)
+    
+                        // laboratory
+                        this.form_FIRST_laboratory.soap_id = obj.id
+                        this.form_FIRST_laboratory.doctor_in_charge_id = obj.doctor_in_charge_id_1
+                        this.getFIRSTLaboratory(this.form_FIRST_laboratory.soap_id, this.form_FIRST_laboratory.doctor_in_charge_id)
+    
+                        // Radiology
+                        this.form_FIRST_radiology.soap_id = obj.id
+                        this.form_FIRST_radiology.doctor_in_charge_id = obj.doctor_in_charge_id_1
+                        this.getFIRSTRadiology(this.form_FIRST_radiology.soap_id, this.form_FIRST_radiology.doctor_in_charge_id)
+    
+                        // PRESCRIPTION
+                        this.form_FIRST_prescription.soap_id = obj.id
+                        this.form_FIRST_prescription.doctor_in_charge_id = obj.doctor_in_charge_id_1
+                        this.getFIRSTPrescription(this.form_FIRST_prescription.soap_id, this.form_FIRST_prescription.doctor_in_charge_id)
+                    }
+
+
+                    // ======================================== DOKTER SPESIALIS 2 ======================================== 
+
+                    this.specialist.doctor_2 = {value: obj.doctor_in_charge_id_2, title: obj.doctor_in_charge_name_2 }
+
+                    if (obj.doctor_in_charge_id_2) {
+                        this.specialist.disabled_doctor_2 = true
+
+                        // soap p
+                        this.form_SECOND_icd9cm.soap_id = obj.id
+                        this.form_SECOND_icd9cm.doctor_in_charge_id = obj.doctor_in_charge_id_2
+                        this.getSECONDSoapP(this.form_SECOND_icd9cm.soap_id, this.form_SECOND_icd9cm.doctor_in_charge_id)
+                        
+                        // transaction doctor
+                        this.form_SECOND_transaction.soap_id = obj.id
+                        this.form_SECOND_transaction.doctor_in_charge_id = obj.doctor_in_charge_id_2
+                        this.getSECONDTransaction(this.form_SECOND_transaction.soap_id, this.form_SECOND_transaction.doctor_in_charge_id)
+    
+                        // laboratory
+                        this.form_SECOND_laboratory.soap_id = obj.id
+                        this.form_SECOND_laboratory.doctor_in_charge_id = obj.doctor_in_charge_id_2
+                        this.getSECONDLaboratory(this.form_SECOND_laboratory.soap_id, this.form_SECOND_laboratory.doctor_in_charge_id)
+    
+                        // Radiology
+                        this.form_SECOND_radiology.soap_id = obj.id
+                        this.form_SECOND_radiology.doctor_in_charge_id = obj.doctor_in_charge_id_2
+                        this.getSECONDRadiology(this.form_SECOND_radiology.soap_id, this.form_SECOND_radiology.doctor_in_charge_id)
+    
+                        // PRESCRIPTION
+                        this.form_SECOND_prescription.soap_id = obj.id
+                        this.form_SECOND_prescription.doctor_in_charge_id = obj.doctor_in_charge_id_2
+                        this.getSECONDPrescription(this.form_SECOND_prescription.soap_id, this.form_SECOND_prescription.doctor_in_charge_id)
+                    }
+
+
+                    // ======================================== DOKTER SPESIALIS 3 ======================================== 
+                    this.specialist.doctor_3 = {value: obj.doctor_in_charge_id_3, title: obj.doctor_in_charge_name_3 }
+                    
+                    if (obj.doctor_in_charge_id_3) {
+                        this.specialist.disabled_doctor_3 = true
+
+                        // soap p
+                        this.form_THIRD_icd9cm.soap_id = obj.id
+                        this.form_THIRD_icd9cm.doctor_in_charge_id = obj.doctor_in_charge_id_3
+                        this.getTHIRDSoapP(this.form_THIRD_icd9cm.soap_id, this.form_THIRD_icd9cm.doctor_in_charge_id)
+                        
+                        // transaction doctor
+                        this.form_THIRD_transaction.soap_id = obj.id
+                        this.form_THIRD_transaction.doctor_in_charge_id = obj.doctor_in_charge_id_3
+                        this.getTHIRDTransaction(this.form_THIRD_transaction.soap_id, this.form_THIRD_transaction.doctor_in_charge_id)
+    
+                        // laboratory
+                        this.form_THIRD_laboratory.soap_id = obj.id
+                        this.form_THIRD_laboratory.doctor_in_charge_id = obj.doctor_in_charge_id_3
+                        this.getTHIRDLaboratory(this.form_THIRD_laboratory.soap_id, this.form_THIRD_laboratory.doctor_in_charge_id)
+    
+                        // Radiology
+                        this.form_THIRD_radiology.soap_id = obj.id
+                        this.form_THIRD_radiology.doctor_in_charge_id = obj.doctor_in_charge_id_3
+                        this.getTHIRDRadiology(this.form_THIRD_radiology.soap_id, this.form_THIRD_radiology.doctor_in_charge_id)
+    
+                        // PRESCRIPTION
+                        this.form_THIRD_prescription.soap_id = obj.id
+                        this.form_THIRD_prescription.doctor_in_charge_id = obj.doctor_in_charge_id_3
+                        this.getTHIRDPrescription(this.form_THIRD_prescription.soap_id, this.form_THIRD_prescription.doctor_in_charge_id)
+                    }
+
+                    // ======================================== DOKTER SPESIALIS 4 ======================================== 
+                    this.specialist.doctor_4 = {value: obj.doctor_in_charge_id_4, title: obj.doctor_in_charge_name_4 }
+                    
+                    if (obj.doctor_in_charge_id_4) {
+                        this.specialist.disabled_doctor_4 = true
+
+                        // soap p
+                        this.form_FOURTH_icd9cm.soap_id = obj.id
+                        this.form_FOURTH_icd9cm.doctor_in_charge_id = obj.doctor_in_charge_id_4
+                        this.getFOURTHSoapP(this.form_FOURTH_icd9cm.soap_id, this.form_FOURTH_icd9cm.doctor_in_charge_id)
+                        
+                        // transaction doctor
+                        this.form_FOURTH_transaction.soap_id = obj.id
+                        this.form_FOURTH_transaction.doctor_in_charge_id = obj.doctor_in_charge_id_4
+                        this.getFOURTHTransaction(this.form_FOURTH_transaction.soap_id, this.form_FOURTH_transaction.doctor_in_charge_id)
+    
+                        // laboratory
+                        this.form_FOURTH_laboratory.soap_id = obj.id
+                        this.form_FOURTH_laboratory.doctor_in_charge_id = obj.doctor_in_charge_id_4
+                        this.getFOURTHLaboratory(this.form_FOURTH_laboratory.soap_id, this.form_FOURTH_laboratory.doctor_in_charge_id)
+    
+                        // Radiology
+                        this.form_FOURTH_radiology.soap_id = obj.id
+                        this.form_FOURTH_radiology.doctor_in_charge_id = obj.doctor_in_charge_id_4
+                        this.getFOURTHRadiology(this.form_FOURTH_radiology.soap_id, this.form_FOURTH_radiology.doctor_in_charge_id)
+    
+                        // PRESCRIPTION
+                        this.form_FOURTH_prescription.soap_id = obj.id
+                        this.form_FOURTH_prescription.doctor_in_charge_id = obj.doctor_in_charge_id_4
+                        this.getFOURTHPrescription(this.form_FOURTH_prescription.soap_id, this.form_FOURTH_prescription.doctor_in_charge_id)
+                    }
+
+
+                    // ======================================== DOKTER SPESIALIS 5 ======================================== 
+                    this.specialist.doctor_5 = {value: obj.doctor_in_charge_id_5, title: obj.doctor_in_charge_name_5 }
+                    
+                    if (obj.doctor_in_charge_id_5) {
+                        this.specialist.disabled_doctor_5 = true
+
+                        // soap p
+                        this.form_FIFTH_icd9cm.soap_id = obj.id
+                        this.form_FIFTH_icd9cm.doctor_in_charge_id = obj.doctor_in_charge_id_5
+                        this.getFIFTHSoapP(this.form_FIFTH_icd9cm.soap_id, this.form_FIFTH_icd9cm.doctor_in_charge_id)
+                        
+                        // transaction doctor
+                        this.form_FIFTH_transaction.soap_id = obj.id
+                        this.form_FIFTH_transaction.doctor_in_charge_id = obj.doctor_in_charge_id_5
+                        this.getFIFTHTransaction(this.form_FIFTH_transaction.soap_id, this.form_FIFTH_transaction.doctor_in_charge_id)
+    
+                        // laboratory
+                        this.form_FIFTH_laboratory.soap_id = obj.id
+                        this.form_FIFTH_laboratory.doctor_in_charge_id = obj.doctor_in_charge_id_5
+                        this.getFIFTHLaboratory(this.form_FIFTH_laboratory.soap_id, this.form_FIFTH_laboratory.doctor_in_charge_id)
+    
+                        // Radiology
+                        this.form_FIFTH_radiology.soap_id = obj.id
+                        this.form_FIFTH_radiology.doctor_in_charge_id = obj.doctor_in_charge_id_5
+                        this.getFIFTHRadiology(this.form_FIFTH_radiology.soap_id, this.form_FIFTH_radiology.doctor_in_charge_id)
+    
+                        // PRESCRIPTION
+                        this.form_FIFTH_prescription.soap_id = obj.id
+                        this.form_FIFTH_prescription.doctor_in_charge_id = obj.doctor_in_charge_id_5
+                        this.getFIFTHPrescription(this.form_FIFTH_prescription.soap_id, this.form_FIFTH_prescription.doctor_in_charge_id)
+                    }
+
+
+                } else {
+                    this.validationIGD()
+                }
+
+                // console.log('this.form_igd', this.form_igd);
+                // console.log('obj', obj);
+            })
+        },
+
+        validationSPRI(){
+            this.isDisabledSPRI = true
+
+            // try {
+            //     this.$store.dispatch('soap/formPostPutDoang', this.form_igd).then((response) => {
+            //         this.notification('Success','CheckIcon','success','You have successfully')
+            //         this.$store.dispatch('soap/getByRM', this.regData.norm)
+            //         this.isDisabledIGD = false
+            //         this.handlingIGD(this.$route.params.id)
+            //     })
+            // } catch (error) {
+            //     this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+            //     this.isDisabledIGD = false
+            //     console.error('Error at: ', error)
+            // }
+        },
+
+        validationIGD(){
+            this.isDisabledIGD = true
+
+            this.form_igd.doctor_in_charge_id_1 ? this.specialist.disabled_doctor_1 = true : this.specialist.disabled_doctor_1 = false
+            this.form_igd.doctor_in_charge_id_2 ? this.specialist.disabled_doctor_2 = true : this.specialist.disabled_doctor_2 = false
+            this.form_igd.doctor_in_charge_id_3 ? this.specialist.disabled_doctor_3 = true : this.specialist.disabled_doctor_3 = false
+            this.form_igd.doctor_in_charge_id_4 ? this.specialist.disabled_doctor_4 = true : this.specialist.disabled_doctor_4 = false
+            this.form_igd.doctor_in_charge_id_5 ? this.specialist.disabled_doctor_5 = true : this.specialist.disabled_doctor_5 = false
+
+            try {
+                this.$store.dispatch('soap/formPostPutDoang', this.form_igd).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.$store.dispatch('soap/getByRM', this.regData.norm)
+                    this.isDisabledIGD = false
+                    this.handlingIGD(this.$route.params.id)
+                    // this.handlingIGD(this.regData.registration_destination_id)
+                    // this.active_act.modal_IGD = false                    
+                    // console.log('response', response);
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.isDisabledIGD = false
+                console.error('Error at: ', error)
+            }
+        },
+        resetSPRI(){
+            this.form_spri.doctor_in_charge_id = 1 
+        },
+        resetIGD(){
+            this.form_igd.anamesa_type_id = 1 
+            this.form_igd.family_relation_id = ''
+            this.form_igd.family_name = ''
+            this.form_igd.main_complaint = ''
+            this.form_igd.history_disease_now = ''
+            this.form_igd.history_disease_past = ''
+            this.form_igd.history_drugs = ''
+            this.form_igd.systolic_blood_pressure = ''
+            this.form_igd.diastolic_blood_pressure = ''
+            this.form_igd.classification_blood_pressure_type_id = ''
+            this.form_igd.pulse_frequency = ''
+            this.form_igd.breath_frequency = ''
+            this.form_igd.oximetry_frequency = ''
+            this.form_igd.classification_oximetry_type_id = ''
+            this.form_igd.temperature = ''
+            this.form_igd.classification_temperature_type_id = ''
+            this.form_igd.blood_sugar = ''
+            this.form_igd.weight = ''
+            this.form_igd.height = ''
+            this.form_igd.imt = ''
+            this.form_igd.head_circumference = ''
+            this.form_igd.chest_circumference = ''
+            this.form_igd.arm_circumference = ''
+            this.form_igd.stomach_circumference = ''
+            this.form_igd.knee_circumference = ''
+            this.form_igd.physical_check = ''
+            this.form_igd.soap_o_anythingelse = ''
+            this.form_igd.icd10 = []
+            this.form_igd.icd10_notes = ''
+            this.form_igd.soap_a_anythingelse = ''
+
+            // this.form_igd.uub_type_id = 0
+            // this.form_igd.eye_anemic_conjunctiva = ''
+            // this.form_igd.eye_interic_sclera = ''
+            // this.form_igd.eye_anythingelse = ''
+            // this.form_igd.tht_hyperemic_pharynx = ''
+            // this.form_igd.tht_tonsil = ''
+            // this.form_igd.tht_ear = ''
+            // this.form_igd.tht_anythingelse = ''
+            // this.form_igd.neck_lymph_gland = ''
+            // this.form_igd.thorax_heart_type_id = 0
+            // this.form_igd.thorax_murmur = ''
+            // this.form_igd.thorax_gallop = ''
+            // this.form_igd.thorax_anythingelse = ''
+            // this.form_igd.pulmo_arry = []
+            // this.form_igd.pulmo_anythingelse = ''
+            // this.form_igd.pulmo_breath_movement = ''
+            // this.form_igd.pulmo_breath_sound = ''
+            // this.form_igd.extremity_acral_type_id = 0
+            // this.form_igd.extremity_capillary_refilling_time = ''
+            // this.form_igd.extremity_anythingelse = ''
+            // this.form_igd.abdomen_inspection_type_id = 0
+            // this.form_igd.abdomen_palpation_type_id = 0
+            // this.form_igd.abdomen_tenderness = ''
+            // this.form_igd.abdomen_tenderness_location = ''
+            // this.form_igd.abdomen_hepar = ''
+            // this.form_igd.abdomen_bu = ''
+            // this.form_igd.abdomen_lien = ''
+            // this.form_igd.genitalia = ''
+            // this.form_igd.localist_status = ''
+
+            this.form_igd.sore_score = ''
+            this.form_igd.ews = ''
+            this.form_igd.non_icd10 = []
+            this.form_igd.head = 1
+            this.form_igd.head_hair_color = 1
+            this.form_igd.head_hair_condition = 1
+            this.form_igd.eye_conjunctive = 1
+            this.form_igd.eye_sclera = 1
+            this.form_igd.eye_pupil = 1
+            this.form_igd.eye_light_reflex = 1
+            this.form_igd.mouth_mucosa = 1
+            this.form_igd.mouth_discoloration = 1
+            this.form_igd.mouth_tongue = 1
+            this.form_igd.mouth_caries = 1
+            this.form_igd.neck_kgb = 1
+            this.form_igd.neck_trachea_position = 1
+            this.form_igd.neck_massa = 1
+            this.form_igd.thorax_insp_chest = 1
+            this.form_igd.thorax_insp_retraction = 1
+            this.form_igd.thorax_palp_chest = 1
+            this.form_igd.thorax_palp_fremitus = 1
+            this.form_igd.thorax_palp_crepitation = 1
+            this.form_igd.thorax_ausk_pul_vasiculer = 1
+            this.form_igd.thorax_ausk_pul_rhonki = 1
+            this.form_igd.thorax_ausk_pul_wheezing = 1
+            this.form_igd.thorax_ausk_cor_heart_sound = 1
+            this.form_igd.thorax_ausk_cor_murmur = 1
+            this.form_igd.thorax_ausk_cor_gallop = 1
+            this.form_igd.abdomen_supel = 1
+            this.form_igd.abdomen_bowel_sounds = 1
+            this.form_igd.abdomen_tenderness = 1
+            this.form_igd.abdomen_hepar_lien = 1
+            this.form_igd.abdomen_other_physical_check = ''
+            this.form_igd.extremity_acral = 1
+            this.form_igd.extremity_crt = 1
+            this.form_igd.extremity_edema = 1
+            this.form_igd.genitalia = ''
+            this.form_igd.localist_status = ''
+            this.form_igd.ophthal_status = ''
+
+            this.form_igd.ophthal_od.visus = 12
+            this.form_igd.ophthal_od.tio_digital = 1
+            this.form_igd.ophthal_od.tio_tonometri_sciots = ''
+            this.form_igd.ophthal_od.eye_position = 1
+            this.form_igd.ophthal_od.eye_movement = 1
+            this.form_igd.ophthal_od.super_silia = 1
+            this.form_igd.ophthal_od.palpebra_edema = 1
+            this.form_igd.ophthal_od.palpebra_ptosis = 1
+            this.form_igd.ophthal_od.palpebra_lagophtalmus = 1
+            this.form_igd.ophthal_od.palpebra_tumor = 1
+            this.form_igd.ophthal_od.apparatus_lakrimalis = 1
+            this.form_igd.ophthal_od.silia = 1
+            this.form_igd.ophthal_od.conjunctive_hiperemis = 1
+            this.form_igd.ophthal_od.conjunctive_bleed = 1
+            this.form_igd.ophthal_od.cornea = 1
+            this.form_igd.ophthal_od.camera_oculi = 1
+            this.form_igd.ophthal_od.iris_color = 2
+            this.form_igd.ophthal_od.iris_cripte = 1
+            this.form_igd.ophthal_od.pupil_form = 1
+            this.form_igd.ophthal_od.pupil_diameter = 4
+            this.form_igd.ophthal_od.pupil_direct_light = 1
+            this.form_igd.ophthal_od.pupil_indirect_light = 1
+            this.form_igd.ophthal_od.lens = 1
+            this.form_igd.ophthal_od.shadow_test = 1
+            this.form_igd.ophthal_od.glandula = 1
+            this.form_igd.ophthal_od.field_view = 1
+            this.form_igd.ophthal_od.fundus = ''
+
+            this.form_igd.ophthal_os.visus = 12
+            this.form_igd.ophthal_os.tio_digital = 1
+            this.form_igd.ophthal_os.tio_tonometri_sciots = ''
+            this.form_igd.ophthal_os.eye_position = 1
+            this.form_igd.ophthal_os.eye_movement = 1
+            this.form_igd.ophthal_os.super_silia = 1
+            this.form_igd.ophthal_os.palpebra_edema = 1
+            this.form_igd.ophthal_os.palpebra_ptosis = 1
+            this.form_igd.ophthal_os.palpebra_lagophtalmus = 1
+            this.form_igd.ophthal_os.palpebra_tumor = 1
+            this.form_igd.ophthal_os.apparatus_lakrimalis = 1
+            this.form_igd.ophthal_os.silia = 1
+            this.form_igd.ophthal_os.conjunctive_hiperemis = 1
+            this.form_igd.ophthal_os.conjunctive_bleed = 1
+            this.form_igd.ophthal_os.cornea = 1
+            this.form_igd.ophthal_os.camera_oculi = 1
+            this.form_igd.ophthal_os.iris_color = 2
+            this.form_igd.ophthal_os.iris_cripte = 1
+            this.form_igd.ophthal_os.pupil_form = 1
+            this.form_igd.ophthal_os.pupil_diameter = 4
+            this.form_igd.ophthal_os.pupil_direct_light = 1
+            this.form_igd.ophthal_os.pupil_indirect_light = 1
+            this.form_igd.ophthal_os.lens = 1
+            this.form_igd.ophthal_os.shadow_test = 1
+            this.form_igd.ophthal_os.glandula = 1
+            this.form_igd.ophthal_os.field_view = 1
+            this.form_igd.ophthal_os.fundus = ''
+        },
+
+        // ======================================================= IGD-DOCTOR
+
+        onIGDSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsIGDIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsIGDIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onIGDAdd9cm (event) {
+            this.IGDicd9cm_id = ''
+            if (this.form_icd9cm.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+        },
+        deleteIGD9cm (index) {
+            this.form_icd9cm.icd9cm.splice(index, 1)
+        },
+
+        getSoapP(soap_id, doctor_in_charge_id){
+            this.form_icd9cm.id = ''
+            this.form_icd9cm.therapy_plan = ''
+            this.form_icd9cm.icd9cm = []
+
+            try {
+                this.$store.dispatch('soap/getSoapP', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    // console.log('response soap P at handling', response)
+                    if (response.length != 0) {
+                        const data = response[0]
+                        if (data.icd9cm) {
+                            const mappedIcd9cm = data.icd9cm.map(item => {
+                                return {
+                                    icd9cm_id: item.id,
+                                    value: item.id,
+                                    title: `${item.code} ${item.name}`, 
+                                    action: "action"
+                                };
+                            });                
+                            this.form_icd9cm.icd9cm = mappedIcd9cm;
+                        }
+                        this.form_icd9cm.id = data.id
+                        this.form_icd9cm.therapy_plan = data.therapy_plan
+                        
+                        this.form_prescription_igd.soap_p_id = data.id
+                    } else {
+                        console.log('initial for IGD icd9cm');
+                    }
+                })
+            } catch (error) {
+                console.error('Error at: ', error)
+            }
+            
+        },
+
+        validationSoapP(){
+            // console.log('this.form_icd9cm', this.form_icd9cm);
+            this.IGDdisabled.soap_p = true
+            try {
+                this.$store.dispatch('soap/formPostPutSoapP', this.form_icd9cm).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getSoapP(this.form_icd9cm.soap_id, this.form_icd9cm.doctor_in_charge_id)
+                    this.IGDdisabled.soap_p = false                    
+                    // console.log('response', response);
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.IGDdisabled.soap_p = false                    
+                console.error('Error at: ', error);
+            }
+        },
+
+
+        getTransaction(soap_id, doctor_in_charge_id){
+            this.$store.dispatch('soap/getTransaction', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id}).then((response) => {
+                this.transaction_list = response
+            })
+        },
+
+        openModalTransaction (view, soap_id, obj) {
+            this.active_act.modal_procedure = !this.active_act.modal_procedure
+            this.form_transaction.view = view
+
+            if (view === 'add') {
+                this.form_transaction.soap_id = soap_id
+            } 
+            else if (view == 'edit') {
+                // console.log('obj :', obj);
+                
+                this.form_transaction.id = obj.id
+                this.form_transaction.costing_id = {
+                    value: obj.costing_id,
+                    title: obj.costing_name,
+                    costing: obj.var_1
+                }
+                this.form_transaction.notes = obj.notes
+                this.form_transaction.var_1 = obj.var_1
+                this.form_transaction.var_2 = obj.var_2
+                this.form_transaction.var_3 = obj.var_3
+            }
+        },
+        validationFormTransaction () {
+            // console.log('this.form_transaction', this.form_transaction);
+            this.IGDdisabled.transaction = true
+            const formData = {
+                id:this.form_transaction.id,
+                view:this.form_transaction.view,
+                costing_id:this.form_transaction.costing_id.value,
+                soap_id:this.form_transaction.soap_id,
+                notes:this.form_transaction.notes,
+                var_1:this.form_transaction.costing_id.costing,
+                var_2:this.form_transaction.var_2,
+                var_3:this.form_transaction.costing_id.costing*this.form_transaction.var_2,
+                doctor_in_charge_id: this.form_transaction.doctor_in_charge_id
+            }
+
+            this.$store.dispatch('soap/formPostPutTransaction', formData)
+            .then(res => {
+                this.IGDdisabled.transaction = false
+                this.active_act.modal_procedure = false
+                this.notification('Success','CheckIcon','success','You have successfully')
+                this.getTransaction(this.form_transaction.soap_id, this.form_transaction.doctor_in_charge_id)
+
+                this.form_transaction.id = ''
+                this.form_transaction.costing_id = ''
+                this.form_transaction.notes = ''
+                this.form_transaction.var_1 = ''
+                this.form_transaction.var_2 = 1
+                this.form_transaction.var_3 = ''
+
+            }, 
+            err => {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.error('Error at: ', err)
+                this.IGDdisabled.transaction = false
+            })
+        },
+        removeTransaction (obj) {
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.costing_name} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', obj.id)
+                .then(response => {
+                    if (response.status === 200) {
+                        this.getTransaction(this.form_transaction.soap_id, this.form_transaction.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        rowIGDPrescription(item, role) {
+            if (!item || role !== 'row') return ''
+            if (item.flag == 0) return ''
+            if (item.flag == 1) return 'table-warning-400'
+        },
+
+        rowIGDLab(item, role) {
+            if (!item || role !== 'row') return ''
+            if (item.status == 1) return ''
+            if (item.status == 2 || item.status == 3) return 'table-warning-400'
+        },
+
+        openModalIGDLab(obj){
+            this.active_act.modal_lab_igd = !this.active_act.modal_lab_igd
+            if (obj == null) {
+                this.resetModalIGDlab()
+                // console.log('nullllllllll');
+                
+            } else {
+                // console.log('ada isinya');
+                this.form_laboratory_igd.id = obj.id
+                this.form_laboratory_igd.date_request = obj.date_request
+                this.form_laboratory_igd.laboratory_request_items = obj.laboratory_request_item
+
+                // console.log('obj', obj);
+                // console.log('this.form_laboratory_igd', this.form_laboratory_igd);
+            }
+        },
+
+        resetModalIGDlab(){
+            this.form_laboratory_igd.id = ''
+            this.form_laboratory_igd.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_laboratory_igd.laboratory_request_items = []
+        },
+
+        removeIGDLab(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('laboratory/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getIGDLaboratory(this.form_laboratory_igd.soap_id, this.form_laboratory_igd.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        getIGDLaboratory(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('laboratory/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.laboratory_igd_list = response
+                    // console.log('response get lab', response);
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationLaboratory(){
+            // console.log('this.form_laboratory_igd', this.form_laboratory_igd);
+            this.IGDdisabled.laboratory = true
+            try {
+                this.$store.dispatch('laboratory/formPostPut', this.form_laboratory_igd).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getIGDLaboratory(this.form_laboratory_igd.soap_id, this.form_laboratory_igd.doctor_in_charge_id)
+                    this.active_act.modal_lab_igd = false
+                    this.resetModalIGDlab()
+                    this.IGDdisabled.laboratory = false
+                    
+                    // console.log('response', response);
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.IGDdisabled.laboratory = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        // =========================================
+
+        openModalIGDRad(obj){
+            this.active_act.modal_rad_igd = !this.active_act.modal_rad_igd
+            if (obj == null) {
+                this.resetModalIGDrad()
+                // console.log('nullllllllll');
+                
+            } else {
+                // console.log('ada isinya');
+                this.form_radiology_igd.id = obj.id
+                this.form_radiology_igd.date_request = obj.date_request
+                this.form_radiology_igd.radiology_request_items = obj.radiology_request_item
+
+                // console.log('obj', obj);
+                // console.log('this.form_radiology_igd', this.form_radiology_igd);
+            }
+        },
+
+        resetModalIGDrad(){
+            this.form_radiology_igd.id = ''
+            this.form_radiology_igd.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_radiology_igd.radiology_request_items = []
+        },
+
+        removeIGDRad(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('radiology/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getIGDRadiology(this.form_radiology_igd.soap_id, this.form_radiology_igd.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        getIGDRadiology(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('radiology/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.radiology_igd_list = response
+                    // console.log('response get Rad', response);
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationRadiology(){
+            // console.log('this.form_radiology_igd', this.form_radiology_igd);
+            this.IGDdisabled.radiology = true
+            try {
+                this.$store.dispatch('radiology/formPostPut', this.form_radiology_igd).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getIGDRadiology(this.form_radiology_igd.soap_id, this.form_radiology_igd.doctor_in_charge_id)
+                    this.active_act.modal_rad_igd = false
+                    this.resetModalIGDrad()
+                    this.IGDdisabled.radiology = false
+                    
+                    // console.log('response', response);
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.IGDdisabled.radiology = false
+                console.error('Error at: ', error);
+            }
+        },
+        rowIGDRad(item, role) {
+            if (!item || role !== 'row') return ''
+            if (item.status == 1) return ''
+            if (item.status == 2 || item.status == 3) return 'table-warning-400'
+        },
+
+        // ===========================================
+        openModalIGDPresc(){
+            this.active_act.modal_presc_igd = !this.active_act.modal_presc_igd
+            if (this.form_prescription_igd.soap_p_id == '') {
+                this.validationSoapP()
+            }
+        },
+        getIGDPrescription(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('prescription/getDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.prescription_igd_list = response
+                    // console.log('response get getIGDPrescription: ', response);
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+        onSearchCatalog(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('catalog/getParamSearch', search).then(data => {
+                    this.OptionsCatalog = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'is_delete') { option['data_catalog'] = data[i] } else if (key === 'name') { option['title'] = data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsCatalog.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        deletePRES (index) {
+            this.form_prescription_igd.form_prescription.splice(index, 1)
+        },
+        onAddPRES (event) {
+            this.prescription_type = event
+            let index = this.form_prescription_igd.form_prescription_parent.findIndex((item) => item.id === event.value);
+            if (index === -1) {
+                this.form_prescription_igd.form_prescription_parent.push({
+                    id:event.value,
+                    prescription:event.title,
+                    used:'',
+                    value:0
+                }) 
+            } else {
+                console.log("Object already exists");
+            }
+        },
+        onAddCAT (event) {
+            this.catalog = ''
+            if (this.prescription === '') {
+                alert("Pilih Racikan!");
+            } else {
+                this.form_prescription_igd.form_prescription.push(
+                    { 
+                        code:event.data_catalog.code,
+                        name:event.data_catalog.name,
+                        pharmacy_catalog_id:event.data_catalog.id, 
+                        package_id:event.data_catalog.package_id,
+                        dose:event.data_catalog.dose,
+                        sum_dose:event.data_catalog.dose+' '+event.data_catalog.dose_name, 
+                        package_name:event.data_catalog.package_name,
+                        prescription_type_id:this.prescription_type.value,
+                        prescription_type_name:this.prescription_type.title,
+                        value_doctor:0,
+                        value_package:0,
+                        used:'',
+                        desc:'',
+                        sort:this.form_prescription_igd.form_prescription.length, 
+                    }
+                )
+                // console.log(this.form_prescription_igd.form_prescription)
+            }
+        },
+        validationPrescription(){
+            this.IGDdisabled.prescription = true
+            try {
+                this.form_prescription_igd.soap_p_id = this.form_icd9cm.id
+                // console.log('this.form_prescription_igd', this.form_prescription_igd);
+
+                this.$store.dispatch('prescription/formPostPut', this.form_prescription_igd).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getIGDPrescription(this.form_prescription_igd.soap_id, this.form_prescription_igd.doctor_in_charge_id)
+                    this.active_act.modal_presc_igd = false
+                    this.form_prescription_igd.form_prescription_parent = []
+                    this.form_prescription_igd.form_prescription = []
+                    this.prescription = ''
+                    this.catalog = ''
+
+                    this.IGDdisabled.prescription = false
+                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.IGDdisabled.prescription = false
+                console.error('Error at: ', error);
+            }
+        },
+        removeIGDPresc(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_order} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('prescription/removeOrder', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getIGDPrescription(this.form_prescription_igd.soap_id, this.form_prescription_igd.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        hasItemsInCategory(items, categoryId) {
+            return items.some(item => item.prescription_item_type_id === categoryId);
+        },
+
+        // enableFirstSpecialistDoctor(){
+        //     this.specialist.disabled_doctor_1 = !this.specialist.disabled_doctor_1
+        // },
+
+        changeFirstSpecialistDoctor(event){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda yakin memilih ${event.title} sebagai dokter spesialis 1 ?`, {
+                title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Ya, Saya Yakin', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                    if (event.value == this.form_igd.doctor_in_charge_id) {
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 1 Tidak Boleh Sama Dengan Dokter IGD')
+                        this.specialist.doctor_1 = ''
+                        this.specialist.disabled_doctor_1 = false
+                        // if (this.form_igd.doctor_in_charge_id_1) {
+                        //     this.specialist.doctor_1 = {value: this.form_igd.doctor_in_charge_id_1, title: this.form_igd.doctor_in_charge_name_1 }
+                        //     this.specialist.disabled_doctor_1 = true
+                        // } else {
+                        //     this.specialist.doctor_1 = ''
+                        //     this.specialist.disabled_doctor_1 = false
+                        // }
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_2){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 1 Tidak Boleh Sama Dengan Dokter Spesialis 2')
+                        this.specialist.doctor_1 = ''
+                        this.specialist.disabled_doctor_1 = false
+                        // this.$bvModal
+                        //     .msgBoxConfirm(`Apakah anda yakin ingin menukar posisi ${event.title} sebagai dokter spesialis 1 ?`, {
+                        //     title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Setuju dan Lanjutkan', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+                        // })
+                        // .then(response => {
+                        //     if (response === true) {
+                        //         this.form_igd.doctor_in_charge_id_2 = this.form_igd.doctor_in_charge_id_1
+                        //         this.form_igd.doctor_in_charge_id_1 = event.value
+                        //         this.validationIGD()
+                        //     } else {
+                        //         if (this.form_igd.doctor_in_charge_id_1) {
+                        //             this.specialist.doctor_1 = {value: this.form_igd.doctor_in_charge_id_1, title: this.form_igd.doctor_in_charge_name_1 }
+                        //             this.specialist.disabled_doctor_1 = true
+                        //         } else {
+                        //             this.specialist.disabled_doctor_1 = false
+                        //             this.specialist.doctor_1 = ''
+                        //         }
+                        //     }
+
+                        // })
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_3){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 1 Tidak Boleh Sama Dengan Dokter Spesialis 3')
+                        this.specialist.doctor_1 = ''
+                        this.specialist.disabled_doctor_1 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_4){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 1 Tidak Boleh Sama Dengan Dokter Spesialis 4')
+                        this.specialist.doctor_1 = ''
+                        this.specialist.disabled_doctor_1 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_5){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 1 Tidak Boleh Sama Dengan Dokter Spesialis 5')
+                        this.specialist.doctor_1 = ''
+                        this.specialist.disabled_doctor_1 = false
+
+                    } else {
+                        this.form_igd.doctor_in_charge_id_1 = event.value
+                        this.validationIGD()
+                    }
+                } else {
+                    // this.specialist.doctor_1 = {value: this.form_igd.doctor_in_charge_id_1, title: this.form_igd.doctor_in_charge_name_1 }
+                    this.specialist.doctor_1 = ''
+                    this.specialist.disabled_doctor_1 = false
+                }
+            })
+        },
+
+        // SPECIALIST-DOCTOR 1
+        onFIRSTSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsFIRSTIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsFIRSTIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onFIRSTAdd9cm (event) {
+            this.FIRSTicd9cm_id = ''
+            if (this.form_FIRST_icd9cm.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_FIRST_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+            // this.form_FIRST_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+        },
+        deleteFIRST9cm (index) {
+            this.form_FIRST_icd9cm.icd9cm.splice(index, 1)
+        },
+
+        getFIRSTSoapP(soap_id, doctor_in_charge_id){
+            try {
+                this.form_FIRST_icd9cm.id = ''
+                this.form_FIRST_icd9cm.therapy_plan = ''
+                this.form_FIRST_icd9cm.icd9cm = []
+
+                this.$store.dispatch('soap/getSoapP', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    if (response.length != 0) {
+                        const data = response[0]
+                        if (data.icd9cm) {
+                            const mappedIcd9cm = data.icd9cm.map(item => {
+                                return {
+                                    icd9cm_id: item.id,
+                                    value: item.id,
+                                    title: `${item.code} ${item.name}`, 
+                                    action: "action"
+                                };
+                            });                
+                            this.form_FIRST_icd9cm.icd9cm = mappedIcd9cm;
+                        }
+                        this.form_FIRST_icd9cm.id = data.id
+                        this.form_FIRST_icd9cm.therapy_plan = data.therapy_plan
+                        
+                        this.form_FIRST_prescription.soap_p_id = data.id
+                    } else {
+                        console.log('initial for FIRST icd9cm');
+                    }
+                })
+            } catch (error) {
+                console.error('Error at: ', error)
+            }
+
+            // console.log('this.form_FIRST_icd9cm', this.form_FIRST_icd9cm);
+            
+        },
+
+        validationFIRSTSoapP(){
+            this.FIRSTdisabled.soap_p = true
+            try {
+                this.$store.dispatch('soap/formPostPutSoapP', this.form_FIRST_icd9cm).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIRSTSoapP(this.form_FIRST_icd9cm.soap_id, this.form_FIRST_icd9cm.doctor_in_charge_id)
+                    this.FIRSTdisabled.soap_p = false                    
+                    // console.log('response', response);
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIRSTdisabled.soap_p = false                    
+                console.error('Error at: ', error);
+            }
+        },
+
+        getFIRSTTransaction(soap_id, doctor_in_charge_id){
+            this.$store.dispatch('soap/getTransaction', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id}).then((response) => {
+                this.transaction_FIRST_list = response
+            })
+        },
+
+        openModalFIRSTTransaction (view, soap_id, obj) {
+            this.active_FIRST.modal_procedure = !this.active_FIRST.modal_procedure
+            this.form_FIRST_transaction.view = view
+
+            if (view === 'add') {
+                this.form_FIRST_transaction.soap_id = soap_id
+            } 
+            else if (view == 'edit') {                
+                this.form_FIRST_transaction.id = obj.id
+                this.form_FIRST_transaction.costing_id = {
+                    value: obj.costing_id,
+                    title: obj.costing_name,
+                    costing: obj.var_1
+                }
+                this.form_FIRST_transaction.notes = obj.notes
+                this.form_FIRST_transaction.var_1 = obj.var_1
+                this.form_FIRST_transaction.var_2 = obj.var_2
+                this.form_FIRST_transaction.var_3 = obj.var_3
+            }
+        },
+        validationFormFIRSTTransaction () {
+            this.FIRSTdisabled.transaction = true
+            const formData = {
+                id:this.form_FIRST_transaction.id,
+                view:this.form_FIRST_transaction.view,
+                costing_id:this.form_FIRST_transaction.costing_id.value,
+                soap_id:this.form_FIRST_transaction.soap_id,
+                notes:this.form_FIRST_transaction.notes,
+                var_1:this.form_FIRST_transaction.costing_id.costing,
+                var_2:this.form_FIRST_transaction.var_2,
+                var_3:this.form_FIRST_transaction.costing_id.costing*this.form_FIRST_transaction.var_2,
+                doctor_in_charge_id: this.form_FIRST_transaction.doctor_in_charge_id
+            }
+
+            this.$store.dispatch('soap/formPostPutTransaction', formData)
+            .then(res => {
+                this.FIRSTdisabled.transaction = false
+                this.active_FIRST.modal_procedure = false
+                this.notification('Success','CheckIcon','success','You have successfully')
+                this.getFIRSTTransaction(this.form_FIRST_transaction.soap_id, this.form_FIRST_transaction.doctor_in_charge_id)
+
+                this.form_FIRST_transaction.id = ''
+                this.form_FIRST_transaction.costing_id = ''
+                this.form_FIRST_transaction.notes = ''
+                this.form_FIRST_transaction.var_1 = ''
+                this.form_FIRST_transaction.var_2 = 1
+                this.form_FIRST_transaction.var_3 = ''
+
+            }, 
+            err => {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.error('Error at: ', err)
+                this.FIRSTdisabled.transaction = false
+            })
+        },
+        removeFIRSTTransaction (obj) {
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.costing_name} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', obj.id)
+                .then(response => {
+                    if (response.status === 200) {
+                        this.getFIRSTTransaction(this.form_FIRST_transaction.soap_id, this.form_FIRST_transaction.doctor_in_charge_id)                        
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        openModalFIRSTLab(obj){
+            this.active_FIRST.modal_lab = !this.active_FIRST.modal_lab
+            if (obj == null) {
+                this.resetModalFIRSTlab()
+                
+            } else {
+                this.form_FIRST_laboratory.id = obj.id
+                this.form_FIRST_laboratory.date_request = obj.date_request
+                this.form_FIRST_laboratory.laboratory_request_items = obj.laboratory_request_item
+            }
+        },
+
+        resetModalFIRSTlab(){
+            this.form_FIRST_laboratory.id = ''
+            this.form_FIRST_laboratory.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_FIRST_laboratory.laboratory_request_items = []
+        },
+
+        removeFIRSTLab(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('laboratory/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFIRSTLaboratory(this.form_FIRST_laboratory.soap_id, this.form_FIRST_laboratory.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        getFIRSTLaboratory(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('laboratory/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.laboratory_FIRST_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationFIRSTLaboratory(){
+            this.FIRSTdisabled.laboratory = true
+            try {
+                this.$store.dispatch('laboratory/formPostPut', this.form_FIRST_laboratory).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIRSTLaboratory(this.form_FIRST_laboratory.soap_id, this.form_FIRST_laboratory.doctor_in_charge_id)
+                    this.active_FIRST.modal_lab = false
+                    this.resetModalFIRSTlab()
+                    this.FIRSTdisabled.laboratory = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIRSTdisabled.laboratory = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalFIRSTRad(obj){
+            this.active_FIRST.modal_rad = !this.active_FIRST.modal_rad
+            if (obj == null) {
+                this.resetModalFIRSTrad()
+                
+            } else {
+                this.form_FIRST_radiology.id = obj.id
+                this.form_FIRST_radiology.date_request = obj.date_request
+                this.form_FIRST_radiology.radiology_request_items = obj.radiology_request_item
+            }
+        },
+
+        resetModalFIRSTrad(){
+            this.form_FIRST_radiology.id = ''
+            this.form_FIRST_radiology.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_FIRST_radiology.radiology_request_items = []
+        },
+
+        removeFIRSTRad(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('radiology/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFIRSTRadiology(this.form_FIRST_radiology.soap_id, this.form_FIRST_radiology.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        getFIRSTRadiology(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('radiology/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.radiology_FIRST_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationFIRSTRadiology(){
+            this.FIRSTdisabled.radiology = true
+            try {
+                this.$store.dispatch('radiology/formPostPut', this.form_FIRST_radiology).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIRSTRadiology(this.form_FIRST_radiology.soap_id, this.form_FIRST_radiology.doctor_in_charge_id)
+                    this.active_FIRST.modal_rad = false
+                    this.resetModalFIRSTrad()
+                    this.FIRSTdisabled.radiology = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIRSTdisabled.radiology = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalFIRSTPresc(){
+            this.active_FIRST.modal_presc = !this.active_FIRST.modal_presc
+            if (this.form_FIRST_prescription.soap_p_id == '') {
+                this.validationFIRSTSoapP()
+            }
+        },
+
+        getFIRSTPrescription(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('prescription/getDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.prescription_FIRST_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+        onSearchFIRSTCatalog(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('catalog/getParamSearch', search).then(data => {
+                    this.FIRST_OptionsCatalog = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'is_delete') { option['data_catalog'] = data[i] } else if (key === 'name') { option['title'] = data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.FIRST_OptionsCatalog.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        deleteFIRSTPRES (index) {
+            this.form_FIRST_prescription.form_prescription.splice(index, 1)
+        },
+        onAddFIRSTPRES (event) {
+            this.FIRST_prescription_type = event
+            let index = this.form_FIRST_prescription.form_prescription_parent.findIndex((item) => item.id === event.value);
+            if (index === -1) {
+                this.form_FIRST_prescription.form_prescription_parent.push({
+                    id:event.value,
+                    prescription:event.title,
+                    used:'',
+                    value:0
+                }) 
+            } else {
+                console.log("Object already exists");
+            }
+        },
+        onAddFIRSTCAT (event) {
+            this.FIRST_catalog = ''
+            if (this.FIRST_prescription === '') {
+                alert("Pilih Racikan!");
+            } else {
+                this.form_FIRST_prescription.form_prescription.push(
+                    { 
+                        code:event.data_catalog.code,
+                        name:event.data_catalog.name,
+                        pharmacy_catalog_id:event.data_catalog.id, 
+                        package_id:event.data_catalog.package_id,
+                        dose:event.data_catalog.dose,
+                        sum_dose:event.data_catalog.dose+' '+event.data_catalog.dose_name, 
+                        package_name:event.data_catalog.package_name,
+                        prescription_type_id:this.FIRST_prescription_type.value,
+                        prescription_type_name:this.FIRST_prescription_type.title,
+                        value_doctor:0,
+                        value_package:0,
+                        used:'',
+                        desc:'',
+                        sort:this.form_FIRST_prescription.form_prescription.length, 
+                    }
+                )
+            }
+        },
+        validationFIRSTPrescription(){
+            this.FIRSTdisabled.prescription = true
+            try {
+                this.form_FIRST_prescription.soap_p_id = this.form_FIRST_icd9cm.id
+
+                this.$store.dispatch('prescription/formPostPut', this.form_FIRST_prescription).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIRSTPrescription(this.form_FIRST_prescription.soap_id, this.form_FIRST_prescription.doctor_in_charge_id)
+                    this.active_FIRST.modal_presc = false
+                    this.form_FIRST_prescription.form_prescription_parent = []
+                    this.form_FIRST_prescription.form_prescription = []
+                    this.FIRST_prescription = ''
+                    this.FIRST_catalog = ''
+                    this.FIRSTdisabled.prescription = false
+                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIRSTdisabled.prescription = false
+                console.error('Error at: ', error);
+            }
+        },
+        removeFIRSTPresc(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_order} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('prescription/removeOrder', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFIRSTPrescription(this.form_FIRST_prescription.soap_id, this.form_FIRST_prescription.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        // enableSecondSpecialistDoctor(){
+        //     this.specialist.disabled_doctor_2 = !this.specialist.disabled_doctor_2
+        // },
+
+        changeSecondSpecialistDoctor(event){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda yakin memilih ${event.title} sebagai dokter spesialis 2 ?`, {
+                title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Ya, Saya Yakin', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                    if (event.value == this.form_igd.doctor_in_charge_id) {
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 2 Tidak Boleh Sama Dengan Dokter IGD')
+                        this.specialist.doctor_2 = ''
+                        this.specialist.disabled_doctor_2 = false
+                        // if (this.form_igd.doctor_in_charge_id_2) {
+                        //     this.specialist.doctor_2 = {value: this.form_igd.doctor_in_charge_id_2, title: this.form_igd.doctor_in_charge_name_2 }
+                        //     this.specialist.disabled_doctor_2 = true
+                        // } else {
+                        //     this.specialist.doctor_2 = ''
+                        //     this.specialist.disabled_doctor_2 = false
+                        // }
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_1){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 2 Tidak Boleh Sama Dengan Dokter Spesialis 1')
+                        this.specialist.doctor_2 = ''
+                        this.specialist.disabled_doctor_2 = false
+
+                        // this.$bvModal
+                        //     .msgBoxConfirm(`Apakah anda yakin ingin menukar posisi ${event.title} sebagai dokter spesialis 2 ?`, {
+                        //     title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Setuju dan Lanjutkan', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+                        // })
+                        // .then(response => {
+                        //     if (response === true) {
+                        //         this.form_igd.doctor_in_charge_id_1 = this.form_igd.doctor_in_charge_id_2
+                        //         this.form_igd.doctor_in_charge_id_2 = event.value
+                        //         this.validationIGD()
+                        //     } else {
+                        //         if (this.form_igd.doctor_in_charge_id_2) {
+                        //             this.specialist.doctor_2 = {value: this.form_igd.doctor_in_charge_id_2, title: this.form_igd.doctor_in_charge_name_2 }
+                        //             this.specialist.disabled_doctor_2 = true
+                        //         } else {
+                        //             this.specialist.doctor_2 = ''
+                        //             this.specialist.disabled_doctor_2 = false
+                        //         }
+                        //     }
+
+                        // })
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_3){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 2 Tidak Boleh Sama Dengan Dokter Spesialis 3')
+                        this.specialist.doctor_2 = ''
+                        this.specialist.disabled_doctor_2 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_4){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 2 Tidak Boleh Sama Dengan Dokter Spesialis 4')
+                        this.specialist.doctor_2 = ''
+                        this.specialist.disabled_doctor_2 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_5){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 2 Tidak Boleh Sama Dengan Dokter Spesialis 5')
+                        this.specialist.doctor_2 = ''
+                        this.specialist.disabled_doctor_2 = false
+
+                    } else {
+                        this.form_igd.doctor_in_charge_id_2 = event.value
+                        this.validationIGD()
+                    }
+                } else {
+                    // this.specialist.doctor_2 = {value: this.form_igd.doctor_in_charge_id_2, title: this.form_igd.doctor_in_charge_name_2 }
+                    this.specialist.doctor_2 = ''
+                    this.specialist.disabled_doctor_2 = false
+                }
+            })
+        },
+
+        // SPECIALIST-DOCTOR 2
+        onSECONDSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsSECONDIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsSECONDIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onSECONDAdd9cm (event) {
+            this.SECONDicd9cm_id = ''
+            if (this.form_SECOND_icd9cm.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_SECOND_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+        },
+        deleteSECOND9cm (index) {
+            this.form_SECOND_icd9cm.icd9cm.splice(index, 1)
+        },
+
+        getSECONDSoapP(soap_id, doctor_in_charge_id){
+            try {
+                this.form_SECOND_icd9cm.id = ''
+                this.form_SECOND_icd9cm.therapy_plan = ''
+                this.form_SECOND_icd9cm.icd9cm = []
+
+                this.$store.dispatch('soap/getSoapP', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    if (response.length != 0) {
+                        const data = response[0]
+                        if (data.icd9cm) {
+                            const mappedIcd9cm = data.icd9cm.map(item => {
+                                return {
+                                    icd9cm_id: item.id,
+                                    value: item.id,
+                                    title: `${item.code} ${item.name}`, 
+                                    action: "action"
+                                };
+                            });                
+                            this.form_SECOND_icd9cm.icd9cm = mappedIcd9cm;
+                        }
+                        this.form_SECOND_icd9cm.id = data.id
+                        this.form_SECOND_icd9cm.therapy_plan = data.therapy_plan
+                        
+                        this.form_SECOND_prescription.soap_p_id = data.id
+                    } else {
+                        console.log('initial for SECOND icd9cm');
+                    }
+                })
+            } catch (error) {
+                console.error('Error at: ', error)
+            }
+        },
+
+        validationSECONDSoapP(){
+            this.SECONDdisabled.soap_p = true
+            try {
+                this.$store.dispatch('soap/formPostPutSoapP', this.form_SECOND_icd9cm).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getSECONDSoapP(this.form_SECOND_icd9cm.soap_id, this.form_SECOND_icd9cm.doctor_in_charge_id)
+                    this.SECONDdisabled.soap_p = false
+                    this.form_SECOND_prescription.soap_p_id = this.form_SECOND_icd9cm.soap_id                  
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.SECONDdisabled.soap_p = false                    
+                console.error('Error at: ', error);
+            }
+        },
+
+        getSECONDTransaction(soap_id, doctor_in_charge_id){
+            this.$store.dispatch('soap/getTransaction', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id}).then((response) => {
+                this.transaction_SECOND_list = response
+            })
+        },
+
+        openModalSECONDTransaction (view, soap_id, obj) {
+            this.active_SECOND.modal_procedure = !this.active_SECOND.modal_procedure
+            this.form_SECOND_transaction.view = view
+
+            if (view === 'add') {
+                this.form_SECOND_transaction.soap_id = soap_id
+            } 
+            else if (view == 'edit') {                
+                this.form_SECOND_transaction.id = obj.id
+                this.form_SECOND_transaction.costing_id = {
+                    value: obj.costing_id,
+                    title: obj.costing_name,
+                    costing: obj.var_1
+                }
+                this.form_SECOND_transaction.notes = obj.notes
+                this.form_SECOND_transaction.var_1 = obj.var_1
+                this.form_SECOND_transaction.var_2 = obj.var_2
+                this.form_SECOND_transaction.var_3 = obj.var_3
+            }
+        },
+        validationFormSECONDTransaction () {
+            this.SECONDdisabled.transaction = true
+            const formData = {
+                id:this.form_SECOND_transaction.id,
+                view:this.form_SECOND_transaction.view,
+                costing_id:this.form_SECOND_transaction.costing_id.value,
+                soap_id:this.form_SECOND_transaction.soap_id,
+                notes:this.form_SECOND_transaction.notes,
+                var_1:this.form_SECOND_transaction.costing_id.costing,
+                var_2:this.form_SECOND_transaction.var_2,
+                var_3:this.form_SECOND_transaction.costing_id.costing*this.form_SECOND_transaction.var_2,
+                doctor_in_charge_id: this.form_SECOND_transaction.doctor_in_charge_id
+            }
+
+            this.$store.dispatch('soap/formPostPutTransaction', formData)
+            .then(res => {
+                this.SECONDdisabled.transaction = false
+                this.active_SECOND.modal_procedure = false
+                this.notification('Success','CheckIcon','success','You have successfully')
+                this.getSECONDTransaction(this.form_SECOND_transaction.soap_id, this.form_SECOND_transaction.doctor_in_charge_id)
+
+                this.form_SECOND_transaction.id = ''
+                this.form_SECOND_transaction.costing_id = ''
+                this.form_SECOND_transaction.notes = ''
+                this.form_SECOND_transaction.var_1 = ''
+                this.form_SECOND_transaction.var_2 = 1
+                this.form_SECOND_transaction.var_3 = ''
+
+            }, 
+            err => {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.error('Error at: ', err)
+                this.SECONDdisabled.transaction = false
+            })
+        },
+        removeSECONDTransaction (obj) {
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.costing_name} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', obj.id)
+                .then(response => {
+                    if (response.status === 200) {
+                        this.getSECONDTransaction(this.form_SECOND_transaction.soap_id, this.form_SECOND_transaction.doctor_in_charge_id)                        
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        openModalSECONDLab(obj){
+            this.active_SECOND.modal_lab = !this.active_SECOND.modal_lab
+            if (obj == null) {
+                this.resetModalSECONDlab()
+                
+            } else {
+                this.form_SECOND_laboratory.id = obj.id
+                this.form_SECOND_laboratory.date_request = obj.date_request
+                this.form_SECOND_laboratory.laboratory_request_items = obj.laboratory_request_item
+            }
+        },
+
+        resetModalSECONDlab(){
+            this.form_SECOND_laboratory.id = ''
+            this.form_SECOND_laboratory.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_SECOND_laboratory.laboratory_request_items = []
+        },
+
+        removeSECONDLab(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('laboratory/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getSECONDLaboratory(this.form_SECOND_laboratory.soap_id, this.form_SECOND_laboratory.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        getSECONDLaboratory(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('laboratory/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.laboratory_SECOND_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationSECONDLaboratory(){
+            this.SECONDdisabled.laboratory = true
+            try {
+                this.$store.dispatch('laboratory/formPostPut', this.form_SECOND_laboratory).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getSECONDLaboratory(this.form_SECOND_laboratory.soap_id, this.form_SECOND_laboratory.doctor_in_charge_id)
+                    this.active_SECOND.modal_lab = false
+                    this.resetModalSECONDlab()
+                    this.SECONDdisabled.laboratory = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.SECONDdisabled.laboratory = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalSECONDRad(obj){
+            this.active_SECOND.modal_rad = !this.active_SECOND.modal_rad
+            if (obj == null) {
+                this.resetModalSECONDrad()
+                
+            } else {
+                this.form_SECOND_radiology.id = obj.id
+                this.form_SECOND_radiology.date_request = obj.date_request
+                this.form_SECOND_radiology.radiology_request_items = obj.radiology_request_item
+            }
+        },
+
+        resetModalSECONDrad(){
+            this.form_SECOND_radiology.id = ''
+            this.form_SECOND_radiology.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_SECOND_radiology.radiology_request_items = []
+        },
+
+        removeSECONDRad(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('radiology/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getSECONDRadiology(this.form_SECOND_radiology.soap_id, this.form_SECOND_radiology.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        getSECONDRadiology(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('radiology/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.radiology_SECOND_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationSECONDRadiology(){
+            this.SECONDdisabled.radiology = true
+            try {
+                this.$store.dispatch('radiology/formPostPut', this.form_SECOND_radiology).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getSECONDRadiology(this.form_SECOND_radiology.soap_id, this.form_SECOND_radiology.doctor_in_charge_id)
+                    this.active_SECOND.modal_rad = false
+                    this.resetModalSECONDrad()
+                    this.SECONDdisabled.radiology = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.SECONDdisabled.radiology = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalSECONDPresc(){
+            this.active_SECOND.modal_presc = !this.active_SECOND.modal_presc
+            if (this.form_SECOND_prescription.soap_p_id == '') {
+                this.validationSECONDSoapP()
+            }
+        },
+        getSECONDPrescription(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('prescription/getDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.prescription_SECOND_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+        onSearchSECONDCatalog(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('catalog/getParamSearch', search).then(data => {
+                    this.SECOND_OptionsCatalog = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'is_delete') { option['data_catalog'] = data[i] } else if (key === 'name') { option['title'] = data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.SECOND_OptionsCatalog.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        deleteSECONDPRES (index) {
+            this.form_SECOND_prescription.form_prescription.splice(index, 1)
+        },
+        onAddSECONDPRES (event) {
+            this.SECOND_prescription_type = event
+            let index = this.form_SECOND_prescription.form_prescription_parent.findIndex((item) => item.id === event.value);
+            if (index === -1) {
+                this.form_SECOND_prescription.form_prescription_parent.push({
+                    id:event.value,
+                    prescription:event.title,
+                    used:'',
+                    value:0
+                }) 
+            } else {
+                console.log("Object already exists");
+            }
+        },
+        onAddSECONDCAT (event) {
+            this.SECOND_catalog = ''
+            if (this.SECOND_prescription === '') {
+                alert("Pilih Racikan!");
+            } else {
+                this.form_SECOND_prescription.form_prescription.push(
+                    { 
+                        code:event.data_catalog.code,
+                        name:event.data_catalog.name,
+                        pharmacy_catalog_id:event.data_catalog.id, 
+                        package_id:event.data_catalog.package_id,
+                        dose:event.data_catalog.dose,
+                        sum_dose:event.data_catalog.dose+' '+event.data_catalog.dose_name, 
+                        package_name:event.data_catalog.package_name,
+                        prescription_type_id:this.SECOND_prescription_type.value,
+                        prescription_type_name:this.SECOND_prescription_type.title,
+                        value_doctor:0,
+                        value_package:0,
+                        used:'',
+                        desc:'',
+                        sort:this.form_SECOND_prescription.form_prescription.length, 
+                    }
+                )
+            }
+        },
+        validationSECONDPrescription(){
+            this.SECONDdisabled.prescription = true
+            try {
+                this.form_SECOND_prescription.soap_p_id = this.form_SECOND_icd9cm.id
+
+                this.$store.dispatch('prescription/formPostPut', this.form_SECOND_prescription).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getSECONDPrescription(this.form_SECOND_prescription.soap_id, this.form_SECOND_prescription.doctor_in_charge_id)
+                    this.active_SECOND.modal_presc = false
+                    this.form_SECOND_prescription.form_prescription_parent = []
+                    this.form_SECOND_prescription.form_prescription = []
+                    this.SECOND_prescription = ''
+                    this.SECOND_catalog = ''
+                    this.SECONDdisabled.prescription = false
+                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.SECONDdisabled.prescription = false
+                console.error('Error at: ', error);
+            }
+        },
+        removeSECONDPresc(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_order} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('prescription/removeOrder', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getSECONDPrescription(this.form_SECOND_prescription.soap_id, this.form_SECOND_prescription.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        changeThirdSpecialistDoctor(event){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda yakin memilih ${event.title} sebagai dokter spesialis 3 ?`, {
+                title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Ya, Saya Yakin', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                    if (event.value == this.form_igd.doctor_in_charge_id) {
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 3 Tidak Boleh Sama Dengan Dokter IGD')
+                        this.specialist.doctor_3 = ''
+                        this.specialist.disabled_doctor_3 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_1){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 3 Tidak Boleh Sama Dengan Dokter Spesialis 1')
+                        this.specialist.doctor_3 = ''
+                        this.specialist.disabled_doctor_3 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_2){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 3 Tidak Boleh Sama Dengan Dokter Spesialis 2')
+                        this.specialist.doctor_3 = ''
+                        this.specialist.disabled_doctor_3 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_4){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 3 Tidak Boleh Sama Dengan Dokter Spesialis 4')
+                        this.specialist.doctor_3 = ''
+                        this.specialist.disabled_doctor_3 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_5){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 3 Tidak Boleh Sama Dengan Dokter Spesialis 5')
+                        this.specialist.doctor_3 = ''
+                        this.specialist.disabled_doctor_3 = false
+                        
+                    } else {
+                        this.form_igd.doctor_in_charge_id_3 = event.value
+                        this.validationIGD()
+                    }
+                } else {
+                    this.specialist.doctor_3 = ''
+                    this.specialist.disabled_doctor_3 = false
+                }
+            })
+        },
+
+        // SPECIALIST-DOCTOR 3
+        onTHIRDSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsTHIRDIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsTHIRDIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onTHIRDAdd9cm (event) {
+            this.THIRDicd9cm_id = ''
+            if (this.form_THIRD_icd9cm.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_THIRD_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+        },
+        deleteTHIRD9cm (index) {
+            this.form_THIRD_icd9cm.icd9cm.splice(index, 1)
+        },
+
+        getTHIRDSoapP(soap_id, doctor_in_charge_id){
+            try {
+                this.form_THIRD_icd9cm.id = ''
+                this.form_THIRD_icd9cm.therapy_plan = ''
+                this.form_THIRD_icd9cm.icd9cm = []
+
+                this.$store.dispatch('soap/getSoapP', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    if (response.length != 0) {
+                        const data = response[0]
+                        if (data.icd9cm) {
+                            const mappedIcd9cm = data.icd9cm.map(item => {
+                                return {
+                                    icd9cm_id: item.id,
+                                    value: item.id,
+                                    title: `${item.code} ${item.name}`, 
+                                    action: "action"
+                                };
+                            });                
+                            this.form_THIRD_icd9cm.icd9cm = mappedIcd9cm;
+                        }
+                        this.form_THIRD_icd9cm.id = data.id
+                        this.form_THIRD_icd9cm.therapy_plan = data.therapy_plan
+                        
+                        this.form_THIRD_prescription.soap_p_id = data.id
+                    } else {
+                        console.log('initial for THIRD icd9cm');
+                    }
+                })
+            } catch (error) {
+                console.error('Error at: ', error)
+            }
+        },
+
+        validationTHIRDSoapP(){
+            this.THIRDdisabled.soap_p = true
+            try {
+                this.$store.dispatch('soap/formPostPutSoapP', this.form_THIRD_icd9cm).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getTHIRDSoapP(this.form_THIRD_icd9cm.soap_id, this.form_THIRD_icd9cm.doctor_in_charge_id)
+                    this.THIRDdisabled.soap_p = false
+                    this.form_THIRD_prescription.soap_p_id = this.form_THIRD_icd9cm.soap_id                  
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.THIRDdisabled.soap_p = false                    
+                console.error('Error at: ', error);
+            }
+        },
+
+        getTHIRDTransaction(soap_id, doctor_in_charge_id){
+            this.$store.dispatch('soap/getTransaction', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id}).then((response) => {
+                this.transaction_THIRD_list = response
+            })
+        },
+
+        openModalTHIRDTransaction (view, soap_id, obj) {
+            this.active_THIRD.modal_procedure = !this.active_THIRD.modal_procedure
+            this.form_THIRD_transaction.view = view
+
+            if (view === 'add') {
+                this.form_THIRD_transaction.soap_id = soap_id
+            } 
+            else if (view == 'edit') {                
+                this.form_THIRD_transaction.id = obj.id
+                this.form_THIRD_transaction.costing_id = {
+                    value: obj.costing_id,
+                    title: obj.costing_name,
+                    costing: obj.var_1
+                }
+                this.form_THIRD_transaction.notes = obj.notes
+                this.form_THIRD_transaction.var_1 = obj.var_1
+                this.form_THIRD_transaction.var_2 = obj.var_2
+                this.form_THIRD_transaction.var_3 = obj.var_3
+            }
+        },
+        validationFormTHIRDTransaction () {
+            this.THIRDdisabled.transaction = true
+            const formData = {
+                id:this.form_THIRD_transaction.id,
+                view:this.form_THIRD_transaction.view,
+                costing_id:this.form_THIRD_transaction.costing_id.value,
+                soap_id:this.form_THIRD_transaction.soap_id,
+                notes:this.form_THIRD_transaction.notes,
+                var_1:this.form_THIRD_transaction.costing_id.costing,
+                var_2:this.form_THIRD_transaction.var_2,
+                var_3:this.form_THIRD_transaction.costing_id.costing*this.form_THIRD_transaction.var_2,
+                doctor_in_charge_id: this.form_THIRD_transaction.doctor_in_charge_id
+            }
+
+            this.$store.dispatch('soap/formPostPutTransaction', formData)
+            .then(res => {
+                this.THIRDdisabled.transaction = false
+                this.active_THIRD.modal_procedure = false
+                this.notification('Success','CheckIcon','success','You have successfully')
+                this.getTHIRDTransaction(this.form_THIRD_transaction.soap_id, this.form_THIRD_transaction.doctor_in_charge_id)
+
+                this.form_THIRD_transaction.id = ''
+                this.form_THIRD_transaction.costing_id = ''
+                this.form_THIRD_transaction.notes = ''
+                this.form_THIRD_transaction.var_1 = ''
+                this.form_THIRD_transaction.var_2 = 1
+                this.form_THIRD_transaction.var_3 = ''
+
+            }, 
+            err => {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.error('Error at: ', err)
+                this.THIRDdisabled.transaction = false
+            })
+        },
+        removeTHIRDTransaction (obj) {
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.costing_name} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', obj.id)
+                .then(response => {
+                    if (response.status === 200) {
+                        this.getTHIRDTransaction(this.form_THIRD_transaction.soap_id, this.form_THIRD_transaction.doctor_in_charge_id)                        
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        openModalTHIRDLab(obj){
+            this.active_THIRD.modal_lab = !this.active_THIRD.modal_lab
+            if (obj == null) {
+                this.resetModalTHIRDlab()
+                
+            } else {
+                this.form_THIRD_laboratory.id = obj.id
+                this.form_THIRD_laboratory.date_request = obj.date_request
+                this.form_THIRD_laboratory.laboratory_request_items = obj.laboratory_request_item
+            }
+        },
+
+        resetModalTHIRDlab(){
+            this.form_THIRD_laboratory.id = ''
+            this.form_THIRD_laboratory.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_THIRD_laboratory.laboratory_request_items = []
+        },
+
+        removeTHIRDLab(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('laboratory/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getTHIRDLaboratory(this.form_THIRD_laboratory.soap_id, this.form_THIRD_laboratory.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        getTHIRDLaboratory(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('laboratory/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.laboratory_THIRD_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationTHIRDLaboratory(){
+            this.THIRDdisabled.laboratory = true
+            try {
+                this.$store.dispatch('laboratory/formPostPut', this.form_THIRD_laboratory).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getTHIRDLaboratory(this.form_THIRD_laboratory.soap_id, this.form_THIRD_laboratory.doctor_in_charge_id)
+                    this.active_THIRD.modal_lab = false
+                    this.resetModalTHIRDlab()
+                    this.THIRDdisabled.laboratory = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.THIRDdisabled.laboratory = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalTHIRDRad(obj){
+            this.active_THIRD.modal_rad = !this.active_THIRD.modal_rad
+            if (obj == null) {
+                this.resetModalTHIRDrad()
+                
+            } else {
+                this.form_THIRD_radiology.id = obj.id
+                this.form_THIRD_radiology.date_request = obj.date_request
+                this.form_THIRD_radiology.radiology_request_items = obj.radiology_request_item
+            }
+        },
+
+        resetModalTHIRDrad(){
+            this.form_THIRD_radiology.id = ''
+            this.form_THIRD_radiology.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_THIRD_radiology.radiology_request_items = []
+        },
+
+        removeTHIRDRad(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('radiology/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getTHIRDRadiology(this.form_THIRD_radiology.soap_id, this.form_THIRD_radiology.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        getTHIRDRadiology(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('radiology/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.radiology_THIRD_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationTHIRDRadiology(){
+            this.THIRDdisabled.radiology = true
+            try {
+                this.$store.dispatch('radiology/formPostPut', this.form_THIRD_radiology).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getTHIRDRadiology(this.form_THIRD_radiology.soap_id, this.form_THIRD_radiology.doctor_in_charge_id)
+                    this.active_THIRD.modal_rad = false
+                    this.resetModalTHIRDrad()
+                    this.THIRDdisabled.radiology = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.THIRDdisabled.radiology = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalTHIRDPresc(){
+            this.active_THIRD.modal_presc = !this.active_THIRD.modal_presc
+            if (this.form_THIRD_prescription.soap_p_id == '') {
+                this.validationTHIRDSoapP()
+            }
+        },
+        getTHIRDPrescription(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('prescription/getDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.prescription_THIRD_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+        onSearchTHIRDCatalog(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('catalog/getParamSearch', search).then(data => {
+                    this.THIRD_OptionsCatalog = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'is_delete') { option['data_catalog'] = data[i] } else if (key === 'name') { option['title'] = data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.THIRD_OptionsCatalog.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        deleteTHIRDPRES (index) {
+            this.form_THIRD_prescription.form_prescription.splice(index, 1)
+        },
+        onAddTHIRDPRES (event) {
+            this.THIRD_prescription_type = event
+            let index = this.form_THIRD_prescription.form_prescription_parent.findIndex((item) => item.id === event.value);
+            if (index === -1) {
+                this.form_THIRD_prescription.form_prescription_parent.push({
+                    id:event.value,
+                    prescription:event.title,
+                    used:'',
+                    value:0
+                }) 
+            } else {
+                console.log("Object already exists");
+            }
+        },
+        onAddTHIRDCAT (event) {
+            this.THIRD_catalog = ''
+            if (this.THIRD_prescription === '') {
+                alert("Pilih Racikan!");
+            } else {
+                this.form_THIRD_prescription.form_prescription.push(
+                    { 
+                        code:event.data_catalog.code,
+                        name:event.data_catalog.name,
+                        pharmacy_catalog_id:event.data_catalog.id, 
+                        package_id:event.data_catalog.package_id,
+                        dose:event.data_catalog.dose,
+                        sum_dose:event.data_catalog.dose+' '+event.data_catalog.dose_name, 
+                        package_name:event.data_catalog.package_name,
+                        prescription_type_id:this.THIRD_prescription_type.value,
+                        prescription_type_name:this.THIRD_prescription_type.title,
+                        value_doctor:0,
+                        value_package:0,
+                        used:'',
+                        desc:'',
+                        sort:this.form_THIRD_prescription.form_prescription.length, 
+                    }
+                )
+            }
+        },
+        validationTHIRDPrescription(){
+            this.THIRDdisabled.prescription = true
+            try {
+                this.form_THIRD_prescription.soap_p_id = this.form_THIRD_icd9cm.id
+
+                this.$store.dispatch('prescription/formPostPut', this.form_THIRD_prescription).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getTHIRDPrescription(this.form_THIRD_prescription.soap_id, this.form_THIRD_prescription.doctor_in_charge_id)
+                    this.active_THIRD.modal_presc = false
+                    this.form_THIRD_prescription.form_prescription_parent = []
+                    this.form_THIRD_prescription.form_prescription = []
+                    this.THIRD_prescription = ''
+                    this.THIRD_catalog = ''
+                    this.THIRDdisabled.prescription = false
+                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.THIRDdisabled.prescription = false
+                console.error('Error at: ', error);
+            }
+        },
+        removeTHIRDPresc(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_order} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('prescription/removeOrder', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getTHIRDPrescription(this.form_THIRD_prescription.soap_id, this.form_THIRD_prescription.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        changeFourthSpecialistDoctor(event){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda yakin memilih ${event.title} sebagai dokter spesialis 4 ?`, {
+                title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Ya, Saya Yakin', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                    if (event.value == this.form_igd.doctor_in_charge_id) {
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 4 Tidak Boleh Sama Dengan Dokter IGD')
+                        this.specialist.doctor_4 = ''
+                        this.specialist.disabled_doctor_4 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_1){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 4 Tidak Boleh Sama Dengan Dokter Spesialis 1')
+                        this.specialist.doctor_4 = ''
+                        this.specialist.disabled_doctor_4 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_2){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 4 Tidak Boleh Sama Dengan Dokter Spesialis 2')
+                        this.specialist.doctor_4 = ''
+                        this.specialist.disabled_doctor_4 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_3){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 4 Tidak Boleh Sama Dengan Dokter Spesialis 3')
+                        this.specialist.doctor_4 = ''
+                        this.specialist.disabled_doctor_4 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_5){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 4 Tidak Boleh Sama Dengan Dokter Spesialis 5')
+                        this.specialist.doctor_4 = ''
+                        this.specialist.disabled_doctor_4 = false
+                        
+                    } else {
+                        this.form_igd.doctor_in_charge_id_4 = event.value
+                        this.validationIGD()
+                    }
+                } else {
+                    this.specialist.doctor_4 = ''
+                    this.specialist.disabled_doctor_4 = false
+                }
+            })
+        },
+
+        // SPECIALIST-DOCTOR 4
+        onFOURTHSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsFOURTHIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsFOURTHIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onFOURTHAdd9cm (event) {
+            this.FOURTHicd9cm_id = ''
+            if (this.form_FOURTH_icd9cm.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_FOURTH_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+        },
+        deleteFOURTH9cm (index) {
+            this.form_FOURTH_icd9cm.icd9cm.splice(index, 1)
+        },
+
+        getFOURTHSoapP(soap_id, doctor_in_charge_id){
+            try {
+                this.form_FOURTH_icd9cm.id = ''
+                this.form_FOURTH_icd9cm.therapy_plan = ''
+                this.form_FOURTH_icd9cm.icd9cm = []
+
+                this.$store.dispatch('soap/getSoapP', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    if (response.length != 0) {
+                        const data = response[0]
+                        if (data.icd9cm) {
+                            const mappedIcd9cm = data.icd9cm.map(item => {
+                                return {
+                                    icd9cm_id: item.id,
+                                    value: item.id,
+                                    title: `${item.code} ${item.name}`, 
+                                    action: "action"
+                                };
+                            });                
+                            this.form_FOURTH_icd9cm.icd9cm = mappedIcd9cm;
+                        }
+                        this.form_FOURTH_icd9cm.id = data.id
+                        this.form_FOURTH_icd9cm.therapy_plan = data.therapy_plan
+                        
+                        this.form_FOURTH_prescription.soap_p_id = data.id
+                    } else {
+                        console.log('initial for FOURTH icd9cm');
+                    }
+                })
+            } catch (error) {
+                console.error('Error at: ', error)
+            }
+        },
+
+        validationFOURTHSoapP(){
+            this.FOURTHdisabled.soap_p = true
+            try {
+                this.$store.dispatch('soap/formPostPutSoapP', this.form_FOURTH_icd9cm).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFOURTHSoapP(this.form_FOURTH_icd9cm.soap_id, this.form_FOURTH_icd9cm.doctor_in_charge_id)
+                    this.FOURTHdisabled.soap_p = false
+                    this.form_FOURTH_prescription.soap_p_id = this.form_FOURTH_icd9cm.soap_id                  
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FOURTHdisabled.soap_p = false                    
+                console.error('Error at: ', error);
+            }
+        },
+
+        getFOURTHTransaction(soap_id, doctor_in_charge_id){
+            this.$store.dispatch('soap/getTransaction', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id}).then((response) => {
+                this.transaction_FOURTH_list = response
+            })
+        },
+
+        openModalFOURTHTransaction (view, soap_id, obj) {
+            this.active_FOURTH.modal_procedure = !this.active_FOURTH.modal_procedure
+            this.form_FOURTH_transaction.view = view
+
+            if (view === 'add') {
+                this.form_FOURTH_transaction.soap_id = soap_id
+            } 
+            else if (view == 'edit') {                
+                this.form_FOURTH_transaction.id = obj.id
+                this.form_FOURTH_transaction.costing_id = {
+                    value: obj.costing_id,
+                    title: obj.costing_name,
+                    costing: obj.var_1
+                }
+                this.form_FOURTH_transaction.notes = obj.notes
+                this.form_FOURTH_transaction.var_1 = obj.var_1
+                this.form_FOURTH_transaction.var_2 = obj.var_2
+                this.form_FOURTH_transaction.var_3 = obj.var_3
+            }
+        },
+        validationFormFOURTHTransaction () {
+            this.FOURTHdisabled.transaction = true
+            const formData = {
+                id:this.form_FOURTH_transaction.id,
+                view:this.form_FOURTH_transaction.view,
+                costing_id:this.form_FOURTH_transaction.costing_id.value,
+                soap_id:this.form_FOURTH_transaction.soap_id,
+                notes:this.form_FOURTH_transaction.notes,
+                var_1:this.form_FOURTH_transaction.costing_id.costing,
+                var_2:this.form_FOURTH_transaction.var_2,
+                var_3:this.form_FOURTH_transaction.costing_id.costing*this.form_FOURTH_transaction.var_2,
+                doctor_in_charge_id: this.form_FOURTH_transaction.doctor_in_charge_id
+            }
+
+            this.$store.dispatch('soap/formPostPutTransaction', formData)
+            .then(res => {
+                this.FOURTHdisabled.transaction = false
+                this.active_FOURTH.modal_procedure = false
+                this.notification('Success','CheckIcon','success','You have successfully')
+                this.getFOURTHTransaction(this.form_FOURTH_transaction.soap_id, this.form_FOURTH_transaction.doctor_in_charge_id)
+
+                this.form_FOURTH_transaction.id = ''
+                this.form_FOURTH_transaction.costing_id = ''
+                this.form_FOURTH_transaction.notes = ''
+                this.form_FOURTH_transaction.var_1 = ''
+                this.form_FOURTH_transaction.var_2 = 1
+                this.form_FOURTH_transaction.var_3 = ''
+
+            }, 
+            err => {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.error('Error at: ', err)
+                this.FOURTHdisabled.transaction = false
+            })
+        },
+        removeFOURTHTransaction (obj) {
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.costing_name} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', obj.id)
+                .then(response => {
+                    if (response.status === 200) {
+                        this.getFOURTHTransaction(this.form_FOURTH_transaction.soap_id, this.form_FOURTH_transaction.doctor_in_charge_id)                        
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        openModalFOURTHLab(obj){
+            this.active_FOURTH.modal_lab = !this.active_FOURTH.modal_lab
+            if (obj == null) {
+                this.resetModalFOURTHlab()
+                
+            } else {
+                this.form_FOURTH_laboratory.id = obj.id
+                this.form_FOURTH_laboratory.date_request = obj.date_request
+                this.form_FOURTH_laboratory.laboratory_request_items = obj.laboratory_request_item
+            }
+        },
+
+        resetModalFOURTHlab(){
+            this.form_FOURTH_laboratory.id = ''
+            this.form_FOURTH_laboratory.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_FOURTH_laboratory.laboratory_request_items = []
+        },
+
+        removeFOURTHLab(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('laboratory/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFOURTHLaboratory(this.form_FOURTH_laboratory.soap_id, this.form_FOURTH_laboratory.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        getFOURTHLaboratory(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('laboratory/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.laboratory_FOURTH_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationFOURTHLaboratory(){
+            this.FOURTHdisabled.laboratory = true
+            try {
+                this.$store.dispatch('laboratory/formPostPut', this.form_FOURTH_laboratory).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFOURTHLaboratory(this.form_FOURTH_laboratory.soap_id, this.form_FOURTH_laboratory.doctor_in_charge_id)
+                    this.active_FOURTH.modal_lab = false
+                    this.resetModalFOURTHlab()
+                    this.FOURTHdisabled.laboratory = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FOURTHdisabled.laboratory = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalFOURTHRad(obj){
+            this.active_FOURTH.modal_rad = !this.active_FOURTH.modal_rad
+            if (obj == null) {
+                this.resetModalFOURTHrad()
+                
+            } else {
+                this.form_FOURTH_radiology.id = obj.id
+                this.form_FOURTH_radiology.date_request = obj.date_request
+                this.form_FOURTH_radiology.radiology_request_items = obj.radiology_request_item
+            }
+        },
+
+        resetModalFOURTHrad(){
+            this.form_FOURTH_radiology.id = ''
+            this.form_FOURTH_radiology.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_FOURTH_radiology.radiology_request_items = []
+        },
+
+        removeFOURTHRad(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('radiology/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFOURTHRadiology(this.form_FOURTH_radiology.soap_id, this.form_FOURTH_radiology.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        getFOURTHRadiology(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('radiology/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.radiology_FOURTH_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationFOURTHRadiology(){
+            this.FOURTHdisabled.radiology = true
+            try {
+                this.$store.dispatch('radiology/formPostPut', this.form_FOURTH_radiology).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFOURTHRadiology(this.form_FOURTH_radiology.soap_id, this.form_FOURTH_radiology.doctor_in_charge_id)
+                    this.active_FOURTH.modal_rad = false
+                    this.resetModalFOURTHrad()
+                    this.FOURTHdisabled.radiology = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FOURTHdisabled.radiology = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalFOURTHPresc(){
+            this.active_FOURTH.modal_presc = !this.active_FOURTH.modal_presc
+            if (this.form_FOURTH_prescription.soap_p_id == '') {
+                this.validationFOURTHSoapP()
+            }
+        },
+        getFOURTHPrescription(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('prescription/getDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.prescription_FOURTH_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+        onSearchFOURTHCatalog(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('catalog/getParamSearch', search).then(data => {
+                    this.FOURTH_OptionsCatalog = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'is_delete') { option['data_catalog'] = data[i] } else if (key === 'name') { option['title'] = data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.FOURTH_OptionsCatalog.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        deleteFOURTHPRES (index) {
+            this.form_FOURTH_prescription.form_prescription.splice(index, 1)
+        },
+        onAddFOURTHPRES (event) {
+            this.FOURTH_prescription_type = event
+            let index = this.form_FOURTH_prescription.form_prescription_parent.findIndex((item) => item.id === event.value);
+            if (index === -1) {
+                this.form_FOURTH_prescription.form_prescription_parent.push({
+                    id:event.value,
+                    prescription:event.title,
+                    used:'',
+                    value:0
+                }) 
+            } else {
+                console.log("Object already exists");
+            }
+        },
+        onAddFOURTHCAT (event) {
+            this.FOURTH_catalog = ''
+            if (this.FOURTH_prescription === '') {
+                alert("Pilih Racikan!");
+            } else {
+                this.form_FOURTH_prescription.form_prescription.push(
+                    { 
+                        code:event.data_catalog.code,
+                        name:event.data_catalog.name,
+                        pharmacy_catalog_id:event.data_catalog.id, 
+                        package_id:event.data_catalog.package_id,
+                        dose:event.data_catalog.dose,
+                        sum_dose:event.data_catalog.dose+' '+event.data_catalog.dose_name, 
+                        package_name:event.data_catalog.package_name,
+                        prescription_type_id:this.FOURTH_prescription_type.value,
+                        prescription_type_name:this.FOURTH_prescription_type.title,
+                        value_doctor:0,
+                        value_package:0,
+                        used:'',
+                        desc:'',
+                        sort:this.form_FOURTH_prescription.form_prescription.length, 
+                    }
+                )
+            }
+        },
+        validationFOURTHPrescription(){
+            this.FOURTHdisabled.prescription = true
+            try {
+                this.form_FOURTH_prescription.soap_p_id = this.form_FOURTH_icd9cm.id
+
+                this.$store.dispatch('prescription/formPostPut', this.form_FOURTH_prescription).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFOURTHPrescription(this.form_FOURTH_prescription.soap_id, this.form_FOURTH_prescription.doctor_in_charge_id)
+                    this.active_FOURTH.modal_presc = false
+                    this.form_FOURTH_prescription.form_prescription_parent = []
+                    this.form_FOURTH_prescription.form_prescription = []
+                    this.FOURTH_prescription = ''
+                    this.FOURTH_catalog = ''
+                    this.FOURTHdisabled.prescription = false
+                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FOURTHdisabled.prescription = false
+                console.error('Error at: ', error);
+            }
+        },
+        removeFOURTHPresc(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_order} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('prescription/removeOrder', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFOURTHPrescription(this.form_FOURTH_prescription.soap_id, this.form_FOURTH_prescription.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        changeFifthSpecialistDoctor(event){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda yakin memilih ${event.title} sebagai dokter spesialis 5 ?`, {
+                title: 'Konfirmasi', size: 'sm', okVariant: 'primary', okTitle: 'Ya, Saya Yakin', cancelTitle: 'Batal', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                    if (event.value == this.form_igd.doctor_in_charge_id) {
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 5 Tidak Boleh Sama Dengan Dokter IGD')
+                        this.specialist.doctor_5 = ''
+                        this.specialist.disabled_doctor_5 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_1){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 5 Tidak Boleh Sama Dengan Dokter Spesialis 1')
+                        this.specialist.doctor_5 = ''
+                        this.specialist.disabled_doctor_5 = false
+
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_2){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 5 Tidak Boleh Sama Dengan Dokter Spesialis 2')
+                        this.specialist.doctor_5 = ''
+                        this.specialist.disabled_doctor_5 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_3){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 5 Tidak Boleh Sama Dengan Dokter Spesialis 3')
+                        this.specialist.doctor_5 = ''
+                        this.specialist.disabled_doctor_5 = false
+                        
+                    } else if (event.value == this.form_igd.doctor_in_charge_id_4){
+                        this.notification('Warning','CloseIcon','warning','Doter Spesialis 5 Tidak Boleh Sama Dengan Dokter Spesialis 4')
+                        this.specialist.doctor_5 = ''
+                        this.specialist.disabled_doctor_5 = false
+                        
+                    } else {
+                        this.form_igd.doctor_in_charge_id_5 = event.value
+                        this.validationIGD()
+                    }
+                } else {
+                    this.specialist.doctor_5 = ''
+                    this.specialist.disabled_doctor_5 = false
+                }
+            })
+        },
+
+        // SPECIALIST-DOCTOR 5
+        onFIFTHSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsFIFTHIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsFIFTHIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onFIFTHAdd9cm (event) {
+            this.FIFTHicd9cm_id = ''
+            if (this.form_FIFTH_icd9cm.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_FIFTH_icd9cm.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+        },
+        deleteFIFTH9cm (index) {
+            this.form_FIFTH_icd9cm.icd9cm.splice(index, 1)
+        },
+
+        getFIFTHSoapP(soap_id, doctor_in_charge_id){
+            try {
+                this.form_FIFTH_icd9cm.id = ''
+                this.form_FIFTH_icd9cm.therapy_plan = ''
+                this.form_FIFTH_icd9cm.icd9cm = []
+
+                this.$store.dispatch('soap/getSoapP', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    if (response.length != 0) {
+                        const data = response[0]
+                        if (data.icd9cm) {
+                            const mappedIcd9cm = data.icd9cm.map(item => {
+                                return {
+                                    icd9cm_id: item.id,
+                                    value: item.id,
+                                    title: `${item.code} ${item.name}`, 
+                                    action: "action"
+                                };
+                            });                
+                            this.form_FIFTH_icd9cm.icd9cm = mappedIcd9cm;
+                        }
+                        this.form_FIFTH_icd9cm.id = data.id
+                        this.form_FIFTH_icd9cm.therapy_plan = data.therapy_plan
+                        
+                        this.form_FIFTH_prescription.soap_p_id = data.id
+                    } else {
+                        console.log('initial for FIFTH icd9cm');
+                    }
+                })
+            } catch (error) {
+                console.error('Error at: ', error)
+            }
+        },
+
+        validationFIFTHSoapP(){
+            this.FIFTHdisabled.soap_p = true
+            try {
+                this.$store.dispatch('soap/formPostPutSoapP', this.form_FIFTH_icd9cm).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIFTHSoapP(this.form_FIFTH_icd9cm.soap_id, this.form_FIFTH_icd9cm.doctor_in_charge_id)
+                    this.FIFTHdisabled.soap_p = false
+                    this.form_FIFTH_prescription.soap_p_id = this.form_FIFTH_icd9cm.soap_id                  
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIFTHdisabled.soap_p = false                    
+                console.error('Error at: ', error);
+            }
+        },
+
+        getFIFTHTransaction(soap_id, doctor_in_charge_id){
+            this.$store.dispatch('soap/getTransaction', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id}).then((response) => {
+                this.transaction_FIFTH_list = response
+            })
+        },
+
+        openModalFIFTHTransaction (view, soap_id, obj) {
+            this.active_FIFTH.modal_procedure = !this.active_FIFTH.modal_procedure
+            this.form_FIFTH_transaction.view = view
+
+            if (view === 'add') {
+                this.form_FIFTH_transaction.soap_id = soap_id
+            } 
+            else if (view == 'edit') {                
+                this.form_FIFTH_transaction.id = obj.id
+                this.form_FIFTH_transaction.costing_id = {
+                    value: obj.costing_id,
+                    title: obj.costing_name,
+                    costing: obj.var_1
+                }
+                this.form_FIFTH_transaction.notes = obj.notes
+                this.form_FIFTH_transaction.var_1 = obj.var_1
+                this.form_FIFTH_transaction.var_2 = obj.var_2
+                this.form_FIFTH_transaction.var_3 = obj.var_3
+            }
+        },
+        validationFormFIFTHTransaction () {
+            this.FIFTHdisabled.transaction = true
+            const formData = {
+                id:this.form_FIFTH_transaction.id,
+                view:this.form_FIFTH_transaction.view,
+                costing_id:this.form_FIFTH_transaction.costing_id.value,
+                soap_id:this.form_FIFTH_transaction.soap_id,
+                notes:this.form_FIFTH_transaction.notes,
+                var_1:this.form_FIFTH_transaction.costing_id.costing,
+                var_2:this.form_FIFTH_transaction.var_2,
+                var_3:this.form_FIFTH_transaction.costing_id.costing*this.form_FIFTH_transaction.var_2,
+                doctor_in_charge_id: this.form_FIFTH_transaction.doctor_in_charge_id
+            }
+
+            this.$store.dispatch('soap/formPostPutTransaction', formData)
+            .then(res => {
+                this.FIFTHdisabled.transaction = false
+                this.active_FIFTH.modal_procedure = false
+                this.notification('Success','CheckIcon','success','You have successfully')
+                this.getFIFTHTransaction(this.form_FIFTH_transaction.soap_id, this.form_FIFTH_transaction.doctor_in_charge_id)
+
+                this.form_FIFTH_transaction.id = ''
+                this.form_FIFTH_transaction.costing_id = ''
+                this.form_FIFTH_transaction.notes = ''
+                this.form_FIFTH_transaction.var_1 = ''
+                this.form_FIFTH_transaction.var_2 = 1
+                this.form_FIFTH_transaction.var_3 = ''
+
+            }, 
+            err => {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.error('Error at: ', err)
+                this.FIFTHdisabled.transaction = false
+            })
+        },
+        removeFIFTHTransaction (obj) {
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.costing_name} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('soap/remove', obj.id)
+                .then(response => {
+                    if (response.status === 200) {
+                        this.getFIFTHTransaction(this.form_FIFTH_transaction.soap_id, this.form_FIFTH_transaction.doctor_in_charge_id)                        
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        openModalFIFTHLab(obj){
+            this.active_FIFTH.modal_lab = !this.active_FIFTH.modal_lab
+            if (obj == null) {
+                this.resetModalFIFTHlab()
+                
+            } else {
+                this.form_FIFTH_laboratory.id = obj.id
+                this.form_FIFTH_laboratory.date_request = obj.date_request
+                this.form_FIFTH_laboratory.laboratory_request_items = obj.laboratory_request_item
+            }
+        },
+
+        resetModalFIFTHlab(){
+            this.form_FIFTH_laboratory.id = ''
+            this.form_FIFTH_laboratory.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_FIFTH_laboratory.laboratory_request_items = []
+        },
+
+        removeFIFTHLab(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('laboratory/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFIFTHLaboratory(this.form_FIFTH_laboratory.soap_id, this.form_FIFTH_laboratory.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+        getFIFTHLaboratory(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('laboratory/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.laboratory_FIFTH_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationFIFTHLaboratory(){
+            this.FIFTHdisabled.laboratory = true
+            try {
+                this.$store.dispatch('laboratory/formPostPut', this.form_FIFTH_laboratory).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIFTHLaboratory(this.form_FIFTH_laboratory.soap_id, this.form_FIFTH_laboratory.doctor_in_charge_id)
+                    this.active_FIFTH.modal_lab = false
+                    this.resetModalFIFTHlab()
+                    this.FIFTHdisabled.laboratory = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIFTHdisabled.laboratory = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalFIFTHRad(obj){
+            this.active_FIFTH.modal_rad = !this.active_FIFTH.modal_rad
+            if (obj == null) {
+                this.resetModalFIFTHrad()
+                
+            } else {
+                this.form_FIFTH_radiology.id = obj.id
+                this.form_FIFTH_radiology.date_request = obj.date_request
+                this.form_FIFTH_radiology.radiology_request_items = obj.radiology_request_item
+            }
+        },
+
+        resetModalFIFTHrad(){
+            this.form_FIFTH_radiology.id = ''
+            this.form_FIFTH_radiology.date_request = moment(new Date()).format('YYYY-MM-DD HH:MM')
+            this.form_FIFTH_radiology.radiology_request_items = []
+        },
+
+        removeFIFTHRad(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_request} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('radiology/removeRequest', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFIFTHRadiology(this.form_FIFTH_radiology.soap_id, this.form_FIFTH_radiology.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+        getFIFTHRadiology(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('radiology/getOrderDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.radiology_FIFTH_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+
+        validationFIFTHRadiology(){
+            this.FIFTHdisabled.radiology = true
+            try {
+                this.$store.dispatch('radiology/formPostPut', this.form_FIFTH_radiology).then((response)=> {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIFTHRadiology(this.form_FIFTH_radiology.soap_id, this.form_FIFTH_radiology.doctor_in_charge_id)
+                    this.active_FIFTH.modal_rad = false
+                    this.resetModalFIFTHrad()
+                    this.FIFTHdisabled.radiology = false                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIFTHdisabled.radiology = false
+                console.error('Error at: ', error);
+            }
+        },
+
+        openModalFIFTHPresc(){
+            this.active_FIFTH.modal_presc = !this.active_FIFTH.modal_presc
+            if (this.form_FIFTH_prescription.soap_p_id == '') {
+                this.validationFIFTHSoapP()
+            }
+        },
+        getFIFTHPrescription(soap_id, doctor_in_charge_id) {
+            try {
+                this.$store.dispatch('prescription/getDetail', {soap_id: soap_id, doctor_in_charge_id: doctor_in_charge_id }).then((response) => {
+                    this.prescription_FIFTH_list = response
+                })
+                
+            } catch (error) {
+                console.error('Error at: ', error);
+            }
+        },
+        onSearchFIFTHCatalog(search, loading) {
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('catalog/getParamSearch', search).then(data => {
+                    this.FIFTH_OptionsCatalog = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'is_delete') { option['data_catalog'] = data[i] } else if (key === 'name') { option['title'] = data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.FIFTH_OptionsCatalog.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        deleteFIFTHPRES (index) {
+            this.form_FIFTH_prescription.form_prescription.splice(index, 1)
+        },
+        onAddFIFTHPRES (event) {
+            this.FIFTH_prescription_type = event
+            let index = this.form_FIFTH_prescription.form_prescription_parent.findIndex((item) => item.id === event.value);
+            if (index === -1) {
+                this.form_FIFTH_prescription.form_prescription_parent.push({
+                    id:event.value,
+                    prescription:event.title,
+                    used:'',
+                    value:0
+                }) 
+            } else {
+                console.log("Object already exists");
+            }
+        },
+        onAddFIFTHCAT (event) {
+            this.FIFTH_catalog = ''
+            if (this.FIFTH_prescription === '') {
+                alert("Pilih Racikan!");
+            } else {
+                this.form_FIFTH_prescription.form_prescription.push(
+                    { 
+                        code:event.data_catalog.code,
+                        name:event.data_catalog.name,
+                        pharmacy_catalog_id:event.data_catalog.id, 
+                        package_id:event.data_catalog.package_id,
+                        dose:event.data_catalog.dose,
+                        sum_dose:event.data_catalog.dose+' '+event.data_catalog.dose_name, 
+                        package_name:event.data_catalog.package_name,
+                        prescription_type_id:this.FIFTH_prescription_type.value,
+                        prescription_type_name:this.FIFTH_prescription_type.title,
+                        value_doctor:0,
+                        value_package:0,
+                        used:'',
+                        desc:'',
+                        sort:this.form_FIFTH_prescription.form_prescription.length, 
+                    }
+                )
+            }
+        },
+        validationFIFTHPrescription(){
+            this.FIFTHdisabled.prescription = true
+            try {
+                this.form_FIFTH_prescription.soap_p_id = this.form_FIFTH_icd9cm.id
+
+                this.$store.dispatch('prescription/formPostPut', this.form_FIFTH_prescription).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getFIFTHPrescription(this.form_FIFTH_prescription.soap_id, this.form_FIFTH_prescription.doctor_in_charge_id)
+                    this.active_FIFTH.modal_presc = false
+                    this.form_FIFTH_prescription.form_prescription_parent = []
+                    this.form_FIFTH_prescription.form_prescription = []
+                    this.FIFTH_prescription = ''
+                    this.FIFTH_catalog = ''
+                    this.FIFTHdisabled.prescription = false
+                    
+                })
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.FIFTHdisabled.prescription = false
+                console.error('Error at: ', error);
+            }
+        },
+        removeFIFTHPresc(obj){
+            this.$bvModal
+                .msgBoxConfirm(`Apakah anda ingin menghapus ${obj.no_order} ?`, {
+                title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+            })
+            .then(value => {
+                if (value === true){
+                this.$store.dispatch('prescription/removeOrder', obj.id)
+                .then(response => {
+                    if (response.status === 200 || response.status === 201) {
+                        this.getFIFTHPrescription(this.form_FIFTH_prescription.soap_id, this.form_FIFTH_prescription.doctor_in_charge_id)
+                        this.notification('Success','CheckIcon','success','You have successfully')
+                    } else {
+                        this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                    }
+                },
+                error => {
+                    this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                }) 
+                }
+            })
+        },
+
+    },
+    created () {
+        this.$store.dispatch('helper/getParam', 'type_room')
+        this.$store.dispatch('laboratory/getPackageAll', { type_costing_id: 4 })
+        this.$store.dispatch('radiology/getPackageAll')
+        this.$store.dispatch('physiotherapy/getPackageAll')
+        this.$store.dispatch('packages/getParam')
+        this.$store.dispatch('employee/getParamAllSpecialist')
+        this.$store.dispatch('employee/getParam', '')
+        
+        this.getLabPackageListV2()
+        this.getRadPackageListV2()
+
+        if (this.$route.params.id) {
+            this.reg_des_id = this.$route.params.id
+            this.getData(this.$route.params.id)
+            
+            this.form_prescription_igd.registration_destination_id = this.$route.params.id
+            this.form_FIRST_prescription.registration_destination_id = this.$route.params.id
+            this.form_SECOND_prescription.registration_destination_id = this.$route.params.id
+            this.form_THIRD_prescription.registration_destination_id = this.$route.params.id
+            this.form_FOURTH_prescription.registration_destination_id = this.$route.params.id
+            this.form_FIFTH_prescription.registration_destination_id = this.$route.params.id
+
+            // this.$store.dispatch('soap/getByIdTransaction', this.$route.params.id)
+        }
+    }
+}
+</script>
+<style lang="scss">
+@import '@core/scss/vue/libs/vue-select.scss';
+</style>
+<style scoped>
+@import '../../../../@core/css/utility.css';
+
+.label-head::before {
+    content: '';
+    border-left: 6px solid #648DE1;
+}
+
+.c-img {
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    max-width: 150px;
+    max-height: 150px;
+    border: 10px solid white;
+}
+table.custom-border tr td {
+    border: 0px;
+}
+</style>

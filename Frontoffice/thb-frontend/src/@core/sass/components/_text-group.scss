@@ -1,0 +1,310 @@
+@import "../abstracts/variables";
+
+.font-dotmatrix {
+    font-family: "DotMatrix";
+}
+.font-dotmatrixbold {
+    font-family: "DotMatrixBold";
+}
+.font-inter-bold {
+    font-family: "InterBold";
+}
+.mid-box{
+    // height: 150px;
+    border-right: 1px solid rgb(225, 225, 225);
+    border-left: 1px solid rgb(225, 225, 225);
+}
+
+@media (max-width: 768px) {
+    .mid-box, .general-box{
+        height: 150px;
+        border-right: 0;
+        border-left: 0;
+        border-top: 1px solid rgb(225, 225, 225);
+    }
+}
+
+.c-form label,
+.c-form-label {
+  font-style: normal;
+  font-weight: 500;
+  color: #000;
+  font-size: 12px;
+  line-height: 14px;
+  margin-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.lh-100{
+    line-height: 100%;
+}
+.ws-nowrap{
+    white-space: normal;
+}
+@media screen and (max-width: 768px) {
+    .ws-nowrap{
+        white-space: nowrap;
+    }
+}
+    
+.fw-regular,
+.fw-medium,
+.fw-semibold,
+.fw-bold,
+.fs-16,
+p {
+    margin-bottom: 0;
+}
+
+.fw-regular {
+    font-weight: 400;
+}
+
+.fw-medium {
+    font-weight: 500;
+}
+
+.fw-semibold {
+    font-weight: 600;
+}
+
+.fw-bold {
+    font-weight: 700;
+}
+
+.text-bold-72,
+.text-bold-36,
+.text-bold-24,
+.text-bold-18,
+.text-bold-16,
+.text-bold-14,
+.text-bold-14-on,
+.text-bold-12,
+.text-bold-10,
+.text-bold-8,
+.text-bold-6 {
+    font-weight: var(--c-700);
+    // color: #343A40;
+}
+
+
+.text-bold-72 {
+    font-size: 72px;
+}
+
+.text-bold-36 {
+    font-size: 33px;
+}
+
+.text-bold-24 {
+    font-size: 24px;
+}
+
+.text-bold-18 {
+    font-size: 18px;
+}
+
+.text-bold-16 {
+    font-size: 16px;
+}
+
+.text-bold-14, .text-bold-14-on {
+    font-size: 14px;
+}
+
+.text-bold-12 {
+    font-size: 12px;
+}
+
+.text-bold-10 {
+    font-size: 10px;
+}
+
+.text-bold-8 {
+    font-size: 8px;
+}
+
+.text-bold-6 {
+    font-size: 6px;
+}
+
+@media (max-width: 767px) {
+    .text-bold-16{
+        font-size: 14px;
+    } 
+    .text-bold-14 {
+        font-size: 12px;
+    }
+    .text-bold-18 {
+        font-size: 14px;
+    }
+}
+
+.text-semi-24,
+.text-semi-22,
+.text-semi-20,
+.text-semi-18,
+.text-semi-16,
+.text-semi-14,
+.text-semi-14-on,
+.text-semi-12 {
+    font-weight: var(--c-600);
+    // color: #343A40;
+}
+
+.text-semi-24 {
+    font-size: 24px;
+}
+
+.text-semi-22 {
+    font-size: 22px;
+}
+
+.text-semi-20 {
+    font-size: 20px;
+}
+
+.text-semi-18 {
+    font-size: 18px;
+}
+
+.text-semi-16 {
+    font-size: 16px;
+}
+
+.text-semi-14, .text-semi-14-on {
+    font-size: 14px;
+}
+
+.text-semi-12 {
+    font-size: 12px;
+}
+
+@media (max-width: 767px) {
+    .text-semi-16 {
+        font-size: 14px;
+    }
+    .text-semi-14 {
+        font-size: 12px;
+    }
+}
+
+.text-medium-36,
+.text-medium-24,
+.text-medium-21,
+.text-medium-18,
+.text-medium-16,
+.text-medium-14,
+.text-medium-12 {
+    font-weight: var(--c-500);
+    // color: #343A40;
+}
+
+.text-medium-36 {
+    font-size: 36px;
+}
+
+.text-medium-24 {
+    font-size: 24px;
+}
+
+.text-medium-21 {
+    font-size: 21px;
+}
+
+.text-medium-18 {
+    font-size: 18px;
+}
+
+.text-medium-16 {
+    font-size: 16px;
+}
+
+.text-medium-14 {
+    font-size: 14px;
+}
+
+.text-medium-12 {
+    font-size: 12px;
+}
+
+@media (max-width: 767px) {
+    .text-medium-24 {
+        font-size: 20px;
+    }
+    .text-medium-16 {
+        font-size: 14px;
+    }
+    .text-medium-14{
+        font-size: 12px;
+    }
+    .text-medium-12 {
+        font-size: 10px;
+    }
+}
+
+.text-regular-36,
+.text-regular-24,
+.text-regular-21,
+.text-regular-18,
+.text-regular-16,
+.text-regular-14,
+.text-regular-12,
+.text-regular-10,
+.text-regular-8,
+.text-regular-6 {
+    font-weight: var(--c-400);
+    // color: #343A40;
+}
+
+.text-regular-36 {
+    font-size: 36px;
+}
+
+.text-regular-24 {
+    font-size: 24px;
+}
+
+.text-regular-21 {
+    font-size: 21px;
+}
+
+.text-regular-18 {
+    font-size: 18px;
+}
+
+.text-regular-16 {
+    font-size: 16px;
+}
+
+.text-regular-14 {
+    font-size: 14px;
+}
+
+.text-regular-12 {
+    font-size: 12px;
+}
+
+.text-regular-10 {
+    font-size: 10px;
+}
+
+.text-regular-8 {
+    font-size: 8px;
+}
+
+.text-regular-6 {
+    font-size: 6px;
+}
+
+@media (max-width: 767px) {
+    .text-regular-16 {
+        font-size: 14px;
+    }
+    .text-regular-14{
+        font-size: 12px;
+    }
+    .text-regular-12 {
+        font-size: 10px;
+    }
+}

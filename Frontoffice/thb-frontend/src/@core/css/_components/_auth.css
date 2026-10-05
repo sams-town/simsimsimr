@@ -1,0 +1,40 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+* {
+  font-family: "Inter", sans-serif;
+}
+
+.numbeing-wiz {
+  width: 34px;
+  height: 34px;
+  background: #d758a9;
+  color: #fff;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wiz-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wiz-group span {
+  font-style: normal;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.wiz-line {
+  background-color: #d758a9;
+  height: 1px;
+  margin: 0 -15px;
+}

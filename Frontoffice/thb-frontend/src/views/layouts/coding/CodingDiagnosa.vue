@@ -1,0 +1,404 @@
+<template>
+    <div>
+        <!-- <Layout
+            :layout_breadcrumb_items="[
+                { text: 'Home', link: '/' },
+                { text: 'Poliklinik' }
+            ]"
+        /> -->
+            <section class="">
+                <div class="d-flex justify-content-between">
+                    <div class="row w-100 align-items-end">
+                        <div class="col-lg-3">
+                            <label class="fs-13 mb-0">Cari Pasien</label>
+                            <div class="d-flex align-items-center position-relative">
+                                <b-form-input v-model="searchQuery" @input="onListFast" class="pl-5" size="sm" autocomplete="off" placeholder="masukkan nama atau NRM" />
+                                <b-icon icon="search" class="position-absolute pl-3 text-neutral-400" />
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <label class="fs-13 mb-0">SEP</label>
+                            <div class="d-flex align-items-center position-relative">
+                                <b-form-input v-model="params.sep" @input="onListFast" class="pl-5" size="sm" autocomplete="off" placeholder="masukkan SEP" />
+                                <b-icon icon="search" class="position-absolute pl-3 text-neutral-400" />
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <label class="fs-13 mb-0">Instalasi</label>
+                            <v-select class="select-size-sm" v-model="params.health_facility_id" @input="onListFast" :options="OptionsHealthFacility" :reduce="item => item.value" label="title" placeholder="pilih instalasi"></v-select>
+                        </div>
+                        <div class="col-lg-3">
+                            <label class="fs-13 mb-0">Cari Poliklinik/Ruangan</label>
+                            <v-select class="select-size-sm" v-model="params.health_facility_item_id" @input="onListFast" :options="OptionsHealthFacilityItem" :reduce="item => item.value" label="title" placeholder="pilih poliklinik/ruangan"></v-select>
+                        </div>
+                        <div class="col-lg-3">
+                            <label class="fs-13 mb-0">Cari DPJP</label>
+                            <v-select :disabled="is_user_specialist" class="select-size-sm" v-model="params.doctor_in_charge_id" @input="onListFast" :options="doctor_list" :reduce="item => item.value" label="title" placeholder="pilih dpjp"></v-select>
+                        </div>
+                        <div class="col-lg-3">
+                            <label class="fs-13 mb-0">Cara Pulang</label>
+                            <v-select class="select-size-sm" v-model="params.exit_id" @input="onListFast" :options="OptionsExit" :reduce="item => item.value" label="title" placeholder="pilih cara pulang"></v-select>
+                        </div>
+                        <div class="col-lg-5 px-0 mt-12">
+                            <div class="d-flex align-items-center">
+                                <div class="col-lg">
+                                    <label class="c-form-label">Tanggal Mulai</label>
+                                    <b-form-input type="date" v-model="params.date_start" @input="onListFast"></b-form-input>
+                                </div>
+                                <span>-</span>
+                                <div class="col-lg">
+                                    <label class="c-form-label">Tanggal Akhir</label>
+                                    <b-form-input type="date" v-model="params.date_end" @input="onListFast"></b-form-input>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-end">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-12 mr-1">Tampilkan</span>
+                            <b-form-select id="per-page-select" v-model="perPage" size="sm" :options="pageOptions" />
+                        </div>
+                    </div>
+                </div>
+                <b-table bordered fixed small head-variant="light" :items="ListItems" :fields="OutpatientTable" :per-page="0" :current-page="currentPage" thead-tr-class="fs-13" tbody-tr-class="fs-12" class="mt-12 text-center">
+                    <template #cell(code_queue)="row">{{ row.item.code_queue }}-{{ row.item.queue }}</template>
+
+                    <template #cell(name)="row">
+                        <div class="text-left">
+                            <div class="font-weight-bold">{{ row.item.alias }}. {{ row.item.name }}</div>
+                            <div>{{ row.item.birth_date }} ({{ parsed_age(row.item.birth_date) }}) {{ row.item.norm }}</div>
+                        </div>
+                    </template>
+                    <template #cell(company_name)="row">
+                        <div>
+                            <template>{{ row.item.insurance_id == 2 || row.item.insurance_id == 3 ? row.item.company_name : row.item.insurance_name }}</template>
+                            <b-badge v-if="row.item.is_cob == 1" class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1" variant="warning-200">COB</b-badge>
+                        </div>
+                    </template>
+                    <template #cell(sts)="row">
+                        <b-badge :variant="getStatusVariant(row.item?.sts, row.item?.desc_inacbg)" class="p-2">{{ getPatientStatus(row.item?.sts, row.item?.desc_inacbg) }}</b-badge>
+                    </template>
+                    <template #cell(encounter)="row">
+                        <router-link :to="{ path: '/patient/doctor/' + row.item.registration_destination_id }">
+                            <b-button size="sm" variant="success-500" v-b-popover.hover.top="'Buka Coding'" class="mr-1" >
+                                <feather-icon icon="FileIcon" />
+                            </b-button>
+                        </router-link>
+                        <router-link :to="{ path: '/prints/resume/' + row.item.registration_destination_id }" v-if="row.item.health_facility_id !== '40f06534-07ec-4221-ad9d-dea08196079f'">
+                            <b-button size="sm" variant="success-500" v-b-popover.hover.top="'Print'" class="mr-1" >
+                                <feather-icon icon="FileIcon" />
+                            </b-button>
+                        </router-link>
+                        <router-link :to="{ path: '/prints/resume/inpatient/' + row.item.registration_destination_id }" v-if="row.item.health_facility_id === '40f06534-07ec-4221-ad9d-dea08196079f'">
+                            <b-button size="sm" variant="success-500" v-b-popover.hover.top="'Print'" class="mr-1" >
+                                <feather-icon icon="FileIcon" />
+                            </b-button>
+                        </router-link>
+                    </template>
+                    
+                    <!-- <template #cell(encounter)="row">
+                        <template>
+                            <b-button 
+                                size="sm" 
+                                variant="outline-primary" 
+                                :disabled="isDisabled" 
+                                @click.prevent="callThisQueue(row.item, 'call')"
+                                class="mr-1" 
+                                v-b-popover.hover.left="'Panggil Antrian'">
+                                <feather-icon icon="Volume2Icon" />
+                            </b-button>
+                        </template>
+
+                        <template v-if="conditionalMr(row.item.sts)">
+                            <template v-if="userData.user_group.name === 'Doctor'">
+                                <router-link :to="{ path: '/patient/doctor/' + row.item.registration_destination_id }">
+                                    <b-button size="sm" variant="primary" v-b-popover.hover.right="'Buka Rekam Medis Disini'">
+                                        <feather-icon icon="FileIcon" />
+                                    </b-button>
+                                </router-link>
+                            </template>
+                            <template v-else-if="userData.user_group.id == 'a4c04d8d-12d8-4c54-afca-69de6bd5f62d' || userData.employee_id == 'd77142c4-4777-47d8-bd0c-fd7dfd134af4'">
+                                <router-link :to="{ path: '/patient/doctor/' + row.item.registration_destination_id }">
+                                    <b-button size="sm" variant="primary" v-b-popover.hover.top="'RM Dokter'" class="mr-1">
+                                        <feather-icon icon="FileIcon" />
+                                    </b-button>
+                                </router-link>
+                                <router-link :to="{ path: '/patient/nurse/' + row.item.registration_destination_id }">
+                                    <b-button size="sm" variant="success-500" v-b-popover.hover.right="'RM Perawat'">
+                                        <feather-icon icon="FileIcon" />
+                                    </b-button>
+                                </router-link>
+                            </template>
+                            <template v-else>
+                                <router-link :to="{ path: '/patient/nurse/' + row.item.registration_destination_id }">
+                                    <b-button size="sm" variant="success-500" v-b-popover.hover.right="'Buka Rekam Medis Disini'">
+                                        <feather-icon icon="FileIcon" />
+                                    </b-button>
+                                </router-link>
+                            </template>
+                        </template>
+                    </template> -->
+
+                </b-table>
+                <div class="col px-0 mt-20">
+                    <div class="d-flex">
+                        <div class="mr-auto">
+                            <b-pagination v-model="currentPage" :total-rows="totalRows" :per-page="perPage" align="fill" size="sm" class="my-0"></b-pagination>
+                        </div>
+                        <span class="fs-12">Menampilkan {{ firstRows }} hingga 
+                            <template v-if="lastRows < totalRows">{{ lastRows }}</template> 
+                            <template v-else>{{ totalRows}}</template> 
+                            dari {{ totalRows }} entri
+                        </span>
+                    </div>
+                </div>
+            </section>
+    </div>
+</template>
+<script>
+import moment from 'moment'
+import { mapState } from 'vuex'
+import io from 'socket.io-client';
+import axios from 'axios'
+import vSelect from 'vue-select'
+
+export default {
+    components: {
+        vSelect
+    },
+    data() {
+        return {
+            userData: JSON.parse(localStorage.getItem('userData')),
+            socket: io(process.env.VUE_APP_SOCKET_IO, { transports: ["websocket", "polling", "flashsocket"], withCredentials: true }),
+            searchQuery: JSON.parse(localStorage.getItem('jknfiltersession')) ? JSON.parse(localStorage.getItem('jknfiltersession')).norm_like : "", 
+            params: JSON.parse(localStorage.getItem('jknfiltersession')) ? JSON.parse(localStorage.getItem('jknfiltersession')) : {
+                offset: 0,
+                limit: 20,
+                norm_like: '',
+                sep: '',
+                name: '',
+                birth_date: '',
+                health_facility_id: '3cb626f5-9148-4fb1-8663-3d7f028b01a6',
+                company_id: '1a055e0f-1b9d-42d2-bb84-7d8bf82fc4b8',
+                health_facility_item_id: '',
+                doctor_in_charge_id: '',
+                is_checkout: 0,
+                exit_id: '',
+
+                date_start: moment(new Date()).format('YYYY-MM-DD'),
+                date_end: moment(new Date()).format('YYYY-MM-DD'),
+            },
+            OptionsDummy: [
+                { value: 1, title: 'satu' },
+                { value: 1, title: 'dua' },
+            ],
+            currentPage: 1,
+            perPage: 20,
+            firstRows: 1,
+            lastRows: 20,
+            totalRows: 0,
+            pageOptions: [20, 50, 100],
+            isDisabledFilter: false,
+
+            OutpatientTable: [
+                { key: 'encounter', label: 'Aksi', thStyle: { width: '130px' }, },
+                { sortable: true, key: 'register_date', label: 'Tanggal Registrasi/SEP', thStyle: { width: '300px' } },
+                { sortable: true, key: 'name', label: 'Identitas Pasien', thStyle: { width: '300px' } },
+                { sortable: true, key: 'doctor_nickname', label: 'DPJP' },
+                { sortable: true, key: 'health_facility_item_name', label: 'Poliklinik' },
+                { sortable: true, key: 'sep', label: 'SEP' },
+                { sortable: true, key: 'exit_name', label: 'Status' },
+                { sortable: true, key: 'desc_inacbg', label: 'Nama Grouping' },
+                { sortable: true, key: 'cost_inacbg', label: 'Tarif INACBGs' },
+                { sortable: true, key: 'sts', label: 'Status' },
+            ],
+            OptionsExit:[
+                { value: '807ca005-5827-4e19-9c97-0bc3d4e924ca', title: 'Atas Persetujuan Dokter' },
+                { value: '4a6d28c4-e020-425f-91e1-d39699cf679b', title: 'Meninggal' },
+                { value: 'a1631acc-6a94-414d-95de-a9faea0f1c2f', title: 'Dirujuk' },
+                { value: 'ae0aabfa-1600-443f-8a60-62f9e76b1608', title: 'Permintaan Sendiri' },
+                { value: 'dfe2b9c6-5934-4748-aad9-6d19c957ecfd', title: 'Kabur' },
+                { value: '03e783b8-92ef-40c2-a867-d5895ffbfc83', title: 'Poliklinik' },
+                { value: 'f359a4b5-4406-49d7-9a81-49bf34b4c21a', title: 'Perbaikan' },
+                { value: '2542a5f7-570a-449c-9eee-525569c0ce1e', title: 'Rawat Inap' },
+            ],
+            ListItems: [],
+            requestCancelToken: null,
+            searchTimeout: null,
+            doctor_list: [],
+            is_user_specialist: false,
+            
+            isDisabled: false,
+        }
+    },
+    computed: {
+        ...mapState({ 
+            OptionsHealthFacility: state => state.healthfacility.options.healthfacility,
+            OptionsHealthFacilityItem: state => state.healthfacilityitem.options.healthfacilityitem,
+        }),
+    },
+    watch: {
+        currentPage: {
+            handler: function (value) {
+                this.firstRows = this.perPage * (value - 1) + 1
+                this.lastRows = this.perPage * (value)
+                this.params.offset = this.perPage * (value - 1)
+                this.params.limit = this.perPage
+
+                this.onListFast()
+            }
+        },
+        perPage: {
+            handler: function (value) {
+                this.params.limit = this.perPage
+                this.onListFast()
+            }
+        },
+    },
+    methods: {
+        conditionalMr(status) {
+            if (status == 4 || status == 5 || status == 6 || status == 7) return true;
+            return false
+        },
+        callThisQueue(data,action) {
+            const formData = {
+                id: data.registration_destination_id,
+                action: action,
+                code_booking: data.code_booking
+            } 
+            this.$store.dispatch('queue/formPostPutActionPoli', formData).then(res => {
+                // console.log('response: ', res);
+                this.$store.dispatch('queue/getAll', this.params) // buat refresh loket
+                this.onListFast()
+                // this.$store.dispatch('registration/getListFast',this.params)
+                this.socket.emit('SEND_WORKORDER', res);
+            }, 
+            err => {
+                this.isDisabled = false
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+            })
+        },
+
+        getPatientStatus(status,desc_inacbg) {
+            return (desc_inacbg !== null) ? 'Grouping' : 'Belum Grouping';        
+        },
+        getStatusVariant(status,desc_inacbg) {
+            // if (status == 3 && !call_stamp) return 'info-400';
+            // if (status == 5) return 'orange-500';
+            // if (status == 6) return 'warning-500';
+            if (desc_inacbg !== null) return 'success-500';
+            // if (status == 8) return 'success-500';
+            // if (status == 4 || call_stamp) return 'w3green';
+            return 'neutral-300'
+        },
+
+        onListFast() {
+            if (this.searchTimeout) {
+                clearTimeout(this.searchTimeout);
+            }
+
+            this.searchTimeout = setTimeout(() => {
+                this.isDisabledFilter = true;
+
+                this.params.norm_like = ""
+                this.params.name = ""
+                this.params.birth_date = ""
+
+                const input = this.searchQuery.trim();
+
+                if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+                    this.params.birth_date = input
+                } else {
+                    if (/^\d+$/.test(input)) {
+                        this.params.norm_like = input
+                    }
+                    else {
+                        this.params.name = input
+                    }
+                }
+
+                if (this.requestCancelToken) {
+                    // console.log("Membatalkan request sebelumnya...")
+                    this.requestCancelToken.cancel("Request sebelumnya dibatalkan.")
+                }
+
+                this.requestCancelToken = axios.CancelToken.source()
+                // console.log("Mengirim request baru...", this.params)
+                // console.log('this.requestCancelToken: ', this.requestCancelToken)
+
+
+                this.$store.dispatch("registration/getListFastJKN", { params: this.params, cancelToken: this.requestCancelToken.token })
+                .then((res) => {
+                    localStorage.setItem("jknfiltersession", JSON.stringify(this.params))
+                    this.ListItems = res.rows
+                    this.totalRows = res.iTotal
+                    this.isDisabledFilter = false
+                })
+                .catch((err) => {
+                    if (axios.isCancel(err)) {
+                        console.log("Request dibatalkan:", err.message)
+                    } else {
+                        console.error("Error saat request:", err)
+                    }
+                    this.isDisabledFilter = false
+                })
+            }, 300)
+        },
+
+        getDoctorId() {
+            const userLogin = localStorage.getItem('userData')
+            const parsed = JSON.parse(userLogin);
+            let is_specialist = parsed.user_group.name === 'Doctor' && parsed.position_id !== 'd93bd445-df1e-451a-bf95-5fc10546c133'
+
+            if (userLogin && is_specialist == true) {
+                this.is_user_specialist = true
+                return parsed.employee_id
+            }
+            this.is_user_specialist = false
+            return ''
+        },
+
+        parsed_age(input_date) {
+            if (!input_date || input_date === "0000-00-00") {
+                return "-";
+            }
+
+            const parsed = moment(input_date);
+            if (!parsed.isValid()) {
+                return "-";
+            }
+
+            const birthDate = moment(input_date, 'YYYY-MM-DD');
+            const currentDate = moment();
+
+            const years = currentDate.diff(birthDate, 'years');
+            birthDate.add(years, 'years');
+            const months = currentDate.diff(birthDate, 'months');
+            birthDate.add(months, 'months');
+            const days = currentDate.diff(birthDate, 'days');
+
+            return `${years} th ${months} bln ${days} hr`;
+        },
+    },
+    'params.health_facility_id' (val) {
+        if(val){
+            return this.$store.dispatch('healthfacilityitem/getParam', val)
+        }
+    },
+    mounted() {
+        this.params.doctor_in_charge_id = this.getDoctorId()
+    },
+    created() {
+        // this.$store.dispatch('healthfacilityitem/getParam', this.params.health_facility_id)
+        this.$store.dispatch('employee/getDoctorOptions', '').then((response) => {
+            this.doctor_list = response
+        })
+        this.params.doctor_in_charge_id = this.getDoctorId()
+        this.onListFast()
+    }
+
+}
+</script>
+<style lang="scss">
+@import '@core/scss/vue/libs/vue-select.scss';
+</style>

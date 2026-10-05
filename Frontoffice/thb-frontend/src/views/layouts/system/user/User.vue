@@ -1,0 +1,348 @@
+<template>
+    <div>
+        <section class="d-flex">
+            <b-button pill @click="toggleMainTab('list')"
+                :variant="active.main_tab === 'list' ? 'primary-500' : 'outline-primary-500'" class="mr-2">List
+            </b-button>
+            <b-button pill @click="toggleMainTab('add')"
+                :variant="active.main_tab === 'add' ? 'primary-500' : 'outline-primary-500'">Tambah Data</b-button>
+        </section>
+        <section class="mt-24">
+            <div v-if="active.main_tab === 'list'">
+                <section class="card">
+                    <div class="card-header font-weight-bold bg-primary-200"> Filter Data</div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-center">
+                            <div class="col-lg-4">
+
+                                <!-- <div class="col-lg-6 mt-12">
+                                    <label class="c-form-label">Instalasi</label>
+                                    <v-select :options="OptionsHealthFacility"
+                                        :reduce="OptionsHealthFacility => OptionsHealthFacility.value" label="title"
+                                        placeholder="--test aja --"></v-select>
+                                </div> -->
+
+                                <div class="mt-12">
+                                    <label class="c-form-label">Username</label>
+                                    <b-form-input v-model="params.name" autocomplete="off" />
+                                </div>
+                                <div class="mt-24">
+                                    <b-button type="submit" variant="primary" class="mr-1" :disabled="isDisabledFilter"
+                                        @click.prevent="filterData">
+                                        <feather-icon icon="SearchIcon" /> Filter
+                                    </b-button>
+                                    <b-button variant="outline-primary" @click.prevent="filterReset">
+                                        <feather-icon icon="XIcon" /> Clear Filter
+                                    </b-button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="mt-32">
+                    <div class="row mx-0">
+                        <b-form-group label-cols="6" label-align="left" label-size="sm" label-for="sortBySelect"
+                            class="text-nowrap mb-md-0 mr-1">
+                            <span class="text-regular-14">Tampilkan</span>
+                            <b-form-select id="per-page-select" v-model="perPage" size="sm" :options="pageOptions" />
+                            <span class="text-regular-14">Entri</span>
+                        </b-form-group>
+                    </div>
+                    <b-table bordered responsive hover small head-variant="light" :items="items" :fields="fields"
+                        :per-page="0" :current-page="currentPage" thead-class="text-bold-14"
+                        tbody-tr-class="text-regular-12" class="mt-12 text-center">
+                        <template #cell(is_delete)="data">
+                            <b-badge :variant="status[1][data.value]">
+                                {{ status[0][data.value] }}
+                            </b-badge>
+                        </template>
+                        <template #cell(action)="row">
+                            <div class="row mx-0">
+                                <b-button variant="warning-500" size="sm" class="mr-1">
+                                    <feather-icon icon="EditIcon" @click="editData(row.item)" />
+                                </b-button>
+                                <b-button variant="danger-500" size="sm">
+                                    <feather-icon icon="TrashIcon" @click="rowOnDelete(row.item.id)" />
+                                    <b-link v-b-modal.modal-center>
+                                    </b-link>
+                                </b-button>
+                            </div>
+                        </template>
+                    </b-table>
+                    <div class="col px-0 mt-20">
+                        <div class="d-flex">
+                            <span class="text-regular-14">Menampilkan {{ firstRows }} hingga <template
+                                    v-if="lastRows < totalRows">{{ lastRows }}</template> <template v-else>{{ totalRows
+                                    }}</template> dari {{ totalRows }} entri</span>
+                            <div class="ml-auto">
+                                <b-pagination v-model="currentPage" :total-rows="totalRows" :per-page="perPage" align="fill"
+                                    size="sm" class="my-0"></b-pagination>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div v-if="active.main_tab === 'add'">
+                <div class="card">
+                    <div class="card-header font-weight-bold bg-primary-200">Tambah Data</div>
+                    <b-overlay :show="show" spinner-variant="primary" spinner-type="grow" spinner-small rounded="sm">
+                        <div class="card-body">
+                            <div class="">
+                                <div class="col-lg-10">
+                                    <div class="row">
+                                        <div class="col-lg-6">
+                                            <div class="mt-12">
+                                                <label class="c-form-label">Pegawai</label>
+                                                <v-select v-model="form.employee_id" :options="OptionsEmployee" :reduce="OptionsEmployee => OptionsEmployee.value" label="title" placeholder="-- Pegawai --"></v-select>
+                                            </div>
+                                            <div class="mt-12">
+                                                <label class="c-form-label">Auth Group</label>
+                                                <v-select v-model="form.group_id" :options="OptionsGroup" :reduce="OptionsGroup => OptionsGroup.value" label="title" placeholder="-- Auth Group --"></v-select>
+                                            </div>
+                                            <div class="mt-12">
+                                                <label class="c-form-label">Nama</label>
+                                                <b-form-input v-model="form.username" autocomplete="off" />
+                                            </div>
+                                            <div class="mt-12">
+                                                <label class="c-form-label">Password</label>
+                                                <b-form-group label-size="sm" label-for="sortBySelect" class="text-nowrap mb-md-0 mr-1">
+                                                    <b-form-input v-model="form.password" autocomplete="off" />
+                                                    <b-button @click="randPass" variant="outline-secondary"> Generate Password </b-button>
+                                                </b-form-group>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <b-col cols="12" class="px-0 mt-24">
+                                        <b-button type="submit" variant="primary" class="mr-1"
+                                            @click.prevent="validationForm"> Submit </b-button>
+                                        <b-button @click="ResetForm" type="reset" variant="outline-secondary"> Reset
+                                        </b-button>
+                                    </b-col>
+                                </div>
+                            </div>
+                        </div>
+                    </b-overlay>
+                </div>
+            </div>
+        </section>
+    </div>
+</template>
+<script>
+import { mapState } from 'vuex'
+import ToastificationContent from '@core/components/toastification/ToastificationContent.vue'
+import vSelect from 'vue-select'
+
+export default {
+    name: 'user',
+    components: {
+        vSelect
+    },
+    data() {
+        return {
+            active: {
+                main_tab: 'list',
+            },
+            params: {
+                offset: 0,
+                limit: 20,
+                employee_id: '',
+                group_id: '',
+                username: ''
+            },
+            currentPage: 1,
+            perPage: 20,
+            firstRows: 1,
+            lastRows: 20,
+            isDisabled: false,
+            isDisabledFilter: false,
+            show: false,
+            dir: false,
+            sortBy: '',
+            sortDesc: false,
+            sortDirection: 'asc',
+            filter: null,
+            filterOn: [],
+            status: [{
+                0: 'Active', 1: 'Deleted'
+            },
+            {
+                0: 'primary', 1: 'danger'
+            }],
+            form: {
+                id: null,
+                employee_id: '',
+                group_id: '',
+                username: '',
+                password: ''
+            }
+        }
+    },
+    watch: {
+        currentPage: {
+            handler: function (value) {
+                this.firstRows = this.perPage * (value - 1) + 1
+                this.lastRows = this.perPage * (value) + 1
+                this.params.offset = this.perPage * (value - 1)
+                this.params.limit = this.perPage
+                this.$store.dispatch('user/getAll', this.params)
+            }
+        },
+        perPage: {
+            handler: function (value) {
+                this.params.limit = this.perPage
+                this.$store.dispatch('user/getAll', this.params)
+            }
+        },
+    },
+    computed: {
+        ...mapState({
+            totalRows: state => state.user.totalRows,
+            fields: state => state.user.fields,
+            items: state => state.user.items,
+            pageOptions: state => state.user.pageOptions,
+            OptionsEmployee: state => state.employee.options.employee,
+            OptionsGroup: state => state.group.options.group,
+        }),
+        sortOptions() {
+            return this.fields.filter(f => f.sortable).map(f => ({ text: f.label, value: f.key }))
+        },
+        dateFormat() {
+            return create_at => this.$options.filters.formatDate(create_at)
+        },
+        direction() {
+            if (store.state.appConfig.isRTL) {
+                this.dir = true
+                return this.dir
+            }
+            this.dir = false
+            return this.dir
+        }
+    },
+    methods: {
+        rowOnDelete(id) {
+            this.$bvModal
+                .msgBoxConfirm('Please confirm that you want to delete everything.', {
+                    title: 'Please Confirm', size: 'sm', okVariant: 'primary', okTitle: 'Yes', cancelTitle: 'No', cancelVariant: 'outline-secondary', hideHeaderClose: false, centered: true,
+                })
+                .then(value => {
+                    if (value === true) {
+                        this.$store.dispatch('user/remove', id)
+                            .then(response => {
+                                if (response.status === 200) {
+                                    this.$store.dispatch('user/getAll', this.params)
+                                    this.notification('Success', 'CheckIcon', 'success', 'You have successfully')
+                                } else {
+                                    this.notification('Failed', 'CloseIcon', 'danger', 'You have unsuccessful')
+                                }
+                            },
+                                error => {
+                                    this.notification('Failed', 'CloseIcon', 'danger', 'You have unsuccessful')
+                                })
+                    }
+                })
+        },
+        toggleMainTab(tab) {
+            this.active.main_tab = tab
+            this.form.id = ''
+            this.form.employee_id = ''
+            this.form.group_id = ''
+            this.form.name = ''
+            this.form.password = ''
+        },
+        validationForm() {
+            this.show = true
+            this.isDisabled = true
+            const formData = this.form
+            this.$store.dispatch('user/formPostPut', formData)
+                .then(res => {
+                    this.notification('Success', 'CheckIcon', 'success', 'You have successfully')
+                    this.$store.dispatch('user/getAll', this.params)
+                    this.active.main_tab = 'list'
+                    this.form.id = ''
+                    this.form.employee_id = ''
+                    this.form.group_id = ''
+                    this.form.username = ''
+                    this.form.password = ''
+                    this.show = false
+                    this.isDisabled = false
+                    console.log('sukses');
+                },
+                    err => {
+                        console.log('error');
+                        this.show = false
+                        this.isDisabled = false
+                        this.notification('Failed', 'CloseIcon', 'danger', 'You have unsuccessful')
+                    })
+        },
+        ResetForm() {
+            this.form.password = ''
+            this.form.employee_id = ''
+            this.form.group_id = ''
+            this.form.name = ''
+        },
+        filterData() {
+            this.show = true
+            this.isDisabledFilter = true
+            this.$store.dispatch('user/getAll', this.params)
+                .then(res => {
+                    this.show = false
+                    this.isDisabledFilter = false
+                },
+                    err => {
+                        this.show = false
+                        this.isDisabledFilter = false
+                    })
+        },
+        filterReset() {
+            this.params.employee_id = ''
+            this.params.group_id = ''
+            this.params.name = ''
+            this.params.offset = 0
+            this.params.limit = this.perPage
+            this.$store.dispatch('user/getAll', this.params)
+        },
+        notification(a, b, c, d) {
+            this.$toast({
+                component: ToastificationContent,
+                position: 'top-right',
+                props: { title: a, icon: b, variant: c, text: d }
+            })
+        },
+        editData(obj) {
+            this.active.main_tab = 'add'
+            this.form.id = obj.id
+            this.form.employee_id = obj.employee_id
+            this.form.group_id = obj.group_id
+            this.form.username = obj.username
+            this.show = false
+        },
+        randPass () {
+            let pass = '';
+            let str = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+                'abcdefghijklmnopqrstuvwxyz0123456789@#$';
+
+            for (let i = 1; i <= 8; i++) {
+                let char = Math.floor(Math.random()
+                    * str.length + 1);
+
+                pass += str.charAt(char)
+            }
+            this.form.password = pass
+        }
+    },
+    mounted() {
+        this.$store.state.totalRows = this.items.length
+        this.show = false
+    },
+    created() {
+        this.$store.dispatch('user/getAll', this.params)
+        this.$store.dispatch('employee/getParamAll') // 1 select filter
+        this.$store.dispatch('group/getParam') // 1 select filter
+        this.show = true
+    }
+}
+</script>
+
+<style lang="scss">
+@import '@core/scss/vue/libs/vue-select.scss';
+</style>

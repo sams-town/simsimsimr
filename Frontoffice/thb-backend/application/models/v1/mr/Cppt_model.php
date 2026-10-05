@@ -1,0 +1,16 @@
+<?php class Cppt_model extends MY_Model {
+	protected $tableName = 'cppt';
+	protected $resultMode = 'object';	  
+	public $primaryKey = 'id';	
+	public $whereFields;
+	public $limit;
+	public $offset;
+	protected $orderFields = array('a.date_added' => 'DESC');
+	protected $selectFields = "a.*,e.fullname as doctor_in_charge_name, hfi.name as health_facility_item_name";
+	protected $joinFields = array(
+		array('employee e', 'a.doctor_in_charge_id = e.id', 'INNER'),
+		array('registration_destination rd', 'a.registration_destination_id = rd.id', 'INNER'),
+		array('registration r', 'rd.registration_id = r.id', 'INNER'),
+		array('health_facility_item hfi', 'rd.health_facility_item_id = hfi.id', 'INNER'),
+	);
+}?>

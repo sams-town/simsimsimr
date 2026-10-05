@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  rssm-backoffice-frontend-dev:
+    image: rssm-backoffice-frontend-dev
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rssm-backoffice-frontend-dev-http.entrypoints=web"
+      - "traefik.http.routers.rssm-backoffice-frontend-dev-http.rule=Host(`app-dev.example.com`)"
+      - "traefik.http.routers.rssm-backoffice-frontend-dev-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.rssm-backoffice-frontend-dev.entrypoints=websecure"
+      - "traefik.http.routers.rssm-backoffice-frontend-dev.tls.certresolver=myresolver"
+      - "traefik.http.routers.rssm-backoffice-frontend-dev.rule=Host(`app-dev.example.com`)"
+      - 'traefik.http.routers.rssm-backoffice-frontend-dev.tls=true'
+    restart: always
+    networks:
+      - traefik_default
+
+  rssm-backoffice-frontend-prod:
+    image: rssm-backoffice-frontend-prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rssm-backoffice-frontend-prod-http.entrypoints=web"
+      - "traefik.http.routers.rssm-backoffice-frontend-prod-http.rule=Host(`app.example.com`)"
+      - "traefik.http.routers.rssm-backoffice-frontend-prod-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.rssm-backoffice-frontend-prod.entrypoints=websecure"
+      - "traefik.http.routers.rssm-backoffice-frontend-prod.tls.certresolver=myresolver"
+      - "traefik.http.routers.rssm-backoffice-frontend-prod.rule=Host(`app.example.com`)"
+      - 'traefik.http.routers.rssm-backoffice-frontend-prod.tls=true'
+    restart: always
+    networks:
+      - traefik_default
+
+networks:
+  traefik_default:
+    external: true

@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+  rssm-backoffice-backend-dev:
+    image: rssm-backoffice-backend-dev
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rssm-backoffice-backend-dev-http.entrypoints=web"
+      - "traefik.http.routers.rssm-backoffice-backend-dev-http.rule=Host(`api-dev.example.com`)"
+      - "traefik.http.routers.rssm-backoffice-backend-dev-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.rssm-backoffice-backend-dev.entrypoints=websecure"
+      - "traefik.http.routers.rssm-backoffice-backend-dev.tls.certresolver=myresolver"
+      - "traefik.http.routers.rssm-backoffice-backend-dev.rule=Host(`api-dev.example.com`)"
+      - 'traefik.http.routers.rssm-backoffice-backend-dev.tls=true'
+    restart: always
+    networks:
+      - traefik_default
+    volumes:
+      - ./uploads-dev:/app/Uploads
+
+  rssm-backoffice-backend-prod:
+    image: rssm-backoffice-backend-prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rssm-backoffice-backend-prod-http.entrypoints=web"
+      - "traefik.http.routers.rssm-backoffice-backend-prod-http.rule=Host(`api.example.com`)"
+      - "traefik.http.routers.rssm-backoffice-backend-prod-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.rssm-backoffice-backend-prod.entrypoints=websecure"
+      - "traefik.http.routers.rssm-backoffice-backend-prod.tls.certresolver=myresolver"
+      - "traefik.http.routers.rssm-backoffice-backend-prod.rule=Host(`api.example.com`)"
+      - 'traefik.http.routers.rssm-backoffice-backend-prod.tls=true'
+    restart: always
+    networks:
+      - traefik_default
+    volumes:
+      - ./uploads-prod:/app/Uploads
+
+networks:
+  traefik_default:
+    external: true

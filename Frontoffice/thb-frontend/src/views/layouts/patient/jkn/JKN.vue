@@ -1,0 +1,1971 @@
+<template>
+    <div>
+        <div class="label-head my-16 my-lg-24">
+            <span class="px-16 text-bold-24 text-neutral-700">JKN Access</span>
+        </div>
+        <!-- ////////  -->
+        <div class="card-body shadow-sm rounded">
+            <div class="row mx-0">
+                <div class="col-12 col-lg">
+                    <div class="row">
+                        <div class="col-12 col-lg">
+                            <span class="text-bold-18 text-indigo">
+                                <img src="@/@core/assets/icons/nurse/user.svg" alt="user-icon">{{this.regData.norm}}
+                            </span>
+                            <p class="mb-0 mt-12 text-semi-24 text-neutral-800">
+                                <span>({{this.regData.alias_name}}) </span>
+                                <span>{{this.regData.name}}</span>
+                            </p>
+                            <div class="row mx-0 mt-16">
+                                <b-badge class="rounded text-neutral-500 text-uppercase border border-success-200 px-10 py-1" :variant="this.regData.is_new == 'N' ? 'success-200' : 'info-200'">{{ this.regData.is_new == 'N' ? 'Pasien Lama' : 'pasien Baru' }}</b-badge>
+                                <b-badge
+                                    class="rounded text-neutral-500 text-uppercase border border-success-500 px-10 py-1 mx-lg-12 "
+                                    variant="success-200">{{this.regData.health_facility_name}}</b-badge>
+                                <b-badge
+                                    class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1 "
+                                    variant="warning-200">{{this.regData.health_facility_item_name}}</b-badge>
+                                <div v-if="this.regData.registration_insurance">
+                                    <div v-for="list in this.regData.registration_insurance">
+                                        <b-badge v-if="list.is_cob == 1"class="rounded text-neutral-500 text-uppercase border border-warning-500 px-10 py-1" variant="warning-200">COB</b-badge>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- SOAP DISPLAY -->
+        <section class="card mt-32">
+            <div class="card-body shadow-sm">
+                    <div class="d-flex justify-content-between mb-3 step-icons">
+                        <div v-for="n in maxStep" :key="n" class="text-center flex-fill">
+                        <feather-icon :class="getStepIcon(n)" :style="{ color: step >= n ? '#007bff' : '#ccc' }" icon="InfoIcon" />
+                        <div class="mt-1">{{ n == 1 ? 'Grouping System' : ''}} {{ n == 2 ? 'Optimalisasi Grouping' : ''}} {{ n == 3 ? 'Final/Submit' : ''}} {{ n == 4 ? 'Final' : ''}}</div>
+                        </div>
+                    </div>
+                    <b-progress :value="(step / maxStep) * 100" class="mb-3"></b-progress>
+
+                    <div v-if="step === 1">
+                        <h4>Assesmen Dokter Tidak Ditemukan</h4>
+                        
+                        <div class="col-lg-12">
+                            <table class="table">
+                                <tr>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Prosedur Non Bedah
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Prosedur Bedah
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="modalCost('konsultasi')" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Konsultasi
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.konsultasi" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Tenaga Ahli
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Keperawatan
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Penunjang
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Radiologi
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Laboratorium
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Pelayanan Darah
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Rehabilitasi
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Kamar / Akomodasi
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Rawat Intensif
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="modalCost('obat')" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Obat
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.obat" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Obat Kronis
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Obat Kemoterapi
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Alkes
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        BMHP
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                    <td class="text-right">
+                                        <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                            <feather-icon icon="InfoIcon" />
+                                        </b-button>
+                                        Sewat Alkes
+                                    </td>
+                                    <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                </tr>
+                            </table>
+                            <table class="table" v-if="eklaim.json_obj">
+                                <tr>
+                                    <td colspan="5" class="text-center">Hasil Grouper E-klaim v5</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">INFO</td>
+                                    <td colspan="5">INACBG •• Kelas B •• Tarif : TARIF RS KELAS B SWASTA</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Jenis Rawat</td>
+                                    <td>Rawat Jalan Regular	</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Group</td>
+                                    <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response.cbg.description : '' }}</td>
+                                    <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response.cbg.code : '' }}</td>
+                                    <td>Rp</td>
+                                    <td class="text-right">{{ eklaim.json_obj !== null ? (eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff) : 0 | currency}}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Chronic</td>
+                                    <td>-</td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                                <template v-if="eklaim.json_obj != null && eklaim.json_obj.response.cbg.code === 'H-2-36-0'">
+                                    <tr>
+                                        <td class="text-right">Special Procedure</td>
+                                        <td><v-select v-model="eklaim.special_cmg_option" aria-readonly="true" :options="OptionsSpecialCMG" @input="special_cmg()" :reduce="OptionsSpecialCMG => OptionsSpecialCMG.value" label="title" placeholder="-- Pilih --"></v-select></td>
+                                        <td></td>
+                                        <td>Rp</td>
+                                        <td class="text-right">0</td>
+                                    </tr>
+                                </template>
+                                <template v-else>
+                                    <tr>
+                                        <td class="text-right">Special Procedure</td>
+                                        <td>-</td>
+                                        <td></td>
+                                        <td>Rp</td>
+                                        <td class="text-right">0</td>
+                                    </tr>
+                                </template>
+                                <tr>
+                                    <td class="text-right">Special Prosthesis</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Special Investigation</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Spesial Drug</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Special Procedure</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                                <template v-if="eklaim.json_obj != null && eklaim.json_obj.response.cbg.code === 'N-3-15-0'">
+                                    <tr>
+                                        <td class="text-right">Penggunaan Dializer</td>
+                                        <td>
+                                            <b-form-radio-group v-model="eklaim.dializer_single_use" class="">
+                                                <b-form-radio value="0">Multiple Use (Reuse)</b-form-radio>
+                                                <b-form-radio value="1">Single Use</b-form-radio>
+                                            </b-form-radio-group>
+                                        </td>
+                                        <td></td>
+                                        <td>Rp</td>
+                                        <td class="text-right">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-right">Transfusi Darah</td>
+                                        <td>
+                                            <table>
+                                                <tr>
+                                                    <td>Jumlah Kantong Darah :</td>
+                                                    <td><b-form-input style="width:100px" v-model="eklaim.kantong_darah" autocomplete="false" class="text-center" type="number" size="sm"></b-form-input></td>
+                                                    <td>kantong</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td>{{ eklaim.dializer_single_use == 0 ? '85%' : '100%' }}</td>
+                                        <td>Rp</td>
+                                        <td class="text-right">{{ eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff | currency }}</td>
+                                    </tr>
+                                </template>
+                                <tr>
+                                    <td colspan="4" class="text-right">Total Rp</td>
+                                    <td class="text-right">{{ eklaim.json_obj !== null ? (eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff) : 0 | currency }}</td>
+                                </tr>
+                            </table>
+                            <table class="table" v-if="eklaim.json_obj">
+                                <tr>
+                                    <td colspan="5" class="text-center">Hasil Grouper E-Klaim v6</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">INFO</td>
+                                    <td colspan="5">INACBG @ - {{ eklaim.json_obj !== null ? eklaim.json_obj.response.inacbg_version : '' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Jenis Rawat</td>
+                                    <td>Rawat Jalan	</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">MDC</td>
+                                    <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.mdc_description : '' }}</td>
+                                    <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.mdc_number : '' }}</td>
+                                    <td></td>
+                                    <td class="text-right"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">DRG</td>
+                                    <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.drg_description : '' }}</td>
+                                    <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.drg_code : '' }}</td>
+                                    <td></td>
+                                    <td class="text-right"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div v-else-if="step === 2">
+                        <div class="mt-24 d-flex">
+                            <!-- <b-button @click="openMainModal" pill variant="outline-primary" class="px-3">Perbarui Assessment</b-button> -->
+                            <!-- <router-link :to="{ path: '/prints/resume/' + regData.registration_destination_id }">
+                                <b-button pill variant="outline-primary" v-b-popover.hover.top="'Buka Coding'" class="mr-1" >
+                                    <feather-icon icon="FileIcon" /> Print Resume
+                                </b-button>
+                            </router-link> -->
+                        </div>
+                        <div class="row mt-16">
+                            <div class="col-lg-4">
+                                <div class="row mt-16">
+                                    <div class="col-lg-12">
+                                        <div>
+                                            <div class="text-uppercase text-bold-14 text-primary-500">Anamnesa :</div>
+                                            <div class="mt-8" style="font-size: 13px;">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td class="align-top" style="width: 200px">Anamnesa</td>
+                                                        <td class="align-top px-3" style="width: 30px;">:</td>
+                                                        <td class="align-top">{{ jknData.soap_s && jknData.soap_s.anamesa_type_id == 2 ? 'Allo Anamnesa' : 'Auto Anamnesa' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Keluarga</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">{{ jknData.soap_s && jknData.soap_s.family_name ? jknData.soap_s.family_name : '-' }} {{ jknData.soap_s && jknData.soap_s.family_relation_id ? `(${getFamilyRelation(jknData.soap_s.family_relation_id)})` : '' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Keluhan Utama</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_s && jknData.soap_s.main_complaint ? jknData.soap_s.main_complaint : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Riwayat Penyakit Sekarang</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_s && jknData.soap_s.history_disease_now ? jknData.soap_s.history_disease_now : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Riwayat Penyakit Dahulu</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_s && jknData.soap_s.history_disease_past ? jknData.soap_s.history_disease_past : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Riwayat Obat</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_s && jknData.soap_s.history_drugs ? jknData.soap_s.history_drugs : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-24">
+                                    <div class="col-lg-12">
+                                        <div>
+                                            <div class="text-uppercase text-bold-14 text-primary-500">Diagnosis :</div>
+                                            <div class="mt-8" style="font-size: 13px;">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td class="align-top" style="width: 200px">ICD10 Utama</td>
+                                                        <td class="align-top" style="width: 30px;">:</td>
+                                                        <td class="align-top">
+                                                            <div v-if="jknData.icd10 && jknData.icd10.length != 0">
+                                                                <template v-for="(item, index) in jknData.icd10">
+                                                                    <div v-if="index === 0" class="mt-1">{{ item.icd10_code }} {{ item.icd10_name }}</div>
+                                                                </template>
+                                                            </div>
+                                                            <div v-else class="mt-1">-</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">ICD10 Tambahan</td>
+                                                        <td class="align-top">:</td>
+                                                        <td class="align-top">
+                                                            <div v-if="jknData.icd10 && jknData.icd10.length != 0">
+                                                                <template v-for="(item, index) in jknData.icd10">
+                                                                    <div v-if="jknData.icd10.length > 1" class="mt-1">
+                                                                        <div v-if="index > 0">{{ item.icd10_code }} {{ item.icd10_name }}</div>
+                                                                    </div>
+                                                                    <div v-else class="mt-1">-</div>
+                                                                </template>
+                                                            </div>
+                                                            <div v-else class="mt-1">-</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Catatan ICD10</td>
+                                                        <td class="align-top">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_a && jknData.soap_a.icd10_notes ? jknData.soap_a.icd10_notes : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Diagnosis Non-ICD10</td>
+                                                        <td class="align-top">:</td>
+                                                        <td class="align-top">
+                                                            <template v-if="jknData.soap_a && jknData.soap_a.non_icd10.length > 0">
+                                                                <li v-for="(item, index) in jknData.soap_a.non_icd10" :key="index">{{ item }}</li>
+                                                            </template>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Assessment Lainnya</td>
+                                                        <td class="align-top">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_a && jknData.soap_a.anythingelse ? jknData.soap_a.anythingelse : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-24">
+                                    <div class="col-lg-12">
+                                        <div>
+                                            <div class="text-uppercase text-bold-14 text-primary-500">Tindakan ICD9CM :</div>
+                                            <div class="mt-8" style="font-size: 13px;">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td class="align-top" style="width: 200px">ICD9CM</td>
+                                                        <td class="align-top" style="width: 30px;">:</td>
+                                                        <td class="align-top">
+                                                            <div v-if="jknData.icd9cm && jknData.icd9cm.length != 0">
+                                                                <div v-for="(item, index) in jknData.icd9cm" :key="index">{{ item.icd9cm_code }} {{ item.icd9cm_name }} </div>
+                                                            </div>
+                                                            <div v-else class="mt-1">-</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Catatan ICD9CM</td>
+                                                        <td class="align-top">:</td>
+                                                        <td class="align-top">
+                                                            <div v-html="parsedBody(jknData.soap_p && jknData.soap_p.therapy_plan ? jknData.soap_p.therapy_plan : '-')"></div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-24">
+                                    <div class="col-lg-4">
+                                        <div>
+                                            <div class="text-uppercase text-bold-14 text-primary-500">TTV :</div>
+                                            <div class="mt-8" style="font-size: 13px;">
+                                                Systolic = {{ jknData.nurse && jknData.nurse.systolic_blood_pressure ? jknData.nurse.systolic_blood_pressure : '-' }},
+                                                Diastolic = {{ jknData.nurse && jknData.nurse.diastolic_blood_pressure ? jknData.nurse.diastolic_blood_pressure : '-' }},
+                                                Frekuensi Nadi = {{ jknData.nurse && jknData.nurse.pulse_frequency ? jknData.nurse.pulse_frequency : '-' }},
+                                                Frekuensi Nafas = {{ jknData.nurse && jknData.nurse.breath_frequency ? jknData.nurse.breath_frequency : '-' }},
+                                                Saturasi Oksigen = {{ jknData.nurse && jknData.nurse.oximetry_frequency ? jknData.nurse.oximetry_frequency : '-' }},
+                                                Suhu = {{ jknData.nurse && jknData.nurse.temperature ? jknData.nurse.temperature : '-' }},
+                                                Skor Nyeri = {{ jknData.nurse && jknData.nurse.sore_score ? jknData.nurse.sore_score : '-' }},
+                                                EWS = {{ jknData.nurse && jknData.nurse.ews ? jknData.nurse.ews : '-' }},
+                                                Gula Darah = {{ jknData.nurse && jknData.nurse.blood_sugar ? jknData.nurse.blood_sugar : '-' }}
+                                            </div>
+                                        </div>
+                                        <div class="mt-16">
+                                            <div class="text-uppercase text-bold-14 text-primary-500">Antropometri :</div>
+                                            <div class="mt-8" style="font-size: 13px;">
+                                                Berat Badan = {{ jknData.nurse && jknData.nurse.weight ? jknData.nurse.weight : '0' }},
+                                                Tinggi Badan = {{ jknData.nurse && jknData.nurse.height ? jknData.nurse.height : '0' }},
+                                                IMT = {{ jknData.nurse && jknData.nurse.imt ? jknData.nurse.imt : '0' }},
+                                                Lingkar Kepala = {{ jknData.nurse && jknData.nurse.head_circumference ? jknData.nurse.head_circumference : '0' }},
+                                                Lingkar Dada = {{ jknData.nurse && jknData.nurse.chest_circumference ? jknData.nurse.chest_circumference : '0' }},
+                                                Lingkar Lengan Atas = {{ jknData.nurse && jknData.nurse.arm_circumference ? jknData.nurse.arm_circumference : '0' }},
+                                                Lingkar Perut = {{ jknData.nurse && jknData.nurse.stomach_circumference ? jknData.nurse.stomach_circumference : '0' }},
+                                                Lingkar Lutut = {{ jknData.nurse && jknData.nurse.knee_circumference ? jknData.nurse.knee_circumference : '0' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <div>
+                                            <div class="text-uppercase text-bold-14 text-primary-500">Status Pendaftaran Pasien :</div>
+                                            <div class="mt-8" style="font-size: 13px;">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td class="align-top" style="width: 200px">Kriteria Pasien</td>
+                                                        <td class="align-top px-3" style="width: 30px;">:</td>
+                                                        <td class="align-top">{{ jknData.type_emergency_name ? jknData.type_emergency_name : '-' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Jenis Kunjungan</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">{{ jknData.type_visit_name ? jknData.type_visit_name : '-' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="align-top">Cara Keluar RS</td>
+                                                        <td class="align-top px-3">:</td>
+                                                        <td class="align-top">{{ jknData.exit_reason != null ? jknData.exit_reason : '-' }}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="col-lg-12">
+                                    <table class="table">
+                                        <tr>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Prosedur Non Bedah
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Prosedur Bedah
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('konsultasi')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Konsultasi
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.konsultasi" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Tenaga Ahli
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('keperawatan')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Keperawatan
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.keperawatan" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Penunjang
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('radiologi')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Radiologi
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.radiologi" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('laboratorium')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Laboratorium
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.laboratorium" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('pelayanan_darah')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Pelayanan Darah
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.pelayanan_darah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('rehabilitasi')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Rehabilitasi
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.rehabilitasi" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('kamar')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Kamar / Akomodasi
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.kamar" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Rawat Intensif
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('obat')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Obat
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.obat" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Obat Kronis
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Obat Kemoterapi
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Alkes
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="delete10(1)" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                BMHP
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.procedur_non_bedah" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                            <td class="text-right">
+                                                <b-button variant="info-600" size="sm" @click="modalCost('sewa_alat')" class="mr-2">
+                                                    <feather-icon icon="InfoIcon" />
+                                                </b-button>
+                                                Sewat Alkes
+                                            </td>
+                                            <td><b-form-input v-model="eklaim.sewa_alat" autocomplete="false" class="text-center" type="number" size="lg"></b-form-input></td>
+                                        </tr>
+                                    </table>
+                                    <table class="table" v-if="eklaim.json_obj">
+                                        <tr>
+                                            <td colspan="5" class="text-center">Hasil Grouper E-klaim v5</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">INFO</td>
+                                            <td colspan="5">INACBG •• Kelas B •• Tarif : TARIF RS KELAS B SWASTA</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Jenis Rawat</td>
+                                            <td>Rawat Jalan Regular	</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Group</td>
+                                            <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response.cbg.description : '' }}</td>
+                                            <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response.cbg.code : '' }}</td>
+                                            <td>Rp</td>
+                                            <td class="text-right">{{ eklaim.json_obj !== null ? (eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff) : 0 | currency}}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Chronic</td>
+                                            <td>-</td>
+                                            <td></td>
+                                            <td>Rp</td>
+                                            <td class="text-right">0</td>
+                                        </tr>
+                                        <template v-if="eklaim.json_obj != null && eklaim.json_obj.response.cbg.code === 'H-2-36-0'">
+                                            <tr>
+                                                <td class="text-right">Special Procedure</td>
+                                                <td><v-select v-model="eklaim.special_cmg_option" aria-readonly="true" :options="OptionsSpecialCMG" @input="special_cmg()" :reduce="OptionsSpecialCMG => OptionsSpecialCMG.value" label="title" placeholder="-- Pilih --"></v-select></td>
+                                                <td></td>
+                                                <td>Rp</td>
+                                                <td class="text-right">0</td>
+                                            </tr>
+                                        </template>
+                                        <template v-else>
+                                            <tr>
+                                                <td class="text-right">Special Procedure</td>
+                                                <td>-</td>
+                                                <td></td>
+                                                <td>Rp</td>
+                                                <td class="text-right">0</td>
+                                            </tr>
+                                        </template>
+                                        <tr>
+                                            <td class="text-right">Special Prosthesis</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>Rp</td>
+                                            <td class="text-right">0</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Special Investigation</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>Rp</td>
+                                            <td class="text-right">0</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Spesial Drug</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>Rp</td>
+                                            <td class="text-right">0</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Special Procedure</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>Rp</td>
+                                            <td class="text-right">0</td>
+                                        </tr>
+                                        <template v-if="eklaim.json_obj != null && eklaim.json_obj.response.cbg.code === 'N-3-15-0'">
+                                            <tr>
+                                                <td class="text-right">Penggunaan Dializer</td>
+                                                <td>
+                                                    <b-form-radio-group v-model="eklaim.dializer_single_use" class="">
+                                                        <b-form-radio value="0">Multiple Use (Reuse)</b-form-radio>
+                                                        <b-form-radio value="1">Single Use</b-form-radio>
+                                                    </b-form-radio-group>
+                                                </td>
+                                                <td></td>
+                                                <td>Rp</td>
+                                                <td class="text-right">0</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-right">Transfusi Darah</td>
+                                                <td>
+                                                    <table>
+                                                        <tr>
+                                                            <td>Jumlah Kantong Darah :</td>
+                                                            <td><b-form-input style="width:100px" v-model="eklaim.kantong_darah" autocomplete="false" class="text-center" type="number" size="sm"></b-form-input></td>
+                                                            <td>kantong</td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                <td>{{ eklaim.dializer_single_use == 0 ? '85%' : '100%' }}</td>
+                                                <td>Rp</td>
+                                                <td class="text-right">{{ eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff | currency }}</td>
+                                            </tr>
+                                        </template>
+                                        <tr>
+                                            <td colspan="4" class="text-right">Total Rp</td>
+                                            <td class="text-right">{{ eklaim.json_obj !== null ? (eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff) : 0 | currency }}</td>
+                                        </tr>
+                                    </table>
+                                    <table class="table" v-if="eklaim.json_obj">
+                                        <tr>
+                                            <td colspan="5" class="text-center">Hasil Grouper E-Klaim v6</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">INFO</td>
+                                            <td colspan="5">INACBG @ - {{ eklaim.json_obj !== null ? eklaim.json_obj.response.inacbg_version : '' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">Jenis Rawat</td>
+                                            <td>Rawat Jalan	</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">MDC</td>
+                                            <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.mdc_description : '' }}</td>
+                                            <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.mdc_number : '' }}</td>
+                                            <td></td>
+                                            <td class="text-right"></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-right">DRG</td>
+                                            <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.drg_description : '' }}</td>
+                                            <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.drg_code : '' }}</td>
+                                            <td></td>
+                                            <td class="text-right"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else-if="step === 3">
+                        <table class="table" v-if="eklaim.json_obj">
+                            <tr>
+                                <td colspan="5" class="text-center">Hasil Grouper E-klaim v5</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">INFO</td>
+                                <td colspan="5">INACBG •• Kelas B •• Tarif : TARIF RS KELAS B SWASTA</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Jenis Rawat</td>
+                                <td>Rawat Jalan Regular	</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Group</td>
+                                <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response.cbg.description : '' }}</td>
+                                <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response.cbg.code : '' }}</td>
+                                <td>Rp</td>
+                                <td class="text-right">{{ eklaim.json_obj !== null ? (eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff) : 0 | currency}}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Chronic</td>
+                                <td>-</td>
+                                <td></td>
+                                <td>Rp</td>
+                                <td class="text-right">0</td>
+                            </tr>
+                            <template v-if="eklaim.json_obj != null && eklaim.json_obj.response.cbg.code === 'H-2-36-0'">
+                                <tr>
+                                    <td class="text-right">Special Procedure</td>
+                                    <td><v-select v-model="eklaim.special_cmg_option" aria-readonly="true" :options="OptionsSpecialCMG" @input="special_cmg()" :reduce="OptionsSpecialCMG => OptionsSpecialCMG.value" label="title" placeholder="-- Pilih --"></v-select></td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                            </template>
+                            <template v-else>
+                                <tr>
+                                    <td class="text-right">Special Procedure</td>
+                                    <td>-</td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                            </template>
+                            <tr>
+                                <td class="text-right">Special Prosthesis</td>
+                                <td></td>
+                                <td></td>
+                                <td>Rp</td>
+                                <td class="text-right">0</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Special Investigation</td>
+                                <td></td>
+                                <td></td>
+                                <td>Rp</td>
+                                <td class="text-right">0</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Spesial Drug</td>
+                                <td></td>
+                                <td></td>
+                                <td>Rp</td>
+                                <td class="text-right">0</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Special Procedure</td>
+                                <td></td>
+                                <td></td>
+                                <td>Rp</td>
+                                <td class="text-right">0</td>
+                            </tr>
+                            <template v-if="eklaim.json_obj != null && eklaim.json_obj.response.cbg.code === 'N-3-15-0'">
+                                <tr>
+                                    <td class="text-right">Penggunaan Dializer</td>
+                                    <td>
+                                        <b-form-radio-group v-model="eklaim.dializer_single_use" class="">
+                                            <b-form-radio value="0">Multiple Use (Reuse)</b-form-radio>
+                                            <b-form-radio value="1">Single Use</b-form-radio>
+                                        </b-form-radio-group>
+                                    </td>
+                                    <td></td>
+                                    <td>Rp</td>
+                                    <td class="text-right">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">Transfusi Darah</td>
+                                    <td>
+                                        <table>
+                                            <tr>
+                                                <td>Jumlah Kantong Darah :</td>
+                                                <td><b-form-input style="width:100px" v-model="eklaim.kantong_darah" autocomplete="false" class="text-center" type="number" size="sm"></b-form-input></td>
+                                                <td>kantong</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td>{{ eklaim.dializer_single_use == 0 ? '85%' : '100%' }}</td>
+                                    <td>Rp</td>
+                                    <td class="text-right">{{ eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff | currency }}</td>
+                                </tr>
+                            </template>
+                            <tr>
+                                <td colspan="4" class="text-right">Total Rp</td>
+                                <td class="text-right">{{ eklaim.json_obj !== null ? (eklaim.dializer_single_use == 0 ? eklaim.json_obj.response.cbg.tariff : eklaim.json_obj.response.cbg.base_tariff) : 0 | currency }}</td>
+                            </tr>
+                        </table>
+                        <table class="table" v-if="eklaim.json_obj">
+                            <tr>
+                                <td colspan="5" class="text-center">Hasil Grouper E-Klaim v6</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">INFO</td>
+                                <td colspan="5">INACBG @ - {{ eklaim.json_obj !== null ? eklaim.json_obj.response.inacbg_version : '' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">Jenis Rawat</td>
+                                <td>Rawat Jalan	</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">MDC</td>
+                                <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.mdc_description : '' }}</td>
+                                <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.mdc_number : '' }}</td>
+                                <td></td>
+                                <td class="text-right"></td>
+                            </tr>
+                            <tr>
+                                <td class="text-right">DRG</td>
+                                <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.drg_description : '' }}</td>
+                                <td>{{ eklaim.json_obj !== null ? eklaim.json_obj.response_inagrouper.drg_code : '' }}</td>
+                                <td></td>
+                                <td class="text-right"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <b-button-group class="mt-3">
+                        <b-button variant="secondary" @click="prevStep" :disabled="step === 1">Previous</b-button>
+                        <b-button variant="primary" @click="nextStep" v-if="step < maxStep">Next</b-button>
+                        <b-button variant="success" @click="submitForm" v-if="step === maxStep">Kirim Klaim Online</b-button>
+                    </b-button-group>
+                <!-- <ModernLabel :label="getTypeNurseName(jknData.type_nurse_id)" :small="`Added on ${jknData.date_added} Oleh ${jknData.employee_nurse_name}`" /> -->
+                <!-- <div class="d-flex mt-12">
+                    <router-link :to="{ path: '/patient/nurse/print/'+jknData.id}" target="_blank">
+                        <b-button pill size="sm" variant="w3green" class="px-16 mr-2">
+                            <b-icon icon="printer" /> <span>Cetak kajian</span>
+                        </b-button>
+                    </router-link>
+                    <b-button pill size="sm" variant="primary" class="px-16 mr-2" @click="getSubNurse(jknData)">
+                        <i><img src="@/@core/assets/icons/nurse/file-eye.svg" alt=""></i> <span>Lihat kajian</span>
+                    </b-button>
+                    <b-button @click="openModalTransaction('add', { nurse_id: jknData.id})" pill variant="outline-success" size="sm" class="px-16">
+                        <b-icon icon="plus" /> <span>Tindakan Perawat</span>
+                    </b-button>
+                </div> -->
+                
+            </div>
+        </section>
+
+        <b-modal v-model="active.modal_cost" size="md" title="Detail" scrollable>
+            <section>
+                <div class="col">
+                    <ModernLabel label="Rincian Tarif RS" />
+                    <b-table small hover responsive head-variant="light" :items="costData" thead-class="text-bold-14" tbody-tr-class="text-regular-12" class="mt-12 text-center">
+                    </b-table>
+                </div>
+            </section>
+        </b-modal>
+
+        <b-modal v-model="active.modal_main" size="lg" title="Perbarui Assessment" scrollable>
+            <section>
+                <div class="col">
+                    <ModernLabel label="Status Pendaftaran Pasien" />
+                    <div class="row">
+                        <div class="col-lg-4 mt-12">
+                            <label class="c-form-label">Kriteria Pasien</label>
+                            <v-select v-model="form_jkn.type_emergency_id" aria-readonly="true" :options="OptionsTypeEmergency" :reduce="OptionsTypeEmergency => OptionsTypeEmergency.value" label="title" placeholder="-- Pilih --"></v-select>
+                        </div>
+                        <div class="col-lg-4 mt-12">
+                            <label class="c-form-label">Jenis Kunjungan</label>
+                            <v-select v-model="form_jkn.type_visit_id" aria-readonly="true" :options="OptionsVisit" :reduce="OptionsVisit => OptionsVisit.value" label="title" placeholder="-- Pilih --"></v-select>
+                        </div>
+                        <div class="col-lg-4 mt-12">
+                            <label class="c-form-label">Cara Keluar RS</label>
+                            <v-select v-model="form_jkn.exit_id" aria-readonly="true" :options="OptionsExit" :reduce="OptionsExit => OptionsExit.value" label="title" placeholder="-- Pilih --"></v-select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col mt-24">
+                    <ModernLabel label="Anamnesa" />
+
+                    <div class="">
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Anamnesa</label>
+                            </div>
+                            <div class="col">
+                                <v-select v-model="form_jkn.anamesa_type_id" aria-readonly="true" :options="OptionsAnamesaType" :reduce="OptionsAnamesaType => OptionsAnamesaType.value" label="title" placeholder="-- Pilih Anamnesa --"></v-select>
+                            </div>
+                        </div>
+                        <div class="row" v-if="form_jkn.anamesa_type_id === 2">
+                            <div class="col-lg-6 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <div class="col-lg-6 d-lg-flex">
+                                        <label class="my-auto text-semi-14">Nama Keluarga</label>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <b-form-input type="text" v-model="form_jkn.family_name" autocomplete="off"></b-form-input>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 px-0">
+                                <div class="row mx-0 mt-10">
+                                    <div class="col-lg-6 d-lg-flex">
+                                        <label class="m-lg-auto text-semi-14">Hubungan Keluarga</label>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <v-select v-model="form_jkn.family_relation_id" aria-readonly="true" :options="OptionsFamilyRelation" :reduce="OptionsFamilyRelation => OptionsFamilyRelation.value" label="title" placeholder="-- Pilih Hubungan Keluarga --"></v-select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Keluhan Utama</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_jkn.main_complaint" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Riwayat Penyakit Sekarang</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_jkn.history_disease_now" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Riwayat Penyakit Dahulu</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_jkn.history_disease_past" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-10">
+                            <div class="col-lg-3 d-flex">
+                                <label class="my-auto text-semi-14">Riwayat Obat</label>
+                            </div>
+                            <div class="col">
+                                <b-form-textarea rows="3" v-model="form_jkn.history_drugs" autocomplete="off"></b-form-textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col mt-24">
+                    <ModernLabel label="Tanda Vital" />
+
+                    <div class="row mt-12 c-form">
+                        <div class="col-lg-4">
+                            <div class="mt-1">
+                                <label>Systolic</label>
+                                <b-input-group append="mmHg">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.systolic_blood_pressure"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="mt-1">
+                                <label>Diastolic</label>
+                                <b-input-group append="mmHg">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.diastolic_blood_pressure"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="mt-1">
+                                <label>Frekuensi Nadi</label>
+                                <b-input-group append="x/mnt">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.pulse_frequency"></b-form-input>
+                                </b-input-group>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 border border-top-0 border-bottom-0">
+                            <div class="mt-1">
+                                <label>Frekuensi Nafas</label>
+                                <b-input-group append="x/mnt">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.breath_frequency"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="mt-1">
+                                <label>Saturasi Oksigen</label>
+                                <b-input-group append="%">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.oximetry_frequency"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="mt-1">
+                                <label>Suhu</label>
+                                <b-input-group append="ᵒC">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.temperature"></b-form-input>
+                                </b-input-group>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="mt-1">
+                                <label class="c-form-label">Skor Nyeri</label>
+                                <b-form-input autocomplete="off" v-model="form_jkn.sore_score"></b-form-input>
+                            </div>
+                            <div class="mt-1">
+                                <label class="c-form-label">EWS</label>
+                                <b-form-input autocomplete="off" v-model="form_jkn.ews"></b-form-input>
+                            </div>
+                            <div class="mt-1">
+                                <label>Gula Darah</label>
+                                <b-input-group append="mg/dL">
+                                    <b-form-input type="number" autocomplete="off" v-model="form_jkn.blood_sugar"></b-form-input>
+                                </b-input-group>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col mt-32">
+                    <ModernLabel label="Antropometri" />
+                    
+                    <div class="row mt-12 c-form">
+                        <div class="col-12 col-lg-4">
+                            <label>Berat Badan</label>
+                            <b-input-group append="kg">
+                                <b-form-input type="number" v-model="form_jkn.weight" @input="imtChanged($event)"></b-form-input>
+                            </b-input-group>
+                        </div>
+                        <div class="col-12 col-lg-4">
+                            <label>Tinggi Badan</label>
+                            <b-input-group append="cm">
+                                <b-form-input type="number" v-model="form_jkn.height" @input="imtChanged($event)"></b-form-input>
+                            </b-input-group>
+                        </div>
+                        <div class="col-12 col-lg-4">
+                            <label>IMT</label>
+                            <b-input-group append="kg/m²">
+                                <b-form-input type="number" disabled v-model="form_jkn.imt"></b-form-input>
+                            </b-input-group>
+                        </div>
+                    </div>
+                    <b-collapse id="collapse-anto" v-model="active.advance.antopometri" class="mb-8 mt-12">
+                        <div class="row c-form">                                    
+                            <div class="col-12 col-lg-4">
+                                <label>Lingkar Kepala</label>
+                                <b-input-group append="cm">
+                                    <b-form-input type="number" @change="saveChangedNurse($event)" v-model="form_jkn.head_circumference"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label>Lingkar Dada</label>
+                                <b-input-group append="cm">
+                                    <b-form-input type="number" @change="saveChangedNurse($event)" v-model="form_jkn.chest_circumference"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label>Lingkar Lengan Atas</label>
+                                <b-input-group append="cm">
+                                    <b-form-input type="number" @change="saveChangedNurse($event)" v-model="form_jkn.arm_circumference"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label>Lingkar Perut</label>
+                                <b-input-group append="cm">
+                                    <b-form-input type="number" @change="saveChangedNurse($event)" v-model="form_jkn.stomach_circumference"></b-form-input>
+                                </b-input-group>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label>Lingkar Lutut</label>
+                                <b-input-group append="cm">
+                                    <b-form-input type="number" @change="saveChangedNurse($event)" v-model="form_jkn.knee_circumference"></b-form-input>
+                                </b-input-group>
+                            </div>
+                        </div>
+                    </b-collapse>
+
+                    <small @click="active.advance.antopometri = !active.advance.antopometri" class="font-weight-bold text-primary pointer" :class="active.advance.antopometri ? null : 'collapsed'" :aria-expanded="active.advance.antopometri ? 'true' : 'false'" aria-controls="collapse-anto">
+                        Advance Antopometri 
+                        <b-icon :icon="active.advance.antopometri == true ? 'chevron-up' : 'chevron-down'" />
+                    </small>
+                </div>
+
+                <div class="col mt-32">
+                    <div>
+                        <ModernLabel label="Diagnosis (ICD10)" />
+                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                            <b-tr>
+                                <b-th style="width: 60px;">No</b-th>
+                                <b-th>ICD10</b-th>
+                                <b-th style="width: 200px;">Aksi</b-th>
+                            </b-tr>
+                            <template v-for="(item,index) in form_jkn.icd10">
+                                <b-tr class="item">
+                                    <b-td>{{ index+1 }}</b-td>
+                                    <b-td>
+                                        <div>{{ item.title }}</div>
+                                    </b-td>
+                                    <b-td>
+                                        <b-button variant="info-600" size="sm" @click="move('icd10',index, -1)" :disabled="index === 0"  class="mr-2"> <feather-icon icon="ArrowUpIcon" /> </b-button>
+                                        <b-button variant="info-600" size="sm" @click="move('icd10',index, 1)" :disabled="index === item.length - 1" class="mr-2"> <feather-icon icon="ArrowDownIcon" /> </b-button>
+                                        <b-button variant="danger-600" size="sm" @click="delete10(index)" class="mr-2">
+                                            <feather-icon icon="TrashIcon" />
+                                        </b-button>
+                                    </b-td>
+                                </b-tr>
+                            </template>
+                        </b-table-simple>
+                        <div class="mt-10">
+                            <label class="text-semi-14">Diagnosa</label>
+                            <v-select v-model="icd10_id" aria-readonly="true" @input="onAdd10($event)" @search="onSearchIcd10" :options="OptionsIcd10" :reduce="OptionsIcd10 => OptionsIcd10" label="title" placeholder="-- Diagnosa --"></v-select>
+                        </div>
+                        <div class="row mt-12 c-form">
+                            <div class="col-12 col-lg-4">
+                                <label>SITB</label>
+                                <b-input-group append="Check">
+                                    <b-form-input type="number" v-model="form_jkn.sitb"></b-form-input>
+                                </b-input-group>
+                            </div>
+                        </div>
+                    </div>
+
+                    <b-textarea rows="2" type="text" v-model="form_jkn.icd10_notes" autocomplete="off" placeholder="Catatan ICD10" class="mt-12"></b-textarea>
+
+                    <div class="mt-24" >
+                        <ModernLabel label="Diagnosis Non-ICD10" />
+                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                            <b-tr>
+                                <b-th style="width: 60px;">No</b-th>
+                                <b-th>Non-ICD10</b-th>
+                                <b-th style="width: 100px;">Aksi</b-th>
+                            </b-tr>
+                            <template v-for="(item,index) in form_jkn.non_icd10">
+                                <b-tr class="item">
+                                    <b-td>{{ form_jkn.icd10.length+index+1 }}</b-td>
+                                    <b-td>
+                                        <div>{{ item }}</div>
+                                    </b-td>
+                                    <b-td>
+                                        <b-button variant="danger-600" size="sm" @click="removeOther10(index)" class="mr-2">
+                                            <feather-icon icon="TrashIcon" />
+                                        </b-button>
+                                    </b-td>
+                                </b-tr>
+                            </template>
+                        </b-table-simple>
+                        <div class="mt-10">
+                            <label class="text-semi-14">Non-ICD10</label>
+                            <b-form-input v-model="input_other10" />
+                            <b-button @click="addOther10" size="sm" variant="outline-primary" class="mt-12">Tambah</b-button>
+                        </div>
+                    </div>
+
+                    <div class="mt-10">
+                        <label class="my-auto text-semi-14">Assessment Lainnya</label>
+                        <b-textarea rows="2" v-model="form_jkn.anythingelse" autocomplete="off"></b-textarea>
+                    </div>
+                </div>
+
+                <div class="col mt-32">
+                    <ModernLabel label="Tindakan (ICD9CM)" />
+                    <div>
+                        <b-textarea rows="2" type="text" v-model="form_jkn.therapy_plan" autocomplete="off" placeholder="Catatan ICD9CM" class="mt-12"></b-textarea>
+                        <b-table-simple bordered responsive class="mt-12" style="font-size: 14px">
+                            <b-tr>
+                                <b-th style="width: 60px;">No</b-th>
+                                <b-th>ICD9CM</b-th>
+                                <b-th style="width: 200px;">Aksi</b-th>
+                            </b-tr>
+                            <tr class="item" v-for="(item,index) in form_jkn.icd9cm">
+                                <b-td>{{ index+1 }}</b-td>
+                                <b-td>
+                                    <div>{{ item.title }}</div>
+                                </b-td>
+                                <b-td>
+                                    <b-button variant="info-600" size="sm" @click="move('icd9cm',index, -1)" :disabled="index === 0"  class="mr-2"> <feather-icon icon="ArrowUpIcon" /> </b-button>
+                                    <b-button variant="info-600" size="sm" @click="move('icd9cm',index, 1)" :disabled="index === item.length - 1" class="mr-2"> <feather-icon icon="ArrowDownIcon" /> </b-button>
+                                    <b-button variant="danger-600" size="sm" @click="deleteIGD9cm(index)" class="mr-2">
+                                        <feather-icon icon="TrashIcon" />
+                                    </b-button>
+                                </b-td>
+                            </tr>
+                        </b-table-simple>
+                        <div class="mt-10">
+                            <v-select v-model="icd9cm_id" @input="onAdd9cm($event)" aria-readonly="true" @search="onSearchIcd9cm" :options="OptionsIcd9cm" :reduce="OptionsIcd9cm => OptionsIcd9cm" label="title" placeholder="-- ICD 9 --"></v-select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <template #modal-footer>
+                <div class="d-flex justify-content-end">
+                    <b-button @click="validationJKN" :disabled="disabled.main" variant="primary" class="px-24">Simpan</b-button>
+                </div>
+            </template>  
+        </b-modal>
+
+    </div>
+</template>
+<script>
+import { mapState } from 'vuex'
+import ToastificationContent from '@core/components/toastification/ToastificationContent.vue'
+import vSelect from 'vue-select'
+import ModernLabel from '@/@core/components/label/ModernLabel.vue'
+import moment from 'moment'
+
+export default {
+    name: 'DoctorStudies',
+    components: {
+        vSelect, ModernLabel
+    },
+    data() {
+        return {
+            step: 2,
+            maxStep: 3,
+            jknCostData:{},
+            costData:[],
+            form: {
+                name: '',
+                email: '',
+                address: '',
+                city: ''
+            },
+            userData: JSON.parse(localStorage.getItem('userData')),
+            reg_des_id: '',
+            soap_id: '',
+
+            eklaim: {
+                special_cmg_option:'',
+                json_obj:null,
+                dializer_single_use:0,
+                kantong_darah:0,
+                procedur_non_bedah:0,
+                konsultasi:0,
+                obat:0,
+                laboratorium:0,
+                radiologi:0,
+                keperawatan:0,
+                rehabilitasi:0,
+                pelayanan_darah:0,
+                kamar:0,
+                sewa_alat:0
+            },
+            active: {
+                modal_main: false,
+                modal_cost: false,
+                advance: {
+                    antopometri: false,
+                }
+            },
+            disabled: {
+                main: false,
+            },
+            regData: {},
+            jknData: {},
+            // soapData: {},
+            // nurseData: {},
+
+            OptionsSpecialCMG:[],
+
+
+            OptionsAnamesaType:[
+                { value: 1, title: 'Auto Anamnesa' },
+                { value: 2, title: 'Allo Anamnesa' }
+            ],
+            OptionsFamilyRelation:[
+                { value: 1, title: 'Ayah' },
+                { value: 2, title: 'Ibu' },
+                { value: 3, title: 'Kakak' },
+                { value: 4, title: 'Adik' },
+            ],
+
+            OptionsExit:[
+                { value: '807ca005-5827-4e19-9c97-0bc3d4e924ca', title: 'Atas Persetujuan Dokter' },
+                { value: '4a6d28c4-e020-425f-91e1-d39699cf679b', title: 'Meninggal' },
+                { value: 'a1631acc-6a94-414d-95de-a9faea0f1c2f', title: 'Dirujuk' },
+                { value: 'ae0aabfa-1600-443f-8a60-62f9e76b1608', title: 'Permintaan Sendiri' },
+                { value: 'dfe2b9c6-5934-4748-aad9-6d19c957ecfd', title: 'Kabur' },
+                { value: '03e783b8-92ef-40c2-a867-d5895ffbfc83', title: 'Poliklinik' },
+                { value: 'f359a4b5-4406-49d7-9a81-49bf34b4c21a', title: 'Sembuh' },
+                { value: '2542a5f7-570a-449c-9eee-525569c0ce1e', title: 'Rawat Inap' },
+            ],
+
+            OptionsVisit:[
+                { value: 1, title: 'Kunjungan Awal' },
+                { value: 2, title: 'Kontrol Lanjutan' },
+                { value: 3, title: 'Observasi' },
+                { value: 4, title: 'Post OP' },
+                { value: 5, title: 'Post Rawat Inap' },
+            ],
+
+            OptionsDummy:[
+                { value: 1, title: 'satu' },
+                { value: 2, title: 'dua' },
+                { value: 3, title: 'tiga' },
+                { value: 4, title: 'empat' },
+            ],
+
+            form_jkn: {
+                // Anamnesa
+                anamesa_type_id: 1, 
+                family_relation_id: '',
+                family_name: '',
+                main_complaint: '',
+                history_disease_now: '',
+                history_disease_past: '',
+                history_drugs: '',
+
+                // Tanda Vital
+                systolic_blood_pressure: '', 
+                diastolic_blood_pressure: '', 
+                classification_blood_pressure_type_id: '', 
+                pulse_frequency: '', 
+                breath_frequency: '', 
+                oximetry_frequency: '', 
+                temperature: '', 
+                blood_sugar: '',
+                sore_score: '',
+                ews: '',                
+
+                // Antopometri
+                weight:  '',
+                height: '',
+                imt: '',
+                head_circumference: '',
+                chest_circumference: '',
+                arm_circumference: '',
+                stomach_circumference: '',
+                knee_circumference: '',
+                
+                // ICD10
+                icd10: [],
+                icd10_notes: '',
+                non_icd10: [],
+                anythingelse: '',
+                sitb: '',
+
+                // ICD9CM
+                icd9cm: [],
+                therapy_plan: '',
+
+                // Pendaftaran
+                exit_id: '',
+                type_emergency_id: 0,
+                type_visit_id: 0,
+            },
+            icd10_id: '',
+            OptionsIcd10: [],
+            input_other10: '',
+            icd9cm_id: '',
+            OptionsIcd9cm: [],
+        }
+    },
+    computed: {
+        ...mapState({ 
+            OptionsTypeEmergency: state => state.helper.options.typeEmergency,
+        })
+    },
+    watch: {
+        "form_jkn.anamesa_type_id"(newValue) {
+            if (newValue == "1") {
+                this.form_jkn.family_relation_id = ''
+                this.form_jkn.family_name = ''
+            }
+        },
+    },
+    methods: {
+        move(data,index,direction){
+            if (data === 'icd9cm') {
+                const newIndex = index + direction;
+                if (newIndex < 0 || newIndex >= this.form_jkn.icd9cm.length) return;
+                const temp = this.form_jkn.icd9cm[index];
+                this.form_jkn.icd9cm.splice(index, 1);
+                this.form_jkn.icd9cm.splice(newIndex, 0, temp);
+            } else {
+                const newIndex = index + direction;
+                if (newIndex < 0 || newIndex >= this.form_jkn.icd10.length) return;
+                const temp = this.form_jkn.icd10[index];
+                this.form_jkn.icd10.splice(index, 1);
+                this.form_jkn.icd10.splice(newIndex, 0, temp);
+            }
+        },
+        nextStep() {
+        if (this.isStepValid()) this.step++;
+        },
+        prevStep() {
+        if (this.step > 1) this.step--;
+        },
+        isStepValid() {
+            // Simple validation per step
+            if (this.step === 1) {
+                return true;
+            } else if (this.step === 2) {
+                return true;
+            }
+            return true;
+        },
+        submitForm() {
+            alert('Form submitted:\n' + JSON.stringify(this.form, null, 2));
+        },
+        getStepIcon(stepNumber) {
+            const icons = {
+                1: 'fas fa-user',
+                2: 'fas fa-map-marker-alt',
+                3: 'fas fa-check-circle'
+            };
+            return icons[stepNumber] || 'fas fa-circle';
+        },
+        parsedBody(text){
+            return String(text || '').replace(/\n/g, "<br>");
+        },
+        notification (a,b,c,d) {
+            this.$toast({
+                component: ToastificationContent,
+                employee: 'top-right',
+                props: { title: a, icon: b, variant: c, text: d}
+            })
+        },
+        special_cmg () {
+            console.log('this.form_jknx: ', this.eklaim);
+            try {
+                this.$store.dispatch('jkn/putSpecialCMG', { data: this.eklaim, registration_destination_id: this.reg_des_id }).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.getJKN(this.soap_id)
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                console.log('Error at: ', error);
+            }
+        },
+        getFamilyRelation(code) {
+            const family = {
+                '1': 'Ayah',
+                '2': 'Ibu',
+                '3': 'Kakak',
+                '4': 'Adik',
+            };
+            return family[code] || '-';
+        },
+        imtChanged($event){
+            var brt_badan = parseFloat(this.form_jkn.weight);
+            var tng_badan = parseFloat(this.form_jkn.height);
+            var imt = 0.0;    
+            var opt = 0;
+            imt = tng_badan * tng_badan;
+            imt = (brt_badan/imt)*100*100;
+            this.form_jkn.imt = imt.toFixed(1);
+        },
+
+        onAdd10 (event) {
+            this.icd10_id = ''
+            if (this.form_jkn.icd10.some(item => item.icd10_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD10 yang sama')
+            } else {
+                this.form_jkn.icd10.push({ icd10_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+            // console.log('this.form_jkn.icd10', this.form_jkn.icd10);
+        },
+        delete10 (index) {
+            this.form_jkn.icd10.splice(index, 1)
+        },
+        onSearchIcd10(search, loading) {
+            // console.log('ini:  ',search, loading);
+            if(search.length >= 3) {
+                loading(true);
+                this.$store.dispatch('icd10/getParam', search).then(data => {
+                    this.OptionsIcd10 = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsIcd10.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        addOther10() {
+            let input = ''
+            if (this.input_other10) {
+                input = this.input_other10
+                this.form_jkn.non_icd10.push(input)
+                this.input_other10 = ''
+            }
+        },
+
+        removeOther10 (index) {
+            this.form_jkn.non_icd10.splice(index, 1)
+        },
+
+        onSearchIcd9cm(search, loading) {
+            if(search.length >= 2) {
+                loading(true);
+                this.$store.dispatch('icd9cm/getParam', search).then(data => {
+                    this.OptionsIcd9cm = []
+                    for (let i = 0; i < data.length; i++) {
+                        const option = []
+                        for (const key in data[i]) {
+                            if (key === 'id') { option['value'] = data[i][key] } else if (key === 'name') { option['title'] = data[i]['code']+' '+data[i][key] } else if (key === 'id') { option['oid'] = data[i][key] }
+                        }
+                        this.OptionsIcd9cm.push(Object.assign({}, option))
+                    }
+                    loading(false)
+                })
+            }
+        },
+        onAdd9cm (event) {
+            this.icd9cm_id = ''
+            if (this.form_jkn.icd9cm.some(item => item.icd9cm_id === event.value)) {
+                this.notification('Warning','CloseIcon','warning','Tidak dapat menambahkan list ICD9 yang sama')
+            } else {
+                this.form_jkn.icd9cm.push({ icd9cm_id:event.value, title:event.title, value:event.value, action: 'action'})
+            }
+        },
+        deleteIGD9cm (index) {
+            this.form_jkn.icd9cm.splice(index, 1)
+        },
+        modalCost(data){
+            this.active.modal_cost = true
+            if (data === 'prosedur_bedah') {
+                this.costData = this.jknCostData.prosedur_non_bedah_data
+                this.costData = this.jknCostData.prosedur_bedah_data
+            }
+            if (data === 'konsultasi') {
+                this.costData = this.jknCostData.konsultasi_data
+            }
+            if (data === 'tenaga_ahli') {
+                this.costData = this.jknCostData.tenaga_ahli_data
+            }
+            if (data === 'keperawatan') {
+                this.costData = this.jknCostData.keperawatan_data
+            }
+            if (data === 'radiologi') {
+                this.costData = this.jknCostData.radiologi_data
+            }
+            if (data === 'laboratorium') {
+                this.costData = this.jknCostData.laboratorium_data
+            }
+            if (data === 'kamar') {
+                this.costData = this.jknCostData.kamar_data
+            }
+            if (data === 'obat_kronis') {
+                this.costData = this.jknCostData.obat_kronis_data
+            }
+            if (data === 'obat_kemoterapi') {
+                this.costData = this.jknCostData.obat_kemoterapi_data
+            }
+            if (data === 'obat') {
+                this.costData = this.jknCostData.obat_data
+            }
+            if (data === 'pelayanan_darah') {
+                this.costData = this.jknCostData.pelayanan_darah_data
+            }
+            if (data === 'bmhp') {
+                this.costData = this.jknCostData.bmhp_data
+            }
+            if (data === 'sewa_alat') {
+                this.costData = this.jknCostData.sewa_alat_data
+            }
+            if (data === 'rehabilitasi') {
+                this.costData = this.jknCostData.rehabilitasi_data
+            }
+        },
+        openMainModal(){
+            this.resetForm()
+            this.active.modal_main = true
+            this.fillForm()
+
+        },
+        fillForm() {
+            console.log('running at fill: ', this.jknData);
+            // Anamnesa
+            this.form_jkn.anamesa_type_id =  this.jknData.soap_s.anamesa_type_id
+            this.form_jkn.family_relation_id = this.jknData.soap_s.family_relation_id
+            this.form_jkn.family_name = this.jknData.soap_s.family_name
+            this.form_jkn.main_complaint = this.jknData.soap_s.main_complaint
+            this.form_jkn.history_disease_now = this.jknData.soap_s.history_disease_now
+            this.form_jkn.history_disease_past = this.jknData.soap_s.history_disease_past
+            this.form_jkn.history_drugs = this.jknData.soap_s.history_drugs
+
+            // Tanda Vital
+            this.form_jkn.systolic_blood_pressure = this.jknData.nurse.systolic_blood_pressure 
+            this.form_jkn.diastolic_blood_pressure = this.jknData.nurse.diastolic_blood_pressure 
+            this.form_jkn.classification_blood_pressure_type_id = this.jknData.nurse.classification_blood_pressure_type_id 
+            this.form_jkn.pulse_frequency = this.jknData.nurse.pulse_frequency 
+            this.form_jkn.breath_frequency = this.jknData.nurse.breath_frequency 
+            this.form_jkn.oximetry_frequency = this.jknData.nurse.oximetry_frequency 
+            this.form_jkn.temperature = this.jknData.nurse.temperature 
+            this.form_jkn.blood_sugar = this.jknData.nurse.blood_sugar
+            this.form_jkn.sore_score = this.jknData.nurse.sore_score
+            this.form_jkn.ews = this.jknData.nurse.ews
+
+            // Antopometri
+            this.form_jkn.weight = this.jknData.nurse.weight
+            this.form_jkn.height = this.jknData.nurse.height
+            this.form_jkn.imt = this.jknData.nurse.imt
+            this.form_jkn.head_circumference = this.jknData.nurse.head_circumference
+            this.form_jkn.chest_circumference = this.jknData.nurse.chest_circumference
+            this.form_jkn.arm_circumference = this.jknData.nurse.arm_circumference
+            this.form_jkn.stomach_circumference = this.jknData.nurse.stomach_circumference
+            this.form_jkn.knee_circumference = this.jknData.nurse.knee_circumference
+
+            // ICD10
+            console.log(this.jknData.icd10)
+            if (this.jknData.icd10) {
+                const mappedIcd10 = this.jknData.icd10.map(item => {
+                    return {
+                        icd10_id: item.icd10_id,
+                        value: item.icd10_id,
+                        title: `${item.icd10_code} ${item.icd10_name}`, 
+                        action: "action"
+                    };
+                });                
+                this.form_jkn.icd10 = mappedIcd10
+            } 
+            this.form_jkn.icd10_notes = this.jknData.soap_a.icd10_notes
+            this.form_jkn.non_icd10 = this.jknData.soap_a.non_icd10
+            this.form_jkn.anythingelse = this.jknData.soap_a.anythingelse
+
+            // ICD9
+            this.form_jkn.therapy_plan = this.jknData.soap_p.therapy_plan
+            if (this.jknData.icd9cm) {
+                const mappedIcd9cm = this.jknData.icd9cm.map(item => {
+                    return {
+                        icd9cm_id: item.icd9cm_id,
+                        value: item.icd9cm_id,
+                        title: `${item.icd9cm_code} ${item.icd9cm_name}`, 
+                        action: "action"
+                    };
+                });                
+                this.form_jkn.icd9cm = mappedIcd9cm
+            }
+
+            // Pendaftaran
+            this.form_jkn.exit_id = this.jknData.exit_id
+            this.form_jkn.type_emergency_id = this.jknData.type_emergency_id
+            this.form_jkn.type_visit_id = this.jknData.type_visit_id
+        },
+
+        resetForm() {
+             // Anamnesa
+            this.form_jkn.anamesa_type_id = 0
+            this.form_jkn.family_relation_id = ''
+            this.form_jkn.family_name = ''
+            this.form_jkn.main_complaint = ''
+            this.form_jkn.history_disease_now = ''
+            this.form_jkn.history_disease_past = ''
+            this.form_jkn.history_drugs = ''
+
+            // Tanda Vital
+            this.form_jkn.systolic_blood_pressure = '' 
+            this.form_jkn.diastolic_blood_pressure = '' 
+            this.form_jkn.classification_blood_pressure_type_id = '' 
+            this.form_jkn.pulse_frequency = '' 
+            this.form_jkn.breath_frequency = '' 
+            this.form_jkn.oximetry_frequency = '' 
+            this.form_jkn.temperature = '' 
+            this.form_jkn.blood_sugar = ''
+            this.form_jkn.sore_score = ''
+            this.form_jkn.ews = ''                
+
+            // Antopometri
+            this.form_jkn.weight =  ''
+            this.form_jkn.height = ''
+            this.form_jkn.imt = ''
+            this.form_jkn.head_circumference = ''
+            this.form_jkn.chest_circumference = ''
+            this.form_jkn.arm_circumference = ''
+            this.form_jkn.stomach_circumference = ''
+            this.form_jkn.knee_circumference = ''
+
+            // ICD10
+            this.form_jkn.icd10 = []
+            this.form_jkn.icd10_notes = ''
+            this.form_jkn.non_icd10 = []
+            this.form_jkn.anythingelse = ''   
+
+            // ICD9CM
+            this.form_jkn.icd9cm = []
+            this.form_jkn.therapy_plan = ''
+
+            // Pendaftaran
+            this.form_jkn.exit_id = ''
+            this.form_jkn.type_emergency_id = 0
+            this.form_jkn.type_visit_id = 0
+        },
+
+        getData (reg_des_id) {
+			this.$store.dispatch('registration/getById', reg_des_id).then(data => {
+                this.regData = data[0]
+                // console.log('this.regData: ', this.regData);
+            })
+        },
+        getJKN (soap_id) {
+            try {
+                this.$store.dispatch('jkn/getJknAssessment', soap_id).then(data => {
+                    this.jknData = data[0]
+                    this.eklaim.json_obj = data[0].inacbgs 
+                    this.getJKNCost(data[0].registration_destination_id)
+                    console.log('this.jknData: ', this.jknData);
+                    this.OptionsSpecialCMG = []
+                    if (data[0].inacbgs != null && data[0].inacbgs.special_cmg_option && data[0].inacbgs.special_cmg_option.length > 0) {
+                        for (let cmg = 0; cmg < data[0].inacbgs.special_cmg_option.length; cmg++) {
+                            this.OptionsSpecialCMG.push({value:data[0].inacbgs.special_cmg_option[cmg].code,title:data[0].inacbgs.special_cmg_option[cmg].description})
+                        }
+                    }
+
+                    // "special_cmg_option": [
+                    //     {
+                    //     "code": "YY10",
+                    //     "description": "Phacoemulsification",
+                    //     "type": "Special Procedure"
+                    //     }
+                    // ],
+                })
+                
+            } catch (error) {
+                console.log('Error while GET SOAP DATA at: ', error);
+            }
+        },
+
+        getJKNCost (registration_destination_id) {
+            try {
+                this.$store.dispatch('jkn/getJknCost', registration_destination_id).then(data => {
+                    this.jknCostData = data
+                    if (data) {
+                        this.eklaim.konsultasi = this.jknCostData.konsultasi
+                        this.eklaim.obat = this.jknCostData.obat
+                        this.eklaim.laboratorium = this.jknCostData.laboratorium
+                        this.eklaim.radiologi = this.jknCostData.radiologi
+                        this.eklaim.rehabilitasi = this.jknCostData.rehabilitasi
+                        this.eklaim.keperawatan = this.jknCostData.keperawatan
+                        this.eklaim.kamar = this.jknCostData.kamar
+                        this.eklaim.pelayanan_darah = this.jknCostData.pelayanan_darah
+                        this.eklaim.sewa_alat = this.jknCostData.sewa_alat
+                    }
+                    console.log('this.jknCostData: ', this.jknCostData);
+                })
+                
+            } catch (error) {
+                console.log('Error while GET SOAP DATA at: ', error);
+            }
+        },
+
+        // getJKN (soap_id) {
+        //     try {
+        //         this.$store.dispatch('soap/getBySoapId', soap_id).then(data => {
+        //             this.soapData = data[0]
+        //             console.log('this.soapData: ', this.soapData);
+        //         })
+                
+        //     } catch (error) {
+        //         console.log('Error while GET SOAP DATA at: ', error);
+        //     }
+        // },
+
+        // getNurseAssessment (reg_des_id) {
+        //     try {
+        //         this.$store.dispatch('nurse/getDetail', { registration_destination_id: reg_des_id }).then(data => {
+        //             this.nurseData = data[0]
+        //             console.log('this.nurseData: ', this.nurseData);
+        //         })
+                
+        //     } catch (error) {
+        //         console.log('Error while GET NURSE DATA at: ', error);
+        //     }
+        // },
+
+        validationJKN(){
+            console.log('this.form_jkn: ', this.form_jkn);
+            
+            this.disabled.main = true
+            try {
+                this.$store.dispatch('jkn/putJknAssessment', { data: this.form_jkn, soap_id: this.soap_id }).then((response) => {
+                    this.notification('Success','CheckIcon','success','You have successfully')
+                    this.active.modal_main = false
+                    this.getJKN(this.soap_id)
+                    this.resetForm()
+                    this.disabled.main = false
+                })
+                
+            } catch (error) {
+                this.notification('Failed','CloseIcon','danger','You have unsuccessful')
+                this.disabled.main = false
+                console.log('Error at: ', error);
+            }
+        }
+    },
+    filters:{
+        currency(value) {
+            return value != null ?  value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : 0
+            // return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR' }).format(value)
+        }
+    },
+    created () {
+        // this.$store.dispatch('helper/getParam', 'type_emergency')
+
+        if (this.$route.params.reg_des_id) {
+            this.reg_des_id = this.$route.params.reg_des_id
+            this.getData(this.$route.params.reg_des_id)
+            // this.getNurseAssessment(this.$route.params.reg_des_id)
+        }
+
+        if (this.$route.params.soap_id) {
+            this.soap_id = this.$route.params.soap_id
+            this.getJKN(this.$route.params.soap_id)
+        }
+    },
+}
+</script>
+<style scoped>
+.step-icons i {
+  transition: color 0.3s ease;
+}
+.step-icons .flex-fill {
+  position: relative;
+}
+</style>
+<style lang="scss">
+@import '@core/scss/vue/libs/vue-select.scss';
+</style>
+<style scoped>
+@import '../../../../@core/css/utility.css';
+
+.label-head::before {
+    content: '';
+    border-left: 6px solid #648DE1;
+}
+
+.c-img {
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    max-width: 150px;
+    max-height: 150px;
+    border: 10px solid white;
+}
+</style>

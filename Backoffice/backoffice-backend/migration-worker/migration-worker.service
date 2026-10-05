@@ -1,0 +1,18 @@
+[Unit]
+Description=Backoffice migration job worker (polls trx_migration_job and runs Khanza scripts)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/migration-khanza
+EnvironmentFile=/etc/migration-worker.env
+ExecStart=/root/migration-khanza/venv/bin/python /root/migration-khanza/worker.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
