@@ -42,7 +42,7 @@
       "type": "http",
       "documentation": "",
       "method": "post",
-      "endpoint": "auth/login",
+      "endpoint": "v1/authentication/auth/signin",
       "responses": [
         {
           "uuid": "0aff92d1-cbf9-413a-9494-c93034779646",
