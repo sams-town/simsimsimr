@@ -12,7 +12,6 @@ import {
   Wallet,
   ArrowDownCircle,
   BookOpen,
-  BarChart3,
   Settings,
   ChevronDown,
   Coins,
@@ -29,13 +28,15 @@ const Sidebar = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
 
-  // Role-based access helper
+  // Role-based access helper. checkAccess() mengembalikan false (bukan crash) saat
+  // accessList kosong/undefined, jadi menu cukup disembunyikan sampai profile selesai dimuat.
   const hasAccess = (pageCode: string, action?: string): boolean => {
     return checkAccess(user, pageCode, action);
   };
 
-  // Get role ID for menu visibility
-  const roleID = user?.role?.roleID;
+  // Get role ID for menu visibility (toleran terhadap roleId/roleID)
+  const rawRoleID = user?.role?.roleID ?? user?.role?.roleId ?? user?.roleId;
+  const roleID = rawRoleID === undefined || rawRoleID === null || rawRoleID === '' ? undefined : Number(rawRoleID);
 
   // Master Data menu: only Admin (1) and Manager (2)
   const hasMasterAccess = roleID === 1 || roleID === 2;
@@ -467,9 +468,6 @@ const Sidebar = () => {
                     <ul className={`sub-menu text-black bg-white`}>
                       <li>
                         <NavLink to="/general-ledger/history">{t('menu.history')}</NavLink>
-                      </li>
-                      <li>
-                        <NavLink to="/general-ledger/summary">{t('menu.summary')}</NavLink>
                       </li>
                       <li>
                         <NavLink to="/report/tutup-buku">{t('menu.period_closing', 'Tutup Buku')}</NavLink>

@@ -1,5 +1,21 @@
 import { LoginRequest } from '@/types/apiType';
 import { apiSlice } from '../apiSlice';
+import { API_BASE_URL } from '../apiSlice';
+
+/**
+ * URL login absolut. Backend .NET memakai route [Route("[controller]")] + [HttpPost("login")]
+ * pada AuthController => POST {baseUrl}/Auth/login (case-sensitive, huruf A besar).
+ *
+ * Dibuat absolut secara eksplisit agar request TIDAK PERNAH dikirim relatif ke
+ * https://backoffice.rsthb.id/Auth/login (nginx frontend -> 405 Not Allowed).
+ */
+export const LOGIN_URL = `${API_BASE_URL.replace(/\/+$/, '')}/Auth/login`;
+
+/** Pastikan body hanya berisi field yang dikenal backend (AuthenticateRequest: Email, Password). */
+const toLoginBody = (data: LoginRequest) => ({
+  email: data?.email ?? '',
+  password: data?.password ?? '',
+});
 
 export interface ProfileResponse {
   userId: number;
@@ -36,11 +52,18 @@ export interface ResetPasswordRequest {
 
 export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    login: builder.mutation({
+    login: builder.mutation<{ message: string; data: any }, LoginRequest>({
       query: (data: LoginRequest) => ({
-        url: 'v1/authentication/auth/signin',
+        // URL absolut: https://api.rsthb.id/Auth/login
+        url: LOGIN_URL,
         method: 'POST',
-        body: data,
+        // Body plain object -> RTK Query menserialisasi dengan JSON.stringify
+        // dan otomatis menyetel Content-Type: application/json.
+        body: toLoginBody(data),
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
       }),
     }),
     getProfile: builder.query<ProfileResponse, void>({

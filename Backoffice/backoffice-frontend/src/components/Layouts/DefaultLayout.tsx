@@ -10,6 +10,7 @@ import Portals from '../../components/Portals';
 import { useNavigate } from 'react-router-dom';
 
 import { ToastContainer } from 'react-toastify';
+import ErrorBoundary from '../ErrorBoundary';
 
 const DefaultLayout = ({ children }: PropsWithChildren) => {
     const themeConfig = useSelector((state: any) => state.themeConfig);
@@ -107,7 +108,9 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
 
                         {/* BEGIN CONTENT AREA */}
                         <Suspense>
-                            <div className={`${themeConfig.animation} p-6 animate__animated`}>{children}</div>
+                            <div className={`${themeConfig.animation} p-6 animate__animated`}>
+                                <ErrorBoundary>{children}</ErrorBoundary>
+                            </div>
                         </Suspense>
                         {/* END CONTENT AREA */}
 
