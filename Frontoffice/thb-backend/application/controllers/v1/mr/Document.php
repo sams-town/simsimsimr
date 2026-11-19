@@ -128,6 +128,14 @@ class Document extends My_Controller {
         $id     = $this->security->xss_clean($p);
         $model  = $this->name;
 
+        // Tabel `document` belum ada di schema staging. Tanpa guard ini query
+        // melempar "Table doesn't exist" -> 500. 501 = belum dimigrasi.
+        if (!$this->$model->table_exists()) {
+            $this->REST_Return(501, $this->name . ' list is not implemented: table for '
+                . $model . '_model is not migrated yet', array(), 'NOT_IMPLEMENTED');
+            return;
+        }
+
         // Token Validation
         $is_valid_token = $this->authorization_token->validateToken();
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {

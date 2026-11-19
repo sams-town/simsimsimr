@@ -76,6 +76,9 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('detail');
+        if ($branch === null) { return; }
     
         $operating_room_id = $id;
 
@@ -103,6 +106,8 @@ class Operating_room extends My_Controller {
         }
 
         if (count($output) > 0) {
+            // 4C-06: objek harus berada di branch token (fail-closed).
+            if (!$this->_sg_scope($output[0]->id, $branch, 'detail')) { return; }
             $soap_id = $output[0]->soap_id;
             $doctor_in_charge_id = $output[0]->doctor_in_charge_id;
             
@@ -166,6 +171,9 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('list');
+        if ($branch === null) { return; }
     
         $limit = $q_strings['limit'] ?? 20;
         $offset = $q_strings['offset'] ?? 0;
@@ -238,6 +246,7 @@ class Operating_room extends My_Controller {
         c.name as company_name,
         ri.service_class_name
         ';
+        $where_main['r.institute_branch_id'] = $branch;
         $where_main['a.is_delete'] = 0;
         $join = array(
             array('registration_destination rd', 'a.registration_destination_id = rd.id', 'INNER'),
@@ -316,15 +325,14 @@ class Operating_room extends My_Controller {
             $output[$i]->operators = $operators;
         }
 
-        $join = 'empty_join';
-
-        if(isset($q_strings['norm']) || isset($q_strings['patient_name']) || isset($q_strings['registration_id'])) {
-            $join = array(
-                array('registration_destination rd', 'a.registration_destination_id = rd.id', 'INNER'),
-                array('registration r', 'rd.registration_id = r.id', 'INNER'),
-                array('patient p', 'r.norm = p.norm', 'INNER'),
-            );
-        }
+        // 4C-06: filter branch (r.institute_branch_id) dipakai di query data DAN count,
+        // jadi join harus selalu ada. Sebelumnya join hanya dipasang bila ada filter
+        // norm/patient_name/registration_id -> count query kehilangan alias r.
+        $join = array(
+            array('registration_destination rd', 'a.registration_destination_id = rd.id', 'INNER'),
+            array('registration r', 'rd.registration_id = r.id', 'INNER'),
+            array('patient p', 'r.norm = p.norm', 'INNER'),
+        );
         
         $this->$model->limit = null;
         $this->$model->offset = null;
@@ -354,6 +362,10 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('operator');
+        if ($branch === null) { return; }
+        if (!$this->_sg_scope($id, $branch, 'operator')) { return; }
     
         $operating_room_id = $id;
     
@@ -396,6 +408,9 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('create');
+        if ($branch === null) { return; }
     
         // Form Validation
         $this->form_validation->set_data($dt_post);
@@ -420,6 +435,9 @@ class Operating_room extends My_Controller {
             $this->REST_Return(404, 'there is no registration_destination with id ' . $registration_destination_id);
             return;
         }
+
+        // 4C-06: kunjungan harus se-branch dengan token (fail-closed).
+        if (!$this->_sg_scope_rd($registration_destination_id, $branch, 'create')) { return; }
 
         $registration_id = $registration_destination[0]->registration_id;
         $health_facility_item_id = $registration_destination[0]->health_facility_item_id;
@@ -686,6 +704,10 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('update');
+        if ($branch === null) { return; }
+        if (!$this->_sg_scope($id, $branch, 'update')) { return; }
     
         // Form Validation
         $this->form_validation->set_data($dt_put);
@@ -903,6 +925,10 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('approve');
+        if ($branch === null) { return; }
+        if (!$this->_sg_scope($id, $branch, 'approve')) { return; }
     
         // Form Validation
         $this->form_validation->set_data($dt_put);
@@ -1019,6 +1045,10 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('add_operator');
+        if ($branch === null) { return; }
+        if (!$this->_sg_scope(isset($dt_post['operating_room_id']) ? $dt_post['operating_room_id'] : null, $branch, 'add_operator')) { return; }
     
         // Form Validation
         $this->form_validation->set_data($dt_post);
@@ -1113,6 +1143,10 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('delete');
+        if ($branch === null) { return; }
+        if (!$this->_sg_scope($id, $branch, 'delete')) { return; }
     
         // Form Validation
         $this->form_validation->set_data($dt_put);
@@ -1183,6 +1217,9 @@ class Operating_room extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] , $response_data);
             return;
         } 
+
+        $branch = $this->_sg_branch('delete_operator');
+        if ($branch === null) { return; }
     
         // Form Validation
         $this->form_validation->set_data($dt_put);
@@ -1205,6 +1242,9 @@ class Operating_room extends My_Controller {
             $this->REST_Return(404, 'there is no operating_room_operator with id ' . $id);
             return;
         }
+
+        // 4C-06: baris operator harus milik operasi di branch token.
+        if (!$this->_sg_scope_operator($id, $branch, 'delete_operator')) { return; }
     
         /* Start Transaction */
         $this->db->trans_complete();
@@ -1237,4 +1277,135 @@ class Operating_room extends My_Controller {
         $this->REST_Return(200, 'SUCCESS', $response_data);
         return;
     }
+
+    /* ==================================================================
+     * 4C-06 SURGERY — branch scope fail-closed + audit
+     * ================================================================== */
+
+    /** Branch HANYA dari token. Kosong/tak valid => tolak (fail-closed). */
+    protected function _sg_branch($operation) {
+        $t = $this->authorization_token->validateToken();
+        if (empty($t) OR $t['status'] !== TRUE) {
+            $this->REST_Return(401, isset($t['message']) ? $t['message'] : 'Invalid Token.', 'Invalid Token.');
+            return null;
+        }
+        $branch = trim((string) $this->security->xss_clean($t['data']->institute_branch_id));
+        // Tahap 1: mode single cabang => branch kosong memakai default (config/branch_default.php).
+        // TODO: expand branch filter saat multi-cabang
+        $branch = $this->resolve_branch_id($branch);
+        if ($branch === '') {
+            $this->_sg_audit('DENIED_BRANCH_SCOPE_UNDEFINED', null,
+                $this->security->xss_clean($t['data']->id),
+                array('operation' => $operation, 'reason' => 'branch_empty'), 409);
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return null;
+        }
+        return $branch;
+    }
+
+    /** Branch sebuah operating_room (via registration_destination -> registration). */
+    protected function _sg_object_branch($operating_room_id) {
+        $row = $this->db->query(
+            "SELECT r.institute_branch_id
+               FROM operating_room a
+               INNER JOIN registration_destination rd ON rd.id = a.registration_destination_id
+               INNER JOIN registration r ON r.id = rd.registration_id
+              WHERE a.id = ?", array($operating_room_id))->row();
+        return $row === null ? false : (string) $row->institute_branch_id;
+    }
+
+    /** Objek harus ada (404) dan se-branch (403). */
+    protected function _sg_scope($operating_room_id, $branch, $operation) {
+        if ($operating_room_id === null || $operating_room_id === '' || $operating_room_id === '0') {
+            $this->REST_Return(422, 'operating_room_id wajib diisi.', array(), 'OPERATING_ROOM_ID_REQUIRED');
+            return false;
+        }
+        $object_branch = $this->_sg_object_branch($operating_room_id);
+        if ($object_branch === false) {
+            $this->_sg_audit('DENIED_OPERATING_ROOM_NOT_FOUND', $operating_room_id, $this->_sg_user(),
+                array('operation' => $operation), 404);
+            $this->REST_Return(404, 'Operating room tidak ditemukan.', array(), 'OPERATING_ROOM_NOT_FOUND');
+            return false;
+        }
+        if (trim($object_branch) === '') {
+            $this->_sg_audit('DENIED_OPERATING_ROOM_BRANCH_UNDEFINED', $operating_room_id, $this->_sg_user(),
+                array('operation' => $operation), 409);
+            $this->REST_Return(409, 'Kunjungan operasi tidak memiliki branch.', array(), 'OPERATING_ROOM_BRANCH_UNDEFINED');
+            return false;
+        }
+        if ($object_branch !== $branch) {
+            $this->_sg_audit('DENIED_OPERATING_ROOM_SCOPE_MISMATCH', $operating_room_id, $this->_sg_user(),
+                array('operation' => $operation, 'object_branch' => $object_branch, 'token_branch' => $branch), 403);
+            $this->REST_Return(403, 'Data operasi berada di luar branch scope.', array(), 'OPERATING_ROOM_SCOPE_MISMATCH');
+            return false;
+        }
+        return true;
+    }
+
+    /** Scope untuk registration_destination (dipakai create). */
+    protected function _sg_scope_rd($registration_destination_id, $branch, $operation) {
+        $row = $this->db->query(
+            "SELECT r.institute_branch_id
+               FROM registration_destination rd
+               INNER JOIN registration r ON r.id = rd.registration_id
+              WHERE rd.id = ?", array($registration_destination_id))->row();
+        if ($row === null) {
+            $this->_sg_audit('DENIED_REGISTRATION_DESTINATION_NOT_FOUND', null, $this->_sg_user(),
+                array('operation' => $operation, 'registration_destination_id' => $registration_destination_id), 404);
+            $this->REST_Return(404, 'Kunjungan tidak ditemukan.', array(), 'REGISTRATION_DESTINATION_NOT_FOUND');
+            return false;
+        }
+        $object_branch = trim((string) $row->institute_branch_id);
+        if ($object_branch === '' || $object_branch !== $branch) {
+            $this->_sg_audit('DENIED_OPERATING_ROOM_SCOPE_MISMATCH', null, $this->_sg_user(),
+                array('operation' => $operation, 'object_branch' => $object_branch, 'token_branch' => $branch), 403);
+            $this->REST_Return(403, 'Kunjungan berada di luar branch scope.', array(), 'OPERATING_ROOM_SCOPE_MISMATCH');
+            return false;
+        }
+        return true;
+    }
+
+    /** Scope untuk baris operating_room_operator. */
+    protected function _sg_scope_operator($operator_row_id, $branch, $operation) {
+        $row = $this->db->query(
+            "SELECT operating_room_id FROM operating_room_operator WHERE id = ?",
+            array($operator_row_id))->row();
+        if ($row === null) {
+            $this->REST_Return(404, 'Operator tidak ditemukan.', array(), 'OPERATING_ROOM_OPERATOR_NOT_FOUND');
+            return false;
+        }
+        return $this->_sg_scope($row->operating_room_id, $branch, $operation);
+    }
+
+    protected function _sg_user() {
+        return isset($this->s1_actor['user_id']) ? $this->s1_actor['user_id'] : null;
+    }
+
+    /** Audit append-only ke log_activity. */
+    protected function _sg_audit($result, $object_id, $user_id, $detail = array(), $http = 200) {
+        $b = random_bytes(16);
+        $b[6] = chr((ord($b[6]) & 0x0f) | 0x40);
+        $b[8] = chr((ord($b[8]) & 0x3f) | 0x80);
+        $audit_id = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4));
+        $desc = json_encode(array_merge(array(
+            'request_id'  => $this->debug_uniq,
+            'endpoint'    => 'health_facility/operating_room',
+            'action'      => strtolower(isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'get'),
+            'result'      => $result,
+            'http_status' => $http,
+            'operating_room_id' => $object_id,
+            'branch'      => isset($this->s1_actor['branch']) ? $this->s1_actor['branch'] : null,
+        ), (array) $detail));
+        $ok = $this->db->query(
+            "INSERT INTO log_activity (id, noregistrasi, user_id, user_name, category_id, description,
+                related_id, related_table, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            array($audit_id, null, $user_id,
+                  isset($this->s1_actor['username']) ? $this->s1_actor['username'] : null,
+                  0, $desc, $object_id, 'operating_room', date('Y-m-d H:i:s')));
+        if (!$ok) {
+            Logger::error($this->debug_uniq, 'Operating room audit write failed: ' . $result);
+        }
+        return (bool) $ok;
+    }
+
 }

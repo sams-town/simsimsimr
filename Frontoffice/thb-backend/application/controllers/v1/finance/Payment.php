@@ -45,6 +45,11 @@ class Payment extends My_Controller {
         $is_valid_token = $this->authorization_token->validateToken();
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
             $user_id = $this->security->xss_clean($is_valid_token['data']->id);
+            // Branch dari token (sebelumnya variabel ini tidak pernah didefinisikan di
+            // create_post, sehingga penulisan Accurate_bak memakai nilai kosong).
+            // TODO: expand branch filter saat multi-cabang
+            $institute_branch_id = $this->resolve_branch_id(
+                $this->security->xss_clean($is_valid_token['data']->institute_branch_id));
             # Form Validation
             $this->form_validation->set_rules('invoice_id', 'invoice_id', 'trim|required|max_length[36]');
             $this->form_validation->set_rules('cashier_id', 'cashier_id', 'trim|max_length[36]');
@@ -136,6 +141,48 @@ class Payment extends My_Controller {
                     return;
                 }
 
+                // E-7: jurnal kasir. Debit kas/bank/EDC sesuai cara bayar, kredit piutang
+                // pasien (pendapatan sudah diakui saat invoice dibuat -> tidak dobel).
+                $pay_total = 0.0;
+                if (isset($dt_post['payment_items']) && is_array($dt_post['payment_items'])) {
+                    foreach ($dt_post['payment_items'] as $pi) {
+                        $pay_total += (float) (isset($pi['var_3']) ? $pi['var_3'] : 0);
+                    }
+                }
+                if ($pay_total <= 0 && isset($dt_post['amount_payment'])) {
+                    $pay_total = (float) $dt_post['amount_payment'];
+                }
+                $first_item = (isset($dt_post['payment_items'][0]) && is_array($dt_post['payment_items'][0]))
+                    ? $dt_post['payment_items'][0] : array();
+                $debit_account = $this->_payment_account(
+                    isset($first_item['payment_method_id']) ? $first_item['payment_method_id'] : null,
+                    isset($first_item['payment_method_type_id']) ? $first_item['payment_method_type_id'] : null);
+                $inv_row = $this->Transaction_invoice->read($dt_post['invoice_id'], false);
+                $invoice_code = $inv_row ? $inv_row[0]->code : (string) $dt_post['invoice_id'];
+                $journal = $this->post_journal('CASHIER_PAYMENT', $id, 'PAY-' . $id, $institute_branch_id,
+                    $user_id,
+                    array('cash' => round($pay_total, 2), 'receivable' => round($pay_total, 2)),
+                    'invoice=' . $invoice_code, array('cash' => $debit_account));
+                if (isset($journal['status']) && $journal['status'] === 'error') {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Jurnal pembayaran gagal (tidak balance).', $journal, 'JOURNAL_FAILED');
+                    return;
+                }
+
+                // Kasir -> piutang. Sebelumnya pembayaran hanya menulis `payment` + jurnal,
+                // sehingga sisa tagihan pasien tidak tercatat di mana pun. Sinkron ini
+                // membuat/menyesuaikan baris `piutang` (sisa_piutang, status) dan mencatat
+                // piutang_payment idempoten (CASH-<payment_id>). Gagal => rollback, karena
+                // uang masuk tanpa sisa tagihan = data hilang.
+                $pj_sync = $this->_sync_piutang($dt_post['invoice_id'], $id, $institute_branch_id,
+                    $user_id, $pay_total,
+                    isset($first_item['payment_method_id']) ? $first_item['payment_method_id'] : null);
+                if (isset($pj_sync['status']) && $pj_sync['status'] === 'error') {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Sinkronisasi piutang gagal.', $pj_sync, 'PIUTANG_SYNC_FAILED');
+                    return;
+                }
+
                 $this->db->trans_complete();
                 /* End Transaction */
                 if ($this->db->trans_status() === false) {
@@ -143,7 +190,9 @@ class Payment extends My_Controller {
                     $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
                 } else {
                     $response_data = array(
-                        'id'     => $id
+                        'id'     => $id,
+                        'journal' => isset($journal) ? $journal : null,
+                        'piutang' => isset($pj_sync) ? $pj_sync : null,
                     );
                     $this->REST_Return(200, 'SUCCESS', $response_data);
                 }
@@ -324,5 +373,199 @@ class Payment extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] ,$response_data);
             return;
         }
+    }
+
+    /* ===================== E-7 helpers ===================== */
+
+    /**
+     * Akun debit pembayaran: pakai payment_method.coa bila akunnya ada di b_coa,
+     * kalau tidak pakai peta tipe dari config/coa_mapping.php.
+     */
+    protected function _payment_account($method_id = null, $type_id = null) {
+        $this->config->load('coa_mapping', TRUE);
+        $map = $this->config->item('payment_method_accounts', 'coa_mapping');
+        $map = is_array($map) ? $map : array();
+
+        if ($method_id !== null && trim((string) $method_id) !== '') {
+            $m = $this->db->query("SELECT coa, type_id FROM payment_method WHERE id = ?",
+                array($method_id))->row();
+            if ($m !== null) {
+                $coa = trim((string) $m->coa);
+                if ($coa !== '') {
+                    $ok = $this->db->query(
+                        "SELECT account FROM b_coa WHERE account = ? AND IFNULL(is_delete,0) = 0 LIMIT 1",
+                        array($coa))->row();
+                    if ($ok !== null) { return $coa; }
+                }
+                if ($type_id === null || trim((string) $type_id) === '') {
+                    $type_id = $m->type_id;
+                }
+            }
+        }
+        $t = trim((string) $type_id);
+        if ($t !== '' && isset($map[$t])) { return $map[$t]; }
+        return isset($map['default']) ? $map['default'] : '1-1100';
+    }
+
+    /**
+     * Kasir -> piutang (E-2 lanjutan).
+     *
+     * Pembayaran kasir sebelumnya hanya menulis `payment` + jurnal CASHIER_PAYMENT.
+     * Tidak ada baris `piutang`, jadi sisa tagihan pasien tidak bisa dilacak dan
+     * status penagihan tidak pernah berubah. Metode ini menyambungkannya dengan
+     * pola yang SAMA seperti Piutang::pay_post supaya kedua jalur tidak berbeda:
+     *
+     *   - piutang per no_rawat; dibuat bila belum ada, total = SUM(amount) baris invoice
+     *     (join identik dengan Piutang::_pj_invoice_lines).
+     *   - piutang_payment idempoten: idempotency_key = 'CASH-' . payment_id, jadi
+     *     replay/retry tidak menghitung dua kali.
+     *   - total_dibayar/sisa_piutang/status di-update inkremental dengan guard
+     *     `WHERE sisa_piutang = <nilai lama>` (deteksi balapan, sama seperti pay_post).
+     *
+     * Return array('status' => ok|skipped|error, ...). 'skipped' = bukan kondisi
+     * fatal (mis. invoice tanpa baris nominal); 'error' = wajib rollback.
+     */
+    protected function _sync_piutang($invoice_id, $payment_id, $branch, $user_id, $amount, $method_id = null) {
+        if (trim((string) $branch) === '' || (float) $amount <= 0) {
+            return array('status' => 'skipped', 'reason' => 'BRANCH_OR_AMOUNT_EMPTY');
+        }
+        $inv = $this->db->query(
+            "SELECT id, code, registration_id FROM transaction_invoice WHERE id = ?",
+            array($invoice_id))->row();
+        if ($inv === null) {
+            return array('status' => 'skipped', 'reason' => 'INVOICE_NOT_FOUND');
+        }
+
+        $reg = $this->db->query(
+            "SELECT r.id, r.no_rawat, r.norm, r.institute_branch_id,
+                    rd.id AS registration_destination_id,
+                    COALESCE(NULLIF(TRIM(p.name),''), p.fullname) AS patient_name
+               FROM registration r
+               LEFT JOIN registration_destination rd ON rd.registration_id = r.id
+               LEFT JOIN patient p ON p.norm = r.norm
+              WHERE r.id = ?
+              ORDER BY rd.id LIMIT 1",
+            array($inv->registration_id))->row();
+        if ($reg === null || trim((string) $reg->no_rawat) === '') {
+            return array('status' => 'skipped', 'reason' => 'REGISTRATION_INVALID');
+        }
+
+        $pj = $this->db->query(
+            "SELECT * FROM piutang WHERE no_rawat = ? AND IFNULL(is_delete,0) = 0 FOR UPDATE",
+            array($reg->no_rawat))->row();
+
+        if ($pj === null) {
+            $rows = $this->db->query(
+                "SELECT COALESCE(li.var_1, ri.var_1, ta.var_1, td.var_1, tb.var_3,
+                                 (pi.qty - IFNULL(pi.qty_retur,0)) * IFNULL(pi.price_sale,0), 0) AS amount
+                   FROM transaction_invoice_item tii
+                   -- Salinan ekspresi Piutang::_pj_invoice_lines; join lewat id saja
+                   -- (tahan dua konvensi type id) + kamar inap transaction_bed.var_3.
+                   LEFT JOIN laboratory_request_item li ON li.id = tii.transaction_id
+                   LEFT JOIN radiology_request_item  ri ON ri.id = tii.transaction_id
+                   LEFT JOIN transaction_administration ta ON ta.id = tii.transaction_id
+                   LEFT JOIN transaction_doctor       td ON td.id = tii.transaction_id
+                   LEFT JOIN transaction_bed          tb ON tb.id = tii.transaction_id
+                   -- E-3: obat (type 14) = qty bersih x snapshot price_sale. Salinan query
+                   -- Piutang::_pj_invoice_lines; keduanya harus selalu sama.
+                   LEFT JOIN pharmacy_prescription_item pi ON pi.pharmacy_prescription_id = tii.transaction_id
+                        AND tii.type_transaction_id = 14 AND IFNULL(pi.is_delete,0) = 0
+                  WHERE tii.transaction_invoice_id = ? AND IFNULL(tii.is_delete,0) = 0",
+                array($inv->id))->result();
+            $total = 0.0;
+            foreach ($rows as $r) { $total += (float) $r->amount; }
+            $total = round($total, 2);
+            if ($total <= 0) {
+                return array('status' => 'skipped', 'reason' => 'INVOICE_LINES_EMPTY');
+            }
+
+            $this->load->library('transaction');
+            $c   = $this->transaction->counter(array(
+                'var_1' => 'PJ', 'var_2' => date('Y'), 'var_3' => date('m'), 'var_5' => date('Y-m'),
+            ));
+            $seq        = isset($c['counter_queue']) ? (int) $c['counter_queue'] : 1;
+            $invoice_no = date('d') . '/' . date('m') . '/PJ/' . str_pad($seq, 5, '0', STR_PAD_LEFT) . '/' . date('Y');
+            $pj_id      = $this->_uuid4();
+            $now        = date('Y-m-d H:i:s');
+
+            $this->db->query(
+                "INSERT INTO piutang (id, invoice_no, institute_branch_id, registration_id,
+                    registration_destination_id, no_rawat, norm, patient_name, insurance_id, company_id,
+                    tgl_piutang, tgl_tempo, total_piutang, uang_muka, diskon, total_dibayar,
+                    sisa_piutang, status, invoice_status, reason, created_by, created_at, is_delete)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+                array($pj_id, $invoice_no, $branch, $reg->id, $reg->registration_destination_id,
+                      $reg->no_rawat, $reg->norm, $reg->patient_name, 0, null,
+                      date('Y-m-d'), null, $total, 0, 0, 0, $total,
+                      'open', 'open', 'auto: kasir', $user_id, $now));
+            $pj = $this->db->query("SELECT * FROM piutang WHERE id = ?", array($pj_id))->row();
+            if ($pj === null) {
+                return array('status' => 'error', 'reason' => 'PIUTANG_CREATE_FAILED');
+            }
+        }
+
+        $idem = 'CASH-' . $payment_id;
+        if (strlen($idem) > 64) { $idem = substr($idem, 0, 64); }
+        $prev = $this->db->query(
+            "SELECT id FROM piutang_payment WHERE piutang_id = ? AND idempotency_key = ?",
+            array($pj->id, $idem))->row();
+        if ($prev !== null) {
+            return array('status' => 'skipped', 'reason' => 'REPLAY', 'piutang_id' => $pj->id,
+                         'sisa_piutang' => (float) $pj->sisa_piutang, 'status_piutang' => $pj->status);
+        }
+        if ($pj->status === 'cancelled') {
+            return array('status' => 'error', 'reason' => 'PIUTANG_CANCELLED', 'piutang_id' => $pj->id);
+        }
+
+        $sisa_before  = (float) $pj->sisa_piutang;
+        $pay          = round((float) $amount, 2);
+        $sisa_after   = round($sisa_before - $pay, 2);
+        if ($sisa_after < 0) { $sisa_after = 0.0; }
+        $status_after = ($sisa_after <= 0.001) ? 'paid' : 'partial';
+        $now          = date('Y-m-d H:i:s');
+        $pay_id       = $this->_uuid4();
+
+        $this->db->query(
+            "INSERT INTO piutang_payment (id, piutang_id, institute_branch_id, amount, discount,
+                payment_method_id, cara_bayar, note, paid_at, paid_by, idempotency_key, is_void)
+             VALUES (?,?,?,?,0,?,?,?,?,?,?,0)",
+            array($pay_id, $pj->id, $branch, $pay, $method_id,
+                  'KASIR', 'kasir payment ' . $payment_id, $now, $user_id, $idem));
+
+        $this->db->query(
+            "UPDATE piutang
+                SET total_dibayar  = ROUND(total_dibayar + ?, 2),
+                    sisa_piutang   = ?,
+                    status         = ?,
+                    invoice_status = ?,
+                    updated_by     = ?,
+                    updated_at     = ?
+              WHERE id = ? AND sisa_piutang = ?",
+            array($pay, $sisa_after, $status_after, $status_after, $user_id, $now,
+                  $pj->id, $sisa_before));
+        if ($this->db->affected_rows() !== 1) {
+            return array('status' => 'error', 'reason' => 'PIUTANG_CONCURRENT_UPDATE', 'piutang_id' => $pj->id);
+        }
+
+        return array('status' => 'ok', 'piutang_id' => $pj->id, 'invoice_no' => $pj->invoice_no,
+                     'payment_id' => $pay_id, 'amount' => $pay,
+                     'sisa_piutang' => $sisa_after, 'status_piutang' => $status_after);
+    }
+
+    protected function _uuid4() {
+        $d = random_bytes(16);
+        $d[6] = chr((ord($d[6]) & 0x0f) | 0x40);
+        $d[8] = chr((ord($d[8]) & 0x3f) | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($d), 4));
+    }
+
+    protected function post_journal($type, $ref_id, $ref_no, $branch, $user_id, $amounts, $note = '',
+                                    $override = array()) {
+        if (trim((string) $branch) === '') {
+            return array('status' => 'skipped', 'reason' => 'BRANCH_UNDEFINED', 'type' => $type);
+        }
+        $this->load->library('Journal');
+        return $this->journal->post($type, $ref_id, $ref_no, $branch, $user_id, $amounts, null,
+            (string) $note, $override);
     }
 }

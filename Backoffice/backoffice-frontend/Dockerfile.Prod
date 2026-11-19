@@ -2,15 +2,39 @@ FROM node:18-alpine AS build-stage
 
 WORKDIR /app
 
-COPY package.json .
+# Dependensi diinstal lebih dulu agar cache layer tetap optimal.
+# Catatan: `npm ci` TIDAK dipakai karena package-lock.json di repo ini tidak sinkron
+# dengan package.json (npm ci gagal: "Missing: ... from lock file").
+# `npm install --force` adalah perintah yang sudah terbukti bisa build.
+COPY package.json ./
 
 RUN npm install --force
 
 COPY . .
+
+# .env.Prod adalah SATU-SATUNYA sumber env untuk build produksi.
+# Nilai VITE_* di-inline oleh Vite saat `npm run build`, jadi HARUS ada sebelum build.
 COPY .env.Prod .env
+
+# Fail-fast: build dibatalkan jika VITE_HOST tidak terdefinisi,
+# supaya bundle tidak pernah jatuh ke baseUrl relatif (penyebab request
+# login terkirim ke https://backoffice.rsthb.id/Auth/login -> 405/404).
+RUN set -eu; \
+    host="$(grep -E '^VITE_HOST=' .env | cut -d= -f2- | tr -d '\r"')"; \
+    if [ -z "$host" ]; then echo "ERROR: VITE_HOST kosong di .env.Prod"; exit 1; fi; \
+    case "$host" in https://*) ;; *) echo "ERROR: VITE_HOST harus https:// (dapat: $host)"; exit 1;; esac; \
+    echo "VITE_HOST=$host"
 
 # Generate build
 RUN npm run build
+
+# Verifikasi hasil build: URL API absolut harus ter-inline di bundle.
+RUN set -eu; \
+    if grep -Rq "api.rsthb.id" dist/assets; then \
+      echo "OK: api.rsthb.id ter-inline di bundle"; \
+    else \
+      echo "ERROR: base URL API tidak ditemukan di bundle"; exit 1; \
+    fi
 
 
 FROM nginx:alpine AS deploy-stage

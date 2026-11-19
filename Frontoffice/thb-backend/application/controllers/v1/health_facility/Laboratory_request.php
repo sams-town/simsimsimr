@@ -1,6 +1,10 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 use Restserver\Libraries\REST_Controller;
+require_once __DIR__ . '/Laboratory_request_result_entry_trait.php';
+
 class Laboratory_request extends My_Controller {
+    use Laboratory_request_result_entry_trait;
+
     public function __construct() {
         parent::__construct();
         // Load Authorization Token Library
@@ -9,6 +13,7 @@ class Laboratory_request extends My_Controller {
         $this->load->model("$this->directory/{$this->name}_model", "{$this->name}");
         $this->load->model("$this->directory/{$this->name}_item_model", "{$this->name}_item");
         $this->load->model("$this->directory/Laboratory_package_model", "Laboratory_package");
+        $this->load->model("$this->directory/Laboratory_request_item_result_model", "Laboratory_request_item_result");
         $this->load->model("v1/mr/Registration_model", "Registration");
         $this->load->model("v1/mr/Registration_destination_model", "Registration_destination");
         $this->load->model("v1/mr/Registration_insurance_model", "Registration_insurance");
@@ -133,6 +138,23 @@ class Laboratory_request extends My_Controller {
                 $this->REST_Return(404, 'there is no soap with id ' . $soap_id);
                 return;
             }
+
+            // P0-3: order wajib menyimpan tujuan. Turunkan dari SOAP (FK soap.registration_destination_id)
+            // lalu validasi tujuannya benar-benar ada. SOAP tanpa tujuan = 422, bukan fallback diam.
+            $soap_row = $this->Soap->select($soap_id, 'a.registration_destination_id');
+            $registration_destination_id = ($soap_row != []) ? $soap_row[0]->registration_destination_id : null;
+
+            if ($registration_destination_id == null || $registration_destination_id == '') {
+                $this->REST_Return(422, 'soap_id ' . $soap_id . ' has no registration_destination_id', array('registration_destination_id' => 'soap has no destination'));
+                return;
+            }
+
+            $registration_destination = $this->Registration_destination->select($registration_destination_id, 'a.id');
+
+            if (count($registration_destination) == 0) {
+                $this->REST_Return(422, 'soap_id ' . $soap_id . ' references registration_destination ' . $registration_destination_id . ' that does not exist', array('registration_destination_id' => 'not found'));
+                return;
+            }
         }
 
         // count no_request & queue
@@ -159,12 +181,22 @@ class Laboratory_request extends My_Controller {
             }
         }
 
+        // P4.2-LAB: order tanpa item tidak boleh dibuat. Sebelumnya items kosong tetap
+        // menghasilkan header (201) sehingga muncul order yatim tanpa pemeriksaan.
+        if (!is_array($laboratory_request_items_arr) OR count($laboratory_request_items_arr) === 0) {
+            $this->REST_Return(422, 'Format error', array('laboratory_request_items' => 'laboratory_request_items must be a non-empty array.'));
+            return;
+        }
+
         /* Start Transaction */
-        $this->db->trans_start();
+        // P4.2-LAB: SATU transaksi untuk header + seluruh item. Sebelumnya header
+        // di-commit lebih dulu, lalu validasi item bisa gagal (400/404) -> header yatim.
+        $this->db->trans_begin();
 
         $dt_laboratory_request = array(
             'institute_branch_id'   => $institute_branch_id,
             'soap_id'               => $soap_id,
+            'registration_destination_id' => $registration_destination_id,
             'doctor_in_charge_id'   => $doctor_in_charge_id,
             'no_request'            => $no_request,
             'queue'                 => $queue,
@@ -172,9 +204,8 @@ class Laboratory_request extends My_Controller {
         );
         $id = $this->$model->create($dt_laboratory_request);
     
-        $this->db->trans_complete();
-        /* End Transaction */
-
+        // P4.2-LAB: JANGAN trans_complete() di sini — transaksi ditutup setelah seluruh
+        // item selesai divalidasi & dibuat (lihat akhir method).
         if ($this->db->trans_status() === false) {
             $response_data = array(
                 'error'     => $this->db->error(),
@@ -187,11 +218,13 @@ class Laboratory_request extends My_Controller {
 
         for ($i=0; $i < count($laboratory_request_items_arr) ; $i++) {
             if (!isset($laboratory_request_items_arr[$i]['laboratory_package_id'])) {
+                $this->db->trans_rollback();
                 $this->REST_Return(400, "laboratory_package_id field in laboratory_request_items is required!");
                 return;
             }
 
             if (!isset($laboratory_request_items_arr[$i]['service_class_id'])) {
+                $this->db->trans_rollback();
                 $this->REST_Return(400, "service_class_id field in laboratory_request_items is required!");
                 return;
             }
@@ -203,11 +236,13 @@ class Laboratory_request extends My_Controller {
             $service_class = $this->Service_class->read($service_class_id, false);
 
             if ($laboratory_package == []) {
+                $this->db->trans_rollback();
                 $this->REST_Return(404, "there is no laboratory_package with id " . $laboratory_package_id);
                 return;
             }
 
             if ($service_class == []) {
+                $this->db->trans_rollback();
                 $this->REST_Return(404, "there is no service_class with id " . $service_class_id);
                 return;
             }
@@ -221,11 +256,13 @@ class Laboratory_request extends My_Controller {
             $costing_services_class = $this->Costing_services_class->read(0, false);
             
             if ($costing == []) {
+                $this->db->trans_rollback();
                 $this->REST_Return(404, "there is no costing with id " . $costing_id);
                 return;
             }
 
             if ($costing_services_class == []) {
+                $this->db->trans_rollback();
                 $this->REST_Return(404, "there is no costing_services_class with service_class_id " . $service_class_id);
                 return;
             }
@@ -236,9 +273,7 @@ class Laboratory_request extends My_Controller {
             $costing_services_class_var_2 = $costing_services_class[0]->var_2;
             $costing_services_class_var_3 = $costing_services_class[0]->var_3;
 
-            /* Start Transaction */
-            $this->db->trans_start();
-            
+            // P4.2-LAB: tetap di dalam transaksi yang sama dengan header.
             $dt_laboratory_request_item = array(
                 'laboratory_request_id'     => $id,
                 'laboratory_package_id'     => $laboratory_package_id,
@@ -253,9 +288,6 @@ class Laboratory_request extends My_Controller {
             );
             $this->Laboratory_request_item->create($dt_laboratory_request_item);
 
-            $this->db->trans_complete();
-            /* End Transaction */
-
             if ($this->db->trans_status() === false) {
                 $response_data = array(
                     'error'     => $this->db->error(),
@@ -267,6 +299,17 @@ class Laboratory_request extends My_Controller {
             }
         }
                     
+        // P4.2-LAB: tutup transaksi tunggal. Gagal -> rollback penuh (tanpa header yatim).
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            $this->REST_Return(500, 'error while trying to create laboratory_request', array(
+                'error' => $this->db->error(),
+                'id'    => $id,
+            ));
+            return;
+        }
+        $this->db->trans_commit();
+
         $response_data = array(
             'id' => $id
         );
@@ -295,6 +338,13 @@ class Laboratory_request extends My_Controller {
             if(isset($q_strings['limit'])) $this->$model->limit = $q_strings['limit']; unset($q_strings['limit']);
             if(isset($q_strings['offset'])) $this->$model->offset = $q_strings['offset']; unset($q_strings['offset']);
             $this->$model->whereFields = $q_strings;
+            // P4.2-LAB: query detail memakai LEFT JOIN soap/employee yang semuanya punya
+            // kolom `id`. Filter `id` tanpa kualifikasi -> "Column 'id' in WHERE is
+            // ambiguous" -> 500. Kualifikasikan ke a.id supaya id tak dikenal jadi 404.
+            if (isset($this->$model->whereFields['id'])) {
+                $this->$model->whereFields['a.id'] = $this->$model->whereFields['id'];
+                unset($this->$model->whereFields['id']);
+            }
             if(isset($q_strings['doctor_in_charge_id'])) $this->$model->whereFields['a.doctor_in_charge_id'] = $q_strings['doctor_in_charge_id']; unset($this->$model->whereFields['doctor_in_charge_id']);
             $this->$model->whereFields['a.is_delete'] = 0;
             $output = $this->$model->read($id);
@@ -408,7 +458,10 @@ class Laboratory_request extends My_Controller {
         // LIS RESULT
         $lis_response = $this->bride_lis('/api_lis/view.php/order/'. $laboratory_request_id);
 
-        if (count($lis_response) > 0) {
+        // P4.2-LAB: bride_lis() mengembalikan NULL bila server LIS tidak terjangkau
+        // (json_decode(false) === null). count(NULL) -> TypeError -> 500. LIS bersifat
+        // opsional, jadi null harus diperlakukan sebagai "tidak ada hasil LIS".
+        if (is_array($lis_response) && count($lis_response) > 0) {
             $result = $lis_response[0]['result_detail'];
 
             for ($k=0; $k < count($laboratory_request_items); $k++) { 
@@ -582,7 +635,8 @@ class Laboratory_request extends My_Controller {
 
                         $code_lis = $laboratory_request_item[$j]->code_lis;
     
-                        if (count($lis_response) > 0) {
+                        // P4.2-LAB: LIS opsional; NULL = tidak ada hasil LIS (bukan 500).
+                        if (is_array($lis_response) && count($lis_response) > 0) {
                             $result = $lis_response[0]['result_detail'];
     
                             for ($l=0; $l < count($result); $l++) { 
@@ -705,7 +759,8 @@ class Laboratory_request extends My_Controller {
                 $code_lis = $laboratory_request_items[$k]->code_lis;
                 $laboratory_request_items[$k]->result = [];
 
-                if (count($lis_response) > 0) {
+                // P4.2-LAB: LIS opsional; NULL = tidak ada hasil LIS (bukan 500).
+                if (is_array($lis_response) && count($lis_response) > 0) {
                     $result = $lis_response[0]['result_detail'];
 
                     for ($l=0; $l < count($result); $l++) { 
@@ -1884,6 +1939,10 @@ class Laboratory_request extends My_Controller {
                 /* Start Transaction */
                 $this->db->trans_start();
                 // $this->Laboratory_request_item->whereFields['a.id'] = $id;
+                // P4.2-LAB: MY_Model::update() memanggil count($this->whereFields).
+                // Properti itu NULL selama tidak pernah diisi -> TypeError -> 500 setiap
+                // verifikasi. Inisialisasi kosong (filter tetap oleh primary key $id).
+                $this->Laboratory_request->whereFields = array();
                 $laboratory_request = $this->Laboratory_request->read($id);
                 if($laboratory_request) {
                     $dt_laboratory_request = array(
@@ -1896,15 +1955,27 @@ class Laboratory_request extends My_Controller {
                         'advice'          => $dt_put['advice'],
                         'status'          => 3,
                     );
-                    $this->Laboratory_request->update($id,$dt_laboratory_request);
-                    $outputdata = $this->Laboratory_request_item->read($id);
-                    if($outputdata){
-                        for ($i=0; $i < count($outputdata); $i++) { 
-                            $dt_laboratory_request_item = array(
-                                'id'             => $outputdata[$i]->id,
-                                'date_result'    => date('Y-m-d H:i:s'),
-                            );
-                            $this->Laboratory_request_item->replace($dt_laboratory_request_item);
+                    // P4.2-LAB: MY_Model::update()/replace() menimpa $_POST global dengan
+                    // NULL pada request PUT+JSON (filter_input_array(INPUT_POST) === null),
+                    // lalu $this->input->post() memanggil array_keys(NULL) -> TypeError -> 500
+                    // pada SETIAP verifikasi. Penulisan di bawah memakai $this->db langsung
+                    // (efek sama) supaya core MY_Model yang dipakai seluruh modul tidak berubah.
+                    $this->db->where('id', $id);
+                    $this->db->update('laboratory_request', $dt_laboratory_request);
+
+                    // Kode lama: item->read($id) memakai id ORDER padahal primary key item
+                    // adalah item.id -> tidak pernah ada baris yang ter-update. Sekarang
+                    // item diambil lewat relasi laboratory_request_id.
+                    $this->db->select('a.id');
+                    $this->db->from('laboratory_request_item a');
+                    $this->db->where('a.laboratory_request_id', $id);
+                    $this->db->where('a.is_delete', 0);
+                    $outputdata = $this->db->get()->result();
+                    if ($outputdata) {
+                        foreach ($outputdata as $row) {
+                            $this->db->where('id', $row->id);
+                            $this->db->update('laboratory_request_item',
+                                array('date_result' => date('Y-m-d H:i:s')));
                         }
                     }
                 } else {
@@ -2211,6 +2282,202 @@ class Laboratory_request extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] ,$response_data);
             return;
         }
+    }
+
+    /**
+     * Batch sampling for ALL items of one laboratory_request (order level).
+     * --------------------
+     * @method : PUT
+     * @link: version/health_facility/laboratory_request/sampling_batch
+     * @link: version/health_facility/laboratory_request/sampling_batch/(:any)
+     * body: { "id": "<laboratory_request.id>", "date_sampling": "Y-m-d H:i:s" }
+     * Rule: items that already have date_sampling are SKIPPED, never overwritten.
+     **/
+    public function sampling_batch_put($p = 0) {
+        // CALL JSON PUT
+        $data    = $this->json_put();
+        $dt_put  = $data['dt_postput'];
+
+        // Token Validation
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+
+        // ORDER ID: path wins, body fallback. Route default is $p = 0, so treat '' and '0' as absent.
+        $id = trim((string) $p);
+        if ($id === '' || $id === '0') {
+            $id = isset($dt_put['id']) ? trim((string) $dt_put['id']) : '';
+        }
+
+        // DATE SAMPLING (single timestamp for the whole order)
+        // Strict: createFromFormat normalises overflow (2026-13-45 -> 2027-02-14), so re-format and compare.
+        $date_sampling_raw = isset($dt_put['date_sampling']) ? trim((string) $dt_put['date_sampling']) : '';
+        $dt_object = $date_sampling_raw !== '' ? DateTime::createFromFormat('Y-m-d H:i:s', $date_sampling_raw) : FALSE;
+        $dt_formal = ($dt_object && $dt_object->format('Y-m-d H:i:s') === $date_sampling_raw) ? $date_sampling_raw : FALSE;
+
+        // Form Validation
+        $this->form_validation->set_data(array('id' => $id, 'date_sampling' => $date_sampling_raw));
+        $this->form_validation->set_rules('id', 'id', 'trim|required|max_length[36]');
+        $this->form_validation->set_rules('date_sampling', 'date_sampling', 'trim|required');
+        if ($this->form_validation->run() == FALSE OR $dt_formal === FALSE) {
+            $errors = $this->form_validation->error_array();
+            if ($dt_formal === FALSE) $errors['date_sampling'] = 'date_sampling must be a valid datetime (Y-m-d H:i:s).';
+            $this->REST_Return(422, 'Format error', $errors);
+            return;
+        }
+
+        $id = $this->security->xss_clean($id);
+        $date_sampling = $dt_formal;
+
+        /* Start Transaction */
+        $this->db->trans_begin();
+
+        $laboratory_request = $this->Laboratory_request->read($id);
+        if (!$laboratory_request) {
+            $this->db->trans_rollback();
+            $this->REST_Return(404, 'Laboratory_request with id ' . $id . ' does not exist!');
+            return;
+        }
+
+        // Items are resolved by relation (order id), never from client-supplied item ids.
+        $this->Laboratory_request_item->whereFields = array('a.laboratory_request_id' => $id);
+        $items = $this->Laboratory_request_item->read(0, false);
+        $this->Laboratory_request_item->whereFields = null;
+
+        if (!$items) {
+            $this->db->trans_rollback();
+            $this->REST_Return(404, 'Laboratory_request with id ' . $id . ' has no item!');
+            return;
+        }
+
+        $total     = count($items);
+        $processed = 0;
+        $skipped   = 0;
+        $failed    = array();
+
+        foreach ($items as $item) {
+            $item_id = isset($item->id) ? trim((string) $item->id) : '';
+            if ($item_id === '') {
+                $failed[] = array('id' => null, 'reason' => 'missing primary key');
+                continue;
+            }
+            // Default rule: already-sampled items are skipped, NOT overwritten.
+            if (isset($item->date_sampling) && $item->date_sampling !== null && $item->date_sampling !== '' && $item->date_sampling !== '0000-00-00 00:00:00') {
+                $skipped++;
+                continue;
+            }
+
+            $this->db->where('id', $item_id);
+            $this->db->where('laboratory_request_id', $id);
+            $ok = $this->db->update('laboratory_request_item', array('date_sampling' => $date_sampling));
+            if ($ok === FALSE OR $this->db->affected_rows() < 1) {
+                $failed[] = array('id' => $item_id, 'reason' => 'update failed');
+            } else {
+                $processed++;
+            }
+        }
+
+        if (count($failed) > 0) {
+            $this->db->trans_rollback();
+            $response_data = array(
+                'id'            => $id,
+                'date_sampling' => $date_sampling,
+                'total'         => $total,
+                'processed'     => 0,
+                'skipped'       => $skipped,
+                'failed'        => $failed,
+            );
+            $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
+            return;
+        }
+
+        $this->db->trans_commit();
+        /* End Transaction */
+
+        $response_data = array(
+            'id'            => $id,
+            'date_sampling' => $date_sampling,
+            'total'         => $total,
+            'processed'     => $processed,
+            'skipped'       => $skipped,
+            'failed'        => array(),
+        );
+        $this->REST_Return(200, 'SUCCESS', $response_data);
+        return;
+    }
+
+    /**
+     * PUT Laboratory_request/sampling/(:any)
+     * -------------------------------------------------
+     * Sampling untuk SATU item ("Waktu Terima Sampling" per baris di
+     * LaboratoryListProcessView). Endpoint ini sebelumnya TIDAK ADA di backend,
+     * sehingga FE selalu menerima 405. Semantik: set date_sampling item itu saja.
+     * @method: PUT
+     */
+    public function sampling_put($p = 0) {
+        $data    = $this->json_put();
+        $dt_put  = $data['dt_postput'];
+
+        // Token Validation
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+
+        // ID: path menang, body sebagai cadangan.
+        $id = trim((string) $p);
+        if ($id === '' || $id === '0') {
+            $id = isset($dt_put['id']) ? trim((string) $dt_put['id']) : '';
+        }
+
+        // DATE SAMPLING — validasi ketat (createFromFormat menormalkan overflow).
+        $date_sampling_raw = isset($dt_put['date_sampling']) ? trim((string) $dt_put['date_sampling']) : '';
+        $dt_object = $date_sampling_raw !== '' ? DateTime::createFromFormat('Y-m-d H:i:s', $date_sampling_raw) : FALSE;
+        $dt_formal = ($dt_object && $dt_object->format('Y-m-d H:i:s') === $date_sampling_raw) ? $date_sampling_raw : FALSE;
+
+        $this->form_validation->set_data(array('id' => $id, 'date_sampling' => $date_sampling_raw));
+        $this->form_validation->set_rules('id', 'id', 'trim|required|max_length[36]');
+        $this->form_validation->set_rules('date_sampling', 'date_sampling', 'trim|required');
+        if ($this->form_validation->run() == FALSE OR $dt_formal === FALSE) {
+            $errors = $this->form_validation->error_array();
+            if ($dt_formal === FALSE) $errors['date_sampling'] = 'date_sampling must be a valid datetime (Y-m-d H:i:s).';
+            $this->REST_Return(422, 'Format error', $errors);
+            return;
+        }
+
+        $id = $this->security->xss_clean($id);
+
+        // Item harus ada dan belum dihapus. Kepemilikan order dibawa di respons.
+        $this->db->select('a.id, a.laboratory_request_id');
+        $this->db->from('laboratory_request_item a');
+        $this->db->where('a.id', $id);
+        $this->db->where('a.is_delete', 0);
+        $item = $this->db->get()->row();
+        if (!$item) {
+            $this->REST_Return(404, 'Laboratory_request_item with id ' . $id . ' does not exist!');
+            return;
+        }
+
+        $this->db->trans_begin();
+        $this->db->where('id', $item->id);
+        $this->db->where('is_delete', 0);
+        $this->db->update('laboratory_request_item', array('date_sampling' => $dt_formal));
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            $this->REST_Return(500, 'error while trying to update date_sampling');
+            return;
+        }
+        $this->db->trans_commit();
+
+        $this->REST_Return(200, 'SUCCESS', array(
+            'id'            => (string) $item->id,
+            'order_id'      => (string) $item->laboratory_request_id,
+            'date_sampling' => $dt_formal,
+        ));
+        return;
     }
 
     private function base64ToFile ($p = 0, $filename = '') {

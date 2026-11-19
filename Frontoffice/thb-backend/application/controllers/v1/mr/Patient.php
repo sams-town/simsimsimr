@@ -33,6 +33,43 @@ class Patient extends My_Controller {
             array('field' => 'sex', 'label' => 'sex', 'rules' => 'trim|required'),
         );
 
+        // Field wajib registrasi PASIEN BARU (create_v2). Cermin:
+        // thb-frontend/src/libs/patientValidation.js :: PATIENT_REQUIRED
+        // Berlaku hanya untuk pasien baru; update pasien lama tetap memakai update_rules
+        // supaya 208k data lama tanpa address_id/zip_code tidak ikut terblokir.
+        $this->create_v2_labels = array(
+            'typeidcard'  => 'Jenis kartu identitas',
+            'idcard'      => 'Nomor identitas',
+            'name'        => 'Nama lengkap',
+            'birth_place' => 'Tempat lahir',
+            'birth_date'  => 'Tanggal lahir',
+            'sex'         => 'Jenis kelamin',
+            'address'     => 'Alamat rumah',
+            'address_id'  => 'Kelurahan',
+            'zip_code'    => 'Kode pos',
+            'phone'       => 'Nomor telepon',
+        );
+
+        $this->create_v2_rules = array(
+            array('field' => 'typeidcard', 'label' => 'Jenis kartu identitas', 'rules' => 'trim|required'),
+            array('field' => 'idcard', 'label' => 'Nomor identitas', 'rules' => 'trim|required'),
+            array('field' => 'name', 'label' => 'Nama lengkap', 'rules' => 'trim|required'),
+            array('field' => 'fullname', 'label' => 'Nama lengkap', 'rules' => 'trim|required'),
+            array('field' => 'birth_place', 'label' => 'Tempat lahir', 'rules' => 'trim|required'),
+            array('field' => 'birth_date', 'label' => 'Tanggal lahir', 'rules' => 'trim|required'),
+            array('field' => 'sex', 'label' => 'Jenis kelamin', 'rules' => 'trim|required'),
+            array('field' => 'address', 'label' => 'Alamat rumah', 'rules' => 'trim|required|min_length[10]'),
+            array('field' => 'address_id', 'label' => 'Kelurahan', 'rules' => 'trim|required|max_length[30]'),
+            array('field' => 'zip_code', 'label' => 'Kode pos', 'rules' => 'trim|required|exact_length[5]|numeric'),
+            array('field' => 'phone', 'label' => 'Nomor telepon', 'rules' => 'trim|required|max_length[20]'),
+            // Field biodata opsional (tidak wajib). Suku/Bangsa, Bahasa Dipakai, Cacat Fisik.
+            // Disimpan ke kolom baru patient.suku_bangsa_id / bahasa_id / cacat_fisik_id.
+            // Sumber pilihan: master helper (variable suku_bangsa|bahasa|cacat_fisik), endpoint existing.
+            array('field' => 'suku_bangsa_id', 'label' => 'Suku/Bangsa', 'rules' => 'trim|max_length[10]'),
+            array('field' => 'bahasa_id', 'label' => 'Bahasa Dipakai', 'rules' => 'trim|max_length[10]'),
+            array('field' => 'cacat_fisik_id', 'label' => 'Cacat Fisik', 'rules' => 'trim|max_length[10]'),
+        );
+
         $this->update_rules = array(
             array('field' => 'idcard', 'label' => 'idcard', 'rules' => 'trim|required'),
             array('field' => 'name', 'label' => 'name', 'rules' => 'trim|required'),
@@ -104,7 +141,34 @@ class Patient extends My_Controller {
      * @link: version/mr/patient
      **/
 
-     public function create_post() {
+     // Nomor rekam medis berikutnya untuk satu branch.
+    // $type: '1' = pasien umum (6 digit), '2' = pasien eksternal (EPI + 7 digit).
+    // Tidak memakai join alamat (b/g/h/i) supaya pasien tanpa data alamat tetap terhitung,
+    // dan tidak pernah mengembalikan nomor yang sudah dipakai (replace() akan menimpanya).
+    private function _next_norm($institute_branch_id, $type = '1') {
+        if ($type === '2') {
+            $prefix = 'EPI'; $pad = 7;
+            $row = $this->db->query(
+                "SELECT MAX(CAST(SUBSTRING(norm, 4) AS UNSIGNED)) AS n FROM patient
+                  WHERE institute_branch_id = ? AND type_patient_id = 2 AND norm LIKE 'EPI%'",
+                array($institute_branch_id))->row();
+        } else {
+            $prefix = ''; $pad = 6;
+            $row = $this->db->query(
+                "SELECT MAX(CAST(norm AS UNSIGNED)) AS n FROM patient
+                  WHERE institute_branch_id = ? AND type_patient_id = 1 AND norm REGEXP '^[0-9]+$'",
+                array($institute_branch_id))->row();
+        }
+        $seq = (int) ($row ? $row->n : 0);
+        do {
+            $seq++;
+            $norm = $prefix . str_pad((string) $seq, $pad, '0', STR_PAD_LEFT);
+            $exists = $this->db->query("SELECT 1 AS x FROM patient WHERE norm = ?", array($norm))->row();
+        } while ($exists !== null && $seq < 9999999);
+        return $norm;
+    }
+
+    public function create_post() {
         // CALL JSON POST
         $data       = $this->json_post();
         // DEFINE ATTR
@@ -184,22 +248,11 @@ class Patient extends My_Controller {
                     $this->db->trans_start();
 
                     // INIT_PATIENT
-                    // Count norm
-                    $this->$model->limit = 1;
-                    $this->$model->orderFields = array('a.norm' => 'DESC');
-                    $this->$model->whereFields['a.institute_branch_id'] = $institute_branch_id;
-                    $this->$model->whereFields['b.institute_branch_id'] = $institute_branch_id;
-                    $this->$model->whereFields['g.institute_branch_id'] = $institute_branch_id;
-                    $this->$model->whereFields['h.institute_branch_id'] = $institute_branch_id;
-                    $this->$model->whereFields['i.institute_branch_id'] = $institute_branch_id;
-                    $tmp = $this->$model->read(0,false);
-                    // var_dump($tmp[0]->norm);
-                    if($tmp != []) {
-                        $norm = str_pad(($tmp[0]->norm) + 1, 6, "0", STR_PAD_LEFT);  
-                        // $norm = str_pad(intval(substr($tmp[0]->norm,2)) + 1, 6, '0', STR_PAD_LEFT);
-                    } else {
-                        $norm = '000001';
-                    }
+                    // Count norm. Query lama memfilter lewat join alamat (b/g/h/i) sehingga
+                    // pasien tanpa data alamat tidak terhitung -> norm selalu 000001 ->
+                    // replace() menimpa pasien 000001 yang sudah ada (kehilangan data).
+                    // Sekarang: max norm numerik milik branch ini, lalu pastikan belum dipakai.
+                    $norm = $this->_next_norm($institute_branch_id, '1');
                     // var_dump($norm);
                     // die();
                     $dt_patient = array(
@@ -235,8 +288,8 @@ class Patient extends My_Controller {
                         'is_new'                => 'Y',
                     );
 
-                    // insert norm in appointment
-                    if($dt_post['appointment_id'] != '') {
+                    // insert norm in appointment (appointment_id opsional di payload)
+                    if(isset($dt_post['appointment_id']) && $dt_post['appointment_id'] != '') {
                         // Check appointment_id
                         if($this->Appointment->read($dt_post['appointment_id'],false) != []) {
                             $dt_appointment = array (
@@ -396,13 +449,54 @@ class Patient extends My_Controller {
             return;
         } 
     
-        // Form Validation
+        // Form Validation — field wajib pasien baru (cermin patientValidation.js)
         $this->form_validation->set_data($dt_post);
-        $this->form_validation->set_rules($this->create_rules);
+        $this->form_validation->set_rules($this->create_v2_rules);
         if ($this->form_validation->run() == FALSE){
-            // Form Validation Errors
-            $response_data = $this->form_validation->error_array();
-            $this->REST_Return(422, 'Format error', $response_data);
+            // Bentuk konsisten: { message, errors: { field: "Label wajib diisi" } }
+            $raw_errors = $this->form_validation->error_array();
+            $errors = array();
+            foreach ($raw_errors as $field => $msg) {
+                $label = isset($this->create_v2_labels[$field]) ? $this->create_v2_labels[$field] : $field;
+                // fullname = nama lengkap (field terpisah, label sama)
+                if ($field === 'fullname') {
+                    $label = 'Nama lengkap';
+                }
+                // label CI sudah membawa nama field; ganti jadi pesan berbahasa Indonesia
+                if ($field === 'zip_code') {
+                    $msg = 'Kode pos wajib diisi';
+                } elseif ($field === 'phone') {
+                    $msg = 'Nomor telepon wajib diisi';
+                } elseif ($field === 'address') {
+                    $msg = 'Alamat rumah wajib diisi (minimal 10 karakter)';
+                } elseif (strpos($msg, 'required') !== FALSE) {
+                    $msg = $label . ' wajib diisi';
+                } elseif (strpos($msg, 'min_length') !== FALSE) {
+                    $msg = $label . ' minimal 10 karakter';
+                } elseif (strpos($msg, 'exact_length') !== FALSE || strpos($msg, 'numeric') !== FALSE) {
+                    $msg = $label . ' harus 5 digit angka';
+                } else {
+                    $msg = $label . ' tidak valid';
+                }
+                $errors[$field] = $msg;
+            }
+            $this->REST_Return(422, 'Data pasien belum lengkap', array('errors' => $errors));
+            return;
+        }
+
+        // address_id harus benar-benar ID kelurahan di tabel village, bukan teks bebas.
+        // Ini menutup kasus "alamat hanya teks, wilayah belum dipilih".
+        $address_id = isset($dt_post['address_id']) ? trim($dt_post['address_id']) : '';
+        $village = $this->db
+            ->select('c.id_village')
+            ->from('village c')
+            ->where('c.id_village', $address_id)
+            ->limit(1)
+            ->get()->result();
+        if (count($village) == 0) {
+            $this->REST_Return(422, 'Data pasien belum lengkap', array('errors' => array(
+                'address_id' => 'Kelurahan tidak valid, pilih kelurahan dari daftar wilayah',
+            )));
             return;
         }
     
@@ -449,6 +543,10 @@ class Patient extends My_Controller {
         $zip_code = $dt_post['zip_code'];
         $patient_issue_id = $dt_post['patient_issue_id'];
         $patient_issue_text = $dt_post['patient_issue_text'];
+        // Field biodata opsional baru (Suku/Bangsa, Bahasa Dipakai, Cacat Fisik). Kosong = NULL.
+        $suku_bangsa_id = isset($dt_post['suku_bangsa_id']) && trim($dt_post['suku_bangsa_id']) !== '' ? trim($dt_post['suku_bangsa_id']) : NULL;
+        $bahasa_id = isset($dt_post['bahasa_id']) && trim($dt_post['bahasa_id']) !== '' ? trim($dt_post['bahasa_id']) : NULL;
+        $cacat_fisik_id = isset($dt_post['cacat_fisik_id']) && trim($dt_post['cacat_fisik_id']) !== '' ? trim($dt_post['cacat_fisik_id']) : NULL;
 
         /* Start Transaction */
         $this->db->trans_start();
@@ -480,6 +578,9 @@ class Patient extends My_Controller {
             'zip_code'              => $zip_code,
             'patient_issue_id'      => $patient_issue_id,
             'patient_issue_text'    => $patient_issue_text,
+            'suku_bangsa_id'        => $suku_bangsa_id,
+            'bahasa_id'             => $bahasa_id,
+            'cacat_fisik_id'        => $cacat_fisik_id,
             'user_added'            => $user_id,
             'date_added'            => date("Y-m-d H:i:s",time()),
             'date_updated'          => date("Y-m-d H:i:s",time()),
@@ -3874,6 +3975,10 @@ class Patient extends My_Controller {
         $zip_code = $dt_put['zip_code'];
         $address_id = $dt_put['address_id'];
         $patient_issue_id = $dt_put['patient_issue_id'];
+        // Field biodata opsional baru (Suku/Bangsa, Bahasa Dipakai, Cacat Fisik).
+        $suku_bangsa_id = isset($dt_put['suku_bangsa_id']) && trim($dt_put['suku_bangsa_id']) !== '' ? trim($dt_put['suku_bangsa_id']) : NULL;
+        $bahasa_id = isset($dt_put['bahasa_id']) && trim($dt_put['bahasa_id']) !== '' ? trim($dt_put['bahasa_id']) : NULL;
+        $cacat_fisik_id = isset($dt_put['cacat_fisik_id']) && trim($dt_put['cacat_fisik_id']) !== '' ? trim($dt_put['cacat_fisik_id']) : NULL;
     
         /* Start Transaction */
         $this->db->trans_start();
@@ -3901,6 +4006,9 @@ class Patient extends My_Controller {
             'zip_code'              => $zip_code,
             'address_id'            => $address_id,
             'patient_issue_id'      => $patient_issue_id,
+            'suku_bangsa_id'        => $suku_bangsa_id,
+            'bahasa_id'             => $bahasa_id,
+            'cacat_fisik_id'        => $cacat_fisik_id,
             'date_updated'          => date('Y-m-d H:i:s',time()),
             'user_updated'          => $user_id
         );

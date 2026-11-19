@@ -30,10 +30,15 @@ export const CANCEL_AR_VOUCHER_ROLES: number[] = [ROLE.ADMINISTRATOR, ROLE.MANAG
  *
  * Allow-lists rather than deny-lists on purpose: `role` is optional on UserProfile, so a
  * missing role must fail closed (hidden) rather than fall through to visible.
+ *
+ * Role sumber: state.auth.user (hasil login / localStorage yang sudah dinormalisasi oleh
+ * authSlice). `roleID` bisa berupa number, atau kosong bila profil lama belum punya role.
  */
 export const useRoleAccess = () => {
     const user = useSelector((state: any) => state.auth.user);
-    const roleID: number | undefined = user?.role?.roleID;
+    const rawRoleID = user?.role?.roleID ?? user?.role?.roleId ?? user?.roleId ?? user?.role_id;
+    const parsed = rawRoleID === null || rawRoleID === undefined || rawRoleID === '' ? NaN : Number(rawRoleID);
+    const roleID: number | undefined = Number.isNaN(parsed) ? undefined : parsed;
 
     const hasRole = (allowed: number[]) => roleID !== undefined && allowed.includes(roleID);
 

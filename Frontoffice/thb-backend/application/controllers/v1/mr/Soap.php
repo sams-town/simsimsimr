@@ -11,6 +11,7 @@ class Soap extends My_Controller {
         $this->load->model("$this->directory/Soap_s_model", "Soap_s");
         $this->load->model("$this->directory/Soap_o_model", "Soap_o");
         $this->load->model("$this->directory/Soap_o_action_model", "Soap_o_action");
+        $this->load->model("$this->directory/Canvas_model", "Canvas");
         $this->load->model("$this->directory/Soap_a_model", "Soap_a");
         $this->load->model("$this->directory/Soap_a_action_model", "Soap_a_action");
         $this->load->model("$this->directory/Soap_p_model", "Soap_p");
@@ -1290,7 +1291,8 @@ class Soap extends My_Controller {
                         $no_request = counter_queue($prefix, $dt_queue, 4);
                         $queue = round((int)substr($no_request, -4));
 
-                        $laboratory_clinical_indications = $dt_post['laboratory_clinical_indications'];
+                        $laboratory_clinical_indications = isset($dt_post['laboratory_clinical_indications'])
+                            ? $dt_post['laboratory_clinical_indications'] : null;
 
                         $dt_laboratory_request = array(
                             'institute_branch_id'   => $institute_branch_id,
@@ -1386,7 +1388,8 @@ class Soap extends My_Controller {
                         $no_request = counter_queue($prefix, $dt_queue, 4);
                         $queue = round((int)substr($no_request, -4));
 
-                        $radiology_clinical_indications = $dt_post['radiology_clinical_indications'];
+                        $radiology_clinical_indications = isset($dt_post['radiology_clinical_indications'])
+                            ? $dt_post['radiology_clinical_indications'] : null;
 
                         $dt_radiology_request = array(
                             'institute_branch_id'   => $institute_branch_id,
@@ -3395,10 +3398,10 @@ class Soap extends My_Controller {
 
                                 $code_lis = $laboratory_request_item[$j]->code_lis;
 
-                                if (count($lis_response) > 0) {
+                                if ((is_array($lis_response) ? count($lis_response) : 0) > 0) {
                                     $result = $lis_response[0]['result_detail'];
                                     
-                                    for ($l=0; $l < count($result); $l++) { 
+                                    for ($l=0; $l < (is_array($result) ? count($result) : 0); $l++) { 
                                         $flag = $result[$l]['flag'];
                                         $parameter_id = $result[$l]['ParameterID'];
                                         
@@ -3621,6 +3624,10 @@ class Soap extends My_Controller {
                         $output[$i]->consultation = $medical_check_up[0]->consultation;
                     }
                 }
+
+                // P2: canvas SOAP ikut dikirim di detail supaya FE bisa memuat gambar tersimpan.
+                $canvas_rows = $this->Canvas->select(0, 'a.*', array('soap_id' => $soap_id));
+                $output[$i]->canvas = (count($canvas_rows) > 0) ? $canvas_rows[0] : NULL;
             }
             $output = array_values($output);
             if ($output != [] && $id != 0) {
@@ -3644,6 +3651,137 @@ class Soap extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] ,$response_data);
             return;
         }
+    }
+
+    /**
+     * P2: kanvas SOAP (tabel canvas). Dipisah dari form SOAP lain karena
+     * payload-nya hanya nilai gambar JSON per bagian tubuh.
+     * GET  mr/soap/canvas/detail?soap_id=<uuid>   atau  mr/soap/canvas/detail/<canvas_id>
+     * POST mr/soap/canvas                          (id kosong -> create, soap_id wajib)
+     * PUT  mr/soap/canvas/<canvas_id>              (update record canvas)
+     */
+    public function canvas_get($p = 0) {
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
+            $soap_id   = $this->input->get('soap_id');
+            $canvas_id = $this->input->get('canvas_id');
+            if (!empty($soap_id)) {
+                $where = array('soap_id' => $soap_id);
+            } else if (!empty($canvas_id)) {
+                $where = array('id' => $canvas_id);
+            } else if ($p != 0) {
+                $where = array('id' => $p);
+            } else {
+                $this->REST_Return(400, 'soap_id or canvas id is required');
+                return;
+            }
+            $rows = $this->Canvas->select(0, 'a.*', $where);
+            $this->REST_Return(200, 'SUCCESS', array_values($rows));
+            return;
+        }
+        $this->REST_Return(401, $is_valid_token['message'], 'Invalid Token.');
+        return;
+    }
+
+    public function canvas_post() {
+        // Body dibaca mentah (bukan json_post()) karena xss_clean() mengganti
+        // "data:image/..." menjadi "[removed]" dan merusak nilai gambar kanvas.
+        // Yang disimpan hanya kolom whitelist di bawah, dan nilainya JSON kanvas.
+        $raw        = json_decode(file_get_contents('php://input'), true);
+        $dt_post    = is_array($raw) ? $raw : array();
+        $_POST      = $dt_post; // form_validation membaca $_POST
+        $error      = TRUE;
+
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
+            $this->form_validation->set_rules('soap_id', 'soap_id', 'trim|required|max_length[36]');
+            if ($this->form_validation->run() == FALSE) {
+                $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $this->form_validation->error_array());
+                return;
+            }
+            if ($this->Soap->read($dt_post['soap_id'], false) == []) {
+                $this->REST_Return(404, $this->name . ' with id ' . $dt_post['soap_id'] . ' does not exist!');
+                return;
+            }
+            $existing = $this->Canvas->select(0, 'a.*', array('soap_id' => $dt_post['soap_id']));
+            if (count($existing) > 0) {
+                $this->REST_Return(409, 'canvas for this soap already exists, use PUT');
+                return;
+            }
+            $dt_canvas = array(
+                'soap_id'               => $dt_post['soap_id'],
+                'date_updated'          => date('Y-m-d H:i:s'),
+                'user_updated'          => isset($is_valid_token['data']->id) ? $is_valid_token['data']->id : NULL,
+            );
+            foreach ($this->canvas_columns() as $col) {
+                if (isset($dt_post[$col])) $dt_canvas[$col] = $dt_post[$col];
+            }
+            $this->db->trans_start();
+            $canvas_id = $this->Canvas->create($dt_canvas);
+            $this->db->trans_complete();
+            if ($canvas_id === FALSE) {
+                $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.');
+                return;
+            }
+            $row = $this->Canvas->select(0, 'a.*', array('id' => $canvas_id));
+            $this->REST_Return(200, 'SUCCESS', (count($row) > 0) ? $row[0] : NULL);
+            return;
+        }
+        $this->REST_Return(401, $is_valid_token['message'], 'Invalid Token.');
+        return;
+    }
+
+    public function canvas_put($p = 0) {
+        // idem canvas_post: decode mentah supaya data URI gambar tidak dirusak xss_clean.
+        $raw        = json_decode(file_get_contents('php://input'), true);
+        $dt_put     = is_array($raw) ? $raw : array();
+        $_POST      = $dt_put; // form_validation membaca $_POST
+
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
+            if ($p == 0) {
+                $this->REST_Return(400, 'canvas id is required');
+                return;
+            }
+            $existing = $this->Canvas->select(0, 'a.*', array('id' => $p));
+            if (count($existing) == 0) {
+                $this->REST_Return(404, $this->name . ' canvas with id ' . $p . ' does not exist!');
+                return;
+            }
+            // ownership: canvas tidak boleh dipindah ke soap lain
+            if (isset($dt_put['soap_id']) && $dt_put['soap_id'] !== '' && $dt_put['soap_id'] != $existing[0]->soap_id) {
+                $this->REST_Return(409, 'canvas belongs to another soap record');
+                return;
+            }
+            $dt_canvas = array(
+                'id'                    => $p,
+                'date_updated'          => date('Y-m-d H:i:s'),
+                'user_updated'          => isset($is_valid_token['data']->id) ? $is_valid_token['data']->id : NULL,
+            );
+            foreach ($this->canvas_columns() as $col) {
+                if (isset($dt_put[$col])) $dt_canvas[$col] = $dt_put[$col];
+            }
+            $this->db->trans_start();
+            $this->Canvas->update($p, $dt_canvas);
+            $this->db->trans_complete();
+            $row = $this->Canvas->select(0, 'a.*', array('id' => $p));
+            $this->REST_Return(200, 'SUCCESS', (count($row) > 0) ? $row[0] : NULL);
+            return;
+        }
+        $this->REST_Return(401, $is_valid_token['message'], 'Invalid Token.');
+        return;
+    }
+
+    /**
+     * Kolom gambar yang benar-benar ada di tabel `canvas` produksi (7 kolom).
+     * `derma` TIDAK ada di skema, jadi tidak diikutkan (lihat laporan P2).
+     */
+    private function canvas_columns() {
+        // Tujuh kolom gambar yang benar-benar ada di tabel `canvas`. `derma` TIDAK
+        // ada di skema dan sengaja tidak pernah dimasukkan, supaya payload FE yang
+        // masih membawanya tidak berujung SQL 1054.
+        return array('muskuloskeletal_laki', 'muskuloskeletal_pr', 'paru', 'mata',
+                     'tooth', 'intra_oral', 'head');
     }
 
     public function get_cppt($registration_id = null) {
@@ -5360,7 +5498,7 @@ class Soap extends My_Controller {
                     AND (a.cppt_id IS NULL OR a.cppt_id = '') 
                     ORDER BY a.date_request DESC
                 ")->result();
-                for ($k=0; $k < count($laboratory_request); $k++) { 
+                for ($k=0; $k < (is_array($laboratory_request) ? count($laboratory_request) : 0); $k++) { 
                     $laboratory_request_id = $laboratory_request[$k]->id;
 
                     // LIS RESULT
@@ -5388,7 +5526,7 @@ class Soap extends My_Controller {
                         array('laboratory_package lp', 'a.laboratory_package_id = lp.id', 'INNER'),
                     );
                     $laboratory_request_item = $this->Laboratory_request_item->select(0, $select_lab_item, $where_lab_item, $join_lab_item);
-                    for ($j=0; $j < count($laboratory_request_item); $j++) { 
+                    for ($j=0; $j < (is_array($laboratory_request_item) ? count($laboratory_request_item) : 0); $j++) { 
                         $output[$i]->laboratory_request[$k]['laboratory_request_items'][$j]['id'] = $laboratory_request_item[$j]->id;
                         $output[$i]->laboratory_request[$k]['laboratory_request_items'][$j]['laboratory_request_id'] = $laboratory_request_item[$j]->laboratory_request_id;
                         $output[$i]->laboratory_request[$k]['laboratory_request_items'][$j]['laboratory_package_id'] = $laboratory_request_item[$j]->laboratory_package_id;                        
@@ -5406,10 +5544,10 @@ class Soap extends My_Controller {
                         // LIS RESULT
                         $code_lis = $laboratory_request_item[$j]->code_lis;
 
-                        if (count($lis_response) > 0) {
+                        if ((is_array($lis_response) ? count($lis_response) : 0) > 0) {
                             $result = $lis_response[0]['result_detail'];
                             
-                            for ($l=0; $l < count($result); $l++) { 
+                            for ($l=0; $l < (is_array($result) ? count($result) : 0); $l++) { 
                                 $flag = $result[$l]['flag'];
                                 $parameter_id = $result[$l]['ParameterID'];
                                 
@@ -5447,7 +5585,7 @@ class Soap extends My_Controller {
                     AND (a.cppt_id IS NULL OR a.cppt_id = '') 
                     ORDER BY a.date_request DESC
                 ")->result();
-                for ($k=0; $k < count($radiology_request); $k++) { 
+                for ($k=0; $k < (is_array($radiology_request) ? count($radiology_request) : 0); $k++) { 
                     $radiology_request_id = $radiology_request[$k]->id;
 
                     $output[$i]->radiology_request[$k]['id'] = $radiology_request_id;
@@ -5470,7 +5608,7 @@ class Soap extends My_Controller {
                         'a.is_delete' => 0
                     );
                     $radiology_request_item = $this->Radiology_request_item->select(0, $select_rad_item, $where_rad_item);
-                    for ($j=0; $j < count($radiology_request_item); $j++) { 
+                    for ($j=0; $j < (is_array($radiology_request_item) ? count($radiology_request_item) : 0); $j++) { 
                         $radiology_request_item_id = $radiology_request_item[$j]->id;
 
                         $output[$i]->radiology_request[$k]['radiology_request_items'][$j]['id'] = $radiology_request_item[$j]->id;
@@ -6065,10 +6203,10 @@ class Soap extends My_Controller {
                     $code_lis = $laboratory_request_items[$k]->code_lis;
                     $laboratory_request_items[$k]->result = [];
 
-                    if (count($lis_response) > 0) {
+                    if ((is_array($lis_response) ? count($lis_response) : 0) > 0) {
                         $result = $lis_response[0]['result_detail'];
 
-                        for ($l=0; $l < count($result); $l++) { 
+                        for ($l=0; $l < (is_array($result) ? count($result) : 0); $l++) { 
                             $flag = $result[$l]['flag'];
                             $parameter_id = $result[$l]['ParameterID'];
                             
@@ -6227,9 +6365,15 @@ class Soap extends My_Controller {
         }
         curl_setopt($ch, CURLOPT_HTTPHEADER, $authorization ); 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         $result = curl_exec($ch);
         curl_close($ch); 
-        return json_decode($result,true); 
+        if ($result === false) {
+            return [];
+        }
+        $decoded = json_decode($result, true);
+        return is_array($decoded) ? $decoded : [];
     }
 
     public function resume_update_put($p = 0) {
@@ -8839,6 +8983,15 @@ class Soap extends My_Controller {
                                 // }
                             }
                         }
+                    } else if (count($dt_put['form_prescription']) > 0 && count($pharmacy_prescription_processed) > 0) {
+                        // Resep sudah diproses apotek (flag=1). Sebelumnya blok ini dilewati diam-diam
+                        // lalu method tetap balas 200 SUCCESS -> user melihat "berhasil" padahal
+                        // resep racikan tidak tersimpan. Kembalikan status error yang jujur.
+                        $this->REST_Return(409, 'prescription is already processed by pharmacy; prescription cannot be modified', array(
+                            'success' => false,
+                            'reason'  => 'prescription_processed',
+                        ));
+                        return;
                     }
                 }
 
@@ -10111,10 +10264,10 @@ class Soap extends My_Controller {
                         $code_lis = $laboratory_request_items[$k]->code_lis;
                         $laboratory_request_items[$k]->result = [];
 
-                        if (count($lis_response) > 0) {
+                        if ((is_array($lis_response) ? count($lis_response) : 0) > 0) {
                             $result = $lis_response[0]['result_detail'];
 
-                            for ($l=0; $l < count($result); $l++) { 
+                            for ($l=0; $l < (is_array($result) ? count($result) : 0); $l++) { 
                                 $flag = $result[$l]['flag'];
                                 $parameter_id = $result[$l]['ParameterID'];
 
@@ -10385,10 +10538,10 @@ class Soap extends My_Controller {
                             $code_lis = $laboratory_request_items_resume[$k]->code_lis;
                             $laboratory_request_items_resume[$k]->result = [];
     
-                            if (count($lis_response) > 0) {
+                            if ((is_array($lis_response) ? count($lis_response) : 0) > 0) {
                                 $result = $lis_response[0]['result_detail'];
     
-                                for ($l=0; $l < count($result); $l++) { 
+                                for ($l=0; $l < (is_array($result) ? count($result) : 0); $l++) { 
                                     $flag = $result[$l]['flag'];
                                     $parameter_id = $result[$l]['ParameterID'];
                                     
@@ -13802,7 +13955,8 @@ class Soap extends My_Controller {
     
         $registration_destination_id = $dt_put['registration_destination_id'];
         $doctor_in_charge_id = $dt_put['doctor_in_charge_id'];
-        $clinical_indications = $dt_put['clinical_indications'];
+        $clinical_indications = isset($dt_put['clinical_indications'])
+            ? $dt_put['clinical_indications'] : null;
 
         $select = 'a.id, r.norm';
         $where = array();
@@ -14065,7 +14219,8 @@ class Soap extends My_Controller {
     
         $registration_destination_id = $dt_put['registration_destination_id'];
         $doctor_in_charge_id = $dt_put['doctor_in_charge_id'];
-        $clinical_indications = $dt_put['clinical_indications'];
+        $clinical_indications = isset($dt_put['clinical_indications'])
+            ? $dt_put['clinical_indications'] : null;
 
         $select = 'a.id, r.norm';
         $where = array();

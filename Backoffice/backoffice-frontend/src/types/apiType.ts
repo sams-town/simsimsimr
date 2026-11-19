@@ -3,7 +3,7 @@ import { FetchBaseQueryError } from '@reduxjs/toolkit/dist/query';
 import { FieldValues } from 'react-hook-form';
 
 export interface LoginRequest {
-    email: number;
+    email: string;
     password: string;
 }
 

@@ -257,6 +257,13 @@ class Doctor_schedule extends My_Controller {
     
         $where = $q_strings;
 
+        // bride_bpjs ada di employee (d) DAN health_facility_item (e) -> tanpa alias
+        // MySQL menolak: "Column 'bride_bpjs' in WHERE is ambiguous" (500).
+        if (isset($where['bride_bpjs'])) {
+            $where['e.bride_bpjs'] = $where['bride_bpjs'];
+            unset($where['bride_bpjs']);
+        }
+
         if(isset($q_strings['date'])) {
             $date = $this->day_to_hari(date('l', strtotime($q_strings['date'])));
             $where['a.day'] = $date;

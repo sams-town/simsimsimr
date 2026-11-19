@@ -179,6 +179,21 @@ class MY_Model extends CI_Model
         return false;
     }
 
+	/**
+	 * Cek apakah tabel model ini punya kolom tertentu.
+	 * Dipakai MY_Controller::list_get() agar filter branch/is_delete hanya
+	 * diterapkan pada tabel yang memang punya kolomnya (banyak tabel anak
+	 * tidak branch-scoped, sehingga filter buta menghasilkan 500).
+	 */
+	public function has_column($column) {
+		return $this->db->field_exists($column, $this->tableName);
+	}
+
+	/** Cek apakah tabel model ini sudah dimigrasi (ada di schema aktif). */
+	public function table_exists() {
+		return $this->db->table_exists($this->tableName);
+	}
+
 	public function convert_data_icd($data) {
 		// convert numeric types
 		for ($i=0; $i < count(($data)); $i++) { 
@@ -258,6 +273,15 @@ class MY_Model extends CI_Model
 				// if($key == 'code') {
 				// 	continue;
 				// }
+				// Kode adalah identifier, bukan angka. Konversi ke int/float membuang
+				// karakter: '00.01' -> 0.01 (icd9cm), '000740' -> 740 (pharmacy_catalog),
+				// '47.0' -> 47, '061' -> 61, '47.01' -> 47.01 (tipe berubah).
+				// Aturan: hanya bilangan bulat kanonik (0, atau tanpa nol depan) yang
+				// tetap dikonversi seperti perilaku lama; sisanya dibiarkan string.
+				if (($key === 'code' || $key === 'code_s' || substr($key, -5) === '_code')
+					&& !(ctype_digit((string) $val) && ((string) $val === '0' || $val[0] !== '0'))) {
+					continue;
+				}
 				if($key == 'number_insurance') {
 					continue;
 				}
@@ -809,10 +833,18 @@ class MY_Model extends CI_Model
 	}
     
 	public function update($p = 0, $data = array()) {
+		// P1-a: $_POST bisa bernilai NULL untuk request non-POST karena filter_input_array()
+		// di bawah mengembalikan NULL. PHP menjamin $_POST selalu array; pola ini sama dengan
+		// yang sudah dipakai update_new(). Tanpa ini count($this->input->post()) fatal di PHP 8.
+		if ($_POST == NULL) {
+			$_POST = [];
+		}
+
 		if( count($this->input->post()) > 0 || count($data) > 0):
 			$status = false;
 			//set filter data
-			if (count($this->whereFields) > 0) {
+			// P1-a: whereFields tidak diinisialisasi di banyak model (NULL) -> count(NULL) fatal.
+			if (is_array($this->whereFields) && count($this->whereFields) > 0) {
 				foreach ($this->whereFields as $key => $val) 
 					$this->db->where($key, $val);
 				$status = true;
@@ -843,7 +875,9 @@ class MY_Model extends CI_Model
 			} else {
 				$_POST  = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);			
 					
-				if ( !empty($this->primaryKey) && !is_null($data[$this->primaryKey])) {
+				// P1-a: $data[$this->primaryKey] sering tidak diisi pemanggil (mis. delete lab
+				// mengirim id lewat argumen $p). isset() = perilaku is_null() tanpa E_WARNING.
+				if ( !empty($this->primaryKey) && isset($data[$this->primaryKey])) {
 					
 					$this->db->where( $this->primaryKey, $data[$this->primaryKey]);
 					$status = true;

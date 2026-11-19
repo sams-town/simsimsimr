@@ -1,6 +1,114 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 use Restserver\Libraries\REST_Controller;
 class Prescription extends My_Controller {
+
+    /** 4C-05: cache no_rawat per prescription_id untuk audit (1 query per request). */
+    protected $_no_rawat_cache = array();
+
+    /* ==========================================================================
+     * 4C-05 — AUTHORIZATION SCOPE FARMASI (branch server-side, fail-closed)
+     * ==========================================================================
+     * Semua endpoint farmasi mengambil branch HANYA dari token. Branch kosong
+     * atau objek milik branch lain => ditolak sebelum data dikirim, dan setiap
+     * penolakan diaudit (DENIED_*) dengan user, branch, aksi, dan no_rawat.
+     */
+
+    /** Branch dari token; kosong / token tak valid => tolak (respons terkirim). */
+    protected function _ph_branch($operation) {
+        $t = $this->authorization_token->validateToken();
+        if (empty($t) OR $t['status'] !== TRUE) {
+            $this->REST_Return(401, isset($t['message']) ? $t['message'] : 'Invalid Token.', 'Invalid Token.');
+            return null;
+        }
+        $branch = trim((string) $this->security->xss_clean($t['data']->institute_branch_id));
+        // Tahap 1: mode single cabang => branch kosong memakai default (config/branch_default.php).
+        // TODO: expand branch filter saat multi-cabang
+        $branch = $this->resolve_branch_id($branch);
+        if ($branch === '') {
+            $this->_c2_audit('DENIED_BRANCH_SCOPE_UNDEFINED', null,
+                $this->security->xss_clean($t['data']->id),
+                array('reason' => 'branch_empty', 'operation' => $operation), 409);
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return null;
+        }
+        return $branch;
+    }
+
+    /** no_rawat (nomor kunjungan) untuk audit; null bila resep bebas / tanpa registrasi. */
+    protected function _ph_no_rawat($prescription_id) {
+        if ($prescription_id === null || $prescription_id === '' || $prescription_id === 0) {
+            return null;
+        }
+        $key = (string) $prescription_id;
+        if (array_key_exists($key, $this->_no_rawat_cache)) {
+            return $this->_no_rawat_cache[$key];
+        }
+        $q = $this->db->query(
+            "SELECT r.no_rawat
+               FROM pharmacy_prescription p
+               LEFT JOIN registration_destination rd ON rd.id = p.registration_destination_id
+               LEFT JOIN registration r ON r.id = rd.registration_id
+              WHERE p.id = ?",
+            array($key));
+        $row = ($q === FALSE) ? null : $q->row();
+        return $this->_no_rawat_cache[$key] = ($row === null ? null : $row->no_rawat);
+    }
+
+    /** Audit penolakan scope (tanpa rollback: dipakai endpoint baca). */
+    protected function _ph_deny($code, $prescription_id, $user_id, $operation, $detail, $http, $message) {
+        $this->_c2_audit('DENIED_' . $code, $prescription_id, $user_id,
+            array_merge(array('operation'    => $operation,
+                              'applied_by'   => $user_id,
+                              'applied_from_branch' => isset($this->s1_actor['branch']) ? $this->s1_actor['branch'] : null), (array) $detail), $http);
+        $this->REST_Return($http, $message, (array) $detail, $code);
+    }
+
+    /** Objek tunggal: resep harus ada DAN milik branch token. */
+    protected function _ph_object_scope($prescription_id, $branch, $operation) {
+        $q = $this->db->query(
+            "SELECT id, no_order, institute_branch_id FROM pharmacy_prescription WHERE id = ?",
+            array($prescription_id));
+        $row = ($q === FALSE) ? null : $q->row();
+        $uid = isset($this->s1_actor['user_id']) ? $this->s1_actor['user_id'] : null;
+        if ($row === null) {
+            $this->_ph_deny('PHARMACY_RX_NOT_FOUND', $prescription_id, $uid, $operation,
+                array('reason' => 'not_found'), 404,
+                'Prescription with id ' . $prescription_id . ' does not exist!');
+            return false;
+        }
+        if ((string) $row->institute_branch_id !== (string) $branch) {
+            $this->_ph_deny('PHARMACY_BRANCH_SCOPE_MISMATCH', $prescription_id, $uid, $operation,
+                array('reason' => 'branch_mismatch', 'object_branch' => $row->institute_branch_id,
+                      'token_branch' => $branch), 403,
+                'Data berada di luar branch scope.');
+            return false;
+        }
+        return true;
+    }
+
+    /** Depo harus milik branch token (endpoint katalog/stok). */
+    protected function _ph_depo_scope($depo_id, $branch, $operation) {
+        $q = $this->db->query(
+            "SELECT id, institute_branch_id FROM pharmacy_depo WHERE id = ? AND is_delete = 0",
+            array($depo_id));
+        $row = ($q === FALSE) ? null : $q->row();
+        $uid = isset($this->s1_actor['user_id']) ? $this->s1_actor['user_id'] : null;
+        if ($row === null) {
+            $this->_ph_deny('PHARMACY_DEPO_NOT_FOUND', null, $uid, $operation,
+                array('reason' => 'depo_not_found', 'pharmacy_depo_id' => $depo_id), 404,
+                'Depo tidak ditemukan.');
+            return false;
+        }
+        if (trim((string) $row->institute_branch_id) !== (string) $branch) {
+            $this->_ph_deny('PHARMACY_DEPO_SCOPE_MISMATCH', null, $uid, $operation,
+                array('reason' => 'depo_branch_mismatch', 'pharmacy_depo_id' => $depo_id,
+                      'depo_branch' => $row->institute_branch_id, 'token_branch' => $branch), 403,
+                'Depo berada di luar branch scope.');
+            return false;
+        }
+        return true;
+    }
+
     public function __construct() {
         parent::__construct();
         // Load Authorization Token Library
@@ -400,6 +508,16 @@ class Prescription extends My_Controller {
         $user_id = $this->security->xss_clean($is_valid_token['data']->id);
         $institute_branch_id = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
 
+        // 4C-03C: branch hanya dari token. Kosong => fail-closed sebelum transaksi.
+        $token_branch   = trim((string) $institute_branch_id);
+        $token_username = isset($is_valid_token['data']->username) ? $is_valid_token['data']->username : null;
+        if ($token_branch === '') {
+            $this->_c30_audit('DENIED_BRANCH_SCOPE_UNDEFINED', null, $user_id, $token_username,
+                array('reason' => 'branch_empty'), 409, 'create');
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return;
+        }
+
         $registration_destination_id = $dt_post['registration_destination_id'];
         $type_prescription_id = $dt_post['type_prescription_id'];
         $doctor_in_charge_id = $dt_post['doctor_in_charge_id'];
@@ -446,6 +564,41 @@ class Prescription extends My_Controller {
 
         if ($health_facility_id == '3cb626f5-9148-4fb1-8663-3d7f028b01a6') { // RAWAT JALAN
             $pharmacy_depo_id = '972dcaba-cea0-4515-9756-75ea675c6322';
+        }
+
+        // 4C-03C: depo & identitas penjamin dibaca dari DB, bukan dipercaya dari payload.
+        $depo_q   = $this->db->query("SELECT id, institute_branch_id, is_delete FROM pharmacy_depo WHERE id = ?", array($pharmacy_depo_id));
+        $depo_row = ($depo_q === FALSE) ? null : $depo_q->row();
+        if ($depo_row === null || (int) $depo_row->is_delete === 1) {
+            $this->_c30_audit('DENIED_DEPO_NOT_FOUND', null, $user_id, $token_username,
+                array('reason' => 'depo_not_found', 'pharmacy_depo_id' => $pharmacy_depo_id), 409, 'create');
+            $this->REST_Return(409, 'Depo farmasi tidak ditemukan.', array(
+                'pharmacy_depo_id' => $pharmacy_depo_id,
+            ), 'DEPO_NOT_FOUND');
+            return;
+        }
+        $depo_branch = trim((string) $depo_row->institute_branch_id);
+        if ($depo_branch !== '' && $depo_branch !== $token_branch) {
+            $this->_c30_audit('DENIED_DEPO_SCOPE_MISMATCH', null, $user_id, $token_username,
+                array('reason' => 'depo_branch_mismatch', 'depo_branch' => $depo_branch, 'token_branch' => $token_branch), 403, 'create');
+            $this->REST_Return(403, 'Depo berada di luar branch scope.', array(), 'DEPO_SCOPE_MISMATCH');
+            return;
+        }
+
+        $c3c_identity  = $this->_c3c_identity($registration_destination_id);
+        $c3c_date      = date('Y-m-d');
+        $c3c_snapshots = array();
+
+        // ALKES GUARD: alkes (category "Alat Kesehatan") bukan obat dan tidak boleh
+        // masuk resep. Fail-closed sebelum transaksi supaya tidak ada baris tertulis.
+        $alkes_rows = $this->_alkes_in_prescription($dt_post);
+        if (!empty($alkes_rows)) {
+            $this->_c30_audit('DENIED_ALKES_IN_PRESCRIPTION', null, $user_id, $token_username,
+                array('items' => $alkes_rows), 422, 'create');
+            $this->REST_Return(422, 'Item alat kesehatan tidak bisa diresepkan.', array(
+                'items' => $alkes_rows,
+            ), 'ALKES_NOT_PRESCRIBABLE');
+            return;
         }
 
         /* Start Transaction */
@@ -604,6 +757,36 @@ class Prescription extends My_Controller {
                     );
                 }
             }
+
+            // 4C-03C: harga canonical dari server. Harga/var_1 kiriman client tidak pernah dibaca.
+            $c3c = $this->_c3c_resolve_price($form_prescription[$i]['pharmacy_catalog_id'], $token_branch,
+                $pharmacy_depo_id, $c3c_identity['service_class_id'], $c3c_identity['insurance_id'], $c3c_date);
+            if ($c3c['ok'] !== true) {
+                // Satu item gagal => seluruh create di-rollback, tidak ada snapshot parsial.
+                $this->db->trans_rollback();
+                $this->_c30_audit('DENIED_' . $c3c['code'], $id_prescription, $user_id, $token_username, array(
+                    'reason'       => $c3c['code'],
+                    'catalog_id'   => $form_prescription[$i]['pharmacy_catalog_id'],
+                    'depo_id'      => $pharmacy_depo_id,
+                    'branch_id'    => $token_branch,
+                    'class_id'     => $c3c_identity['service_class_id'],
+                    'insurance_id' => $c3c_identity['insurance_id'],
+                    'price_date'   => $c3c_date,
+                ), 409, 'create');
+                $this->REST_Return(409, ($c3c['code'] === 'PRICE_AMBIGUOUS'
+                        ? 'Harga katalog ambigu; tidak ada satu harga canonical.'
+                        : 'Harga katalog tidak ditemukan untuk dimensi resep ini.'),
+                    array('reason' => $c3c['code'], 'pharmacy_catalog_id' => $form_prescription[$i]['pharmacy_catalog_id']),
+                    $c3c['code']);
+                return;
+            }
+            $dt_prescription_item = array_merge($dt_prescription_item, $this->_c3c_snapshot($c3c['row']));
+            $c3c_snapshots[] = array(
+                'pharmacy_catalog_id' => $form_prescription[$i]['pharmacy_catalog_id'],
+                'price_id'            => $c3c['row']->id,
+                'price_sale'          => $c3c['row']->price_sale,
+            );
+
             $this->Prescription_item->replace($dt_prescription_item);
         }
 
@@ -624,6 +807,15 @@ class Prescription extends My_Controller {
             'id'     => $id_prescription
         );
 
+        // 4C-03C: audit harga server yang dipakai (bukan harga client).
+        $this->_c30_audit('PRICE_SNAPSHOT_OK', $id_prescription, $user_id, $token_username, array(
+            'branch_id'    => $token_branch,
+            'depo_id'      => $pharmacy_depo_id,
+            'class_id'     => $c3c_identity['service_class_id'],
+            'insurance_id' => $c3c_identity['insurance_id'],
+            'items'        => $c3c_snapshots,
+        ), 200, 'create');
+
         $this->REST_Return(200, 'SUCCESS', $response_data);
         return;
     }
@@ -632,6 +824,10 @@ class Prescription extends My_Controller {
         header("Access-Control-Allow-Origin: *");
         parse_str($_SERVER['QUERY_STRING'],$q_strings);
         $id     = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'read')) { return; }
         $model  = $this->name;
 
         // Token Validation
@@ -984,7 +1180,11 @@ class Prescription extends My_Controller {
         }
 
         $select_checks = 'a.register_date,a.code,p.norm,hfi.name as health_facility_item_name,ri.sep,p.name,e.fullname as doctor_in_charge_name';
+        // 4C-05: kunjungan difilter branch dari token.
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
         $where_checks['a.norm'] = $q_strings['norm'];
+        $where_checks['a.institute_branch_id'] = $ph_branch;
         $where_checks['hfi.health_facility_id'] = '40f06534-07ec-4221-ad9d-dea08196079f';
         $join_checks = array(
             array('registration_destination rd', 'a.id = rd.registration_id', 'INNER'),
@@ -1011,6 +1211,10 @@ class Prescription extends My_Controller {
         parse_str($_SERVER['QUERY_STRING'],$q_strings);
         $error  = true;
         $id     = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'read')) { return; }
         $model  = $this->name;
 
         // Token Validation
@@ -1177,6 +1381,10 @@ class Prescription extends My_Controller {
         parse_str($_SERVER['QUERY_STRING'],$q_strings);
         $error  = true;
         $id     = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'read')) { return; }
         $model  = $this->name;
 
         // Token Validation
@@ -1355,6 +1563,10 @@ class Prescription extends My_Controller {
         parse_str($_SERVER['QUERY_STRING'],$q_strings);
         $error  = true;
         $id     = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'read')) { return; }
         $model  = "Prescription_short";
 
         // Token Validation
@@ -1436,14 +1648,16 @@ class Prescription extends My_Controller {
                                 $output[$i]->form_prescription[$j]['used'] = $form_prescription[$j]->used;
                                 $output[$i]->form_prescription[$j]['desc'] = $form_prescription[$j]->desc;
                                 $output[$i]->form_prescription[$j]['var_1'] = $form_prescription[$j]->var_1;
-                                $output[$i]->form_prescription[$j]['var_2'] = $form_prescription[$j]->qty*($form_prescription[$j]->var_1);
+                                // P0-4: nilai baris = (qty_awal - qty_retur) x harga satuan. Dihitung
+                                // server dari kolom histori; var_2 tersimpan tidak dipakai lagi.
+                                $output[$i]->form_prescription[$j]['var_2'] = round(max(0, (float)$form_prescription[$j]->qty - (float)$form_prescription[$j]->qty_retur) * (float)$form_prescription[$j]->var_1, 2);
                                 $output[$i]->form_prescription[$j]['var_3'] = $form_prescription[$j]->var_3;
                                 $output[$i]->form_prescription[$j]['doctor_in_charge_id'] = $form_prescription[$j]->doctor_in_charge_id;
                                 $output[$i]->form_prescription[$j]['pharmacy_catalog_id_ref'] = $form_prescription[$j]->pharmacy_catalog_id_ref;
                                 $output[$i]->form_prescription[$j]['pharmacy_catalog_id_retur'] = $form_prescription[$j]->pharmacy_catalog_id_retur;
                                 $output[$i]->form_prescription[$j]['pharmacy_catalog_id_sub'] = $form_prescription[$j]->pharmacy_catalog_id_sub;
                                 $output[$i]->form_prescription[$j]['sort'] = $form_prescription[$j]->sort;
-                                $total_var_1 += ($form_prescription[$j]->qty-$form_prescription[$j]->qty_retur)*($form_prescription[$j]->var_1);
+                                $total_var_1 += round(max(0, (float)$form_prescription[$j]->qty - (float)$form_prescription[$j]->qty_retur) * (float)$form_prescription[$j]->var_1, 2);
                             }
                             $output[$i]->var_1 = $total_var_1;
                         } 
@@ -1624,6 +1838,10 @@ class Prescription extends My_Controller {
         parse_str($_SERVER['QUERY_STRING'],$q_strings);
         $error  = true;
         $id     = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'read')) { return; }
         $model  = $this->name;
 
         // Token Validation
@@ -1720,6 +1938,13 @@ class Prescription extends My_Controller {
                         $item[$j]['qty_retur'] = $form_prescription[$j]->qty_retur;
                         $item[$j]['is_retur'] = $form_prescription[$j]->is_retur;
                         $item[$j]['is_retur_full'] = $form_prescription[$j]->is_retur_full;
+                        // 4C-04: status retur (pending/approved/rejected) untuk form retur FE.
+                        $item[$j]['retur_status'] = isset($form_prescription[$j]->retur_status) ? $form_prescription[$j]->retur_status : null;
+                        $item[$j]['retur_qty_requested'] = isset($form_prescription[$j]->retur_qty_requested) ? $form_prescription[$j]->retur_qty_requested : null;
+                        $item[$j]['retur_reason'] = isset($form_prescription[$j]->retur_reason) ? $form_prescription[$j]->retur_reason : null;
+                        $item[$j]['retur_requested_at'] = isset($form_prescription[$j]->retur_requested_at) ? $form_prescription[$j]->retur_requested_at : null;
+                        $item[$j]['retur_approved_by'] = isset($form_prescription[$j]->retur_approved_by) ? $form_prescription[$j]->retur_approved_by : null;
+                        $item[$j]['retur_approved_at'] = isset($form_prescription[$j]->retur_approved_at) ? $form_prescription[$j]->retur_approved_at : null;
                         $item[$j]['qty_copy'] = $form_prescription[$j]->qty_copy;
                         $item[$j]['used'] = $form_prescription[$j]->used;
                         $item[$j]['desc'] = $form_prescription[$j]->desc;
@@ -1783,7 +2008,20 @@ class Prescription extends My_Controller {
         $is_valid_token = $this->authorization_token->validateToken();
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
             $institute_branch_id = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+            // 4C-05: depo & katalog harus di dalam branch token.
+            if (trim((string) $institute_branch_id) === '') {
+                $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+                return;
+            }
+            if (!$this->_ph_depo_scope($q_strings['pharmacy_depo_id'], trim((string) $institute_branch_id), 'read')) { return; }
             $catalog = $this->Catalog->read($p,false)[0];
+            if (trim((string) $catalog->institute_branch_id) !== '' && (string) $catalog->institute_branch_id !== trim((string) $institute_branch_id)) {
+                $this->_ph_deny('PHARMACY_CATALOG_SCOPE_MISMATCH', null, isset($this->s1_actor['user_id']) ? $this->s1_actor['user_id'] : null, 'read',
+                    array('reason' => 'catalog_branch_mismatch', 'pharmacy_catalog_id' => $p,
+                          'catalog_branch' => $catalog->institute_branch_id, 'token_branch' => trim((string) $institute_branch_id)), 403,
+                    'Katalog berada di luar branch scope.');
+                return;
+            }
             $this->Assets->whereFields['a.pharmacy_catalog_id'] = $q_strings['id'];
             $this->Assets->whereFields['a.pharmacy_depo_id'] = $q_strings['pharmacy_depo_id'];
             $stock = $this->Assets->read(0,false)[0];
@@ -1833,7 +2071,20 @@ class Prescription extends My_Controller {
         $is_valid_token = $this->authorization_token->validateToken();
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
             $institute_branch_id = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+            // 4C-05: depo & katalog harus di dalam branch token.
+            if (trim((string) $institute_branch_id) === '') {
+                $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+                return;
+            }
+            if (!$this->_ph_depo_scope($q_strings['pharmacy_depo_id'], trim((string) $institute_branch_id), 'read')) { return; }
             $catalog = $this->Catalog->read($p,false)[0];
+            if (trim((string) $catalog->institute_branch_id) !== '' && (string) $catalog->institute_branch_id !== trim((string) $institute_branch_id)) {
+                $this->_ph_deny('PHARMACY_CATALOG_SCOPE_MISMATCH', null, isset($this->s1_actor['user_id']) ? $this->s1_actor['user_id'] : null, 'read',
+                    array('reason' => 'catalog_branch_mismatch', 'pharmacy_catalog_id' => $p,
+                          'catalog_branch' => $catalog->institute_branch_id, 'token_branch' => trim((string) $institute_branch_id)), 403,
+                    'Katalog berada di luar branch scope.');
+                return;
+            }
             $this->Assets->whereFields['a.pharmacy_catalog_id'] = $q_strings['id'];
             $this->Assets->whereFields['a.pharmacy_depo_id'] = $q_strings['pharmacy_depo_id'];
             $stock = $this->Assets->read(0,false)[0];
@@ -1899,8 +2150,12 @@ class Prescription extends My_Controller {
             if(isset($q_strings['limit'])) $this->$model->limit = $q_strings['limit']; unset($q_strings['limit']);
             if(isset($q_strings['offset'])) $this->$model->offset = $q_strings['offset']; unset($q_strings['offset']);
             // $this->$model->whereLike = $q_strings;
-            // $this->$model->whereFields['hf.institute_branch_id'] = $institute_branch_id;
-            // $this->$model->whereFields['hri.institute_branch_id'] = $institute_branch_id;
+            // 4C-05: filter branch dari token DIAKTIFKAN (sebelumnya dikomentari => lintas branch).
+            if (trim((string) $institute_branch_id) === '') {
+                $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+                return;
+            }
+            $this->$model->whereFields['a.institute_branch_id'] = trim((string) $institute_branch_id);
             // $this->$model->whereFields['a.id'] = 'ea1c81a3-73a5-468c-9681-8ed86ca1a572';
             // $q_strings['date_start'] = '2024-08-23';
             // $q_strings['date_end'] = '2024-08-23';
@@ -2012,9 +2267,13 @@ class Prescription extends My_Controller {
         $date_start = $date . ' 00:00:00';
         $date_end = $date . ' 23:59:59';
 
+        // 4C-05: antrean farmasi difilter branch dari token.
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
         $select_prj = 'a.no_order, a.queue';
         $where_prj = array(
             'a.is_delete' => 0,
+            'a.institute_branch_id' => $ph_branch,
             'a.date_added >=' => $date_start,
             'a.date_added <=' => $date_end,
         );
@@ -2708,6 +2967,17 @@ class Prescription extends My_Controller {
         }
     
         $user_id = $this->security->xss_clean($is_valid_token['data']->id);
+
+        // 4C-03C-0: branch & actor hanya dari token, tidak pernah dari payload.
+        // Kosong => fail-closed sebelum transaksi dimulai (tidak ada tulisan apa pun).
+        $token_branch   = trim((string) $this->security->xss_clean($is_valid_token['data']->institute_branch_id));
+        $token_username = isset($is_valid_token['data']->username) ? $is_valid_token['data']->username : null;
+        if ($token_branch === '') {
+            $this->_c30_audit('DENIED_BRANCH_SCOPE_UNDEFINED', $id, $user_id, $token_username,
+                array('reason' => 'branch_empty'), 409);
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return;
+        }
     
         $prescription_id = $id;
     
@@ -2730,12 +3000,59 @@ class Prescription extends My_Controller {
         /* Start Transaction */
         $this->db->trans_start();
 
+        // 4C-03C-0: locking read + immutability guard sebagai validasi AWAL.
+        // Guard dijalankan sebelum soft-delete/insert ulang apa pun, sehingga penolakan
+        // tidak pernah menghasilkan UPDATE, soft-delete, atau insert ulang.
+        $rx_lock_q = $this->db->query(
+            "SELECT id, flag, is_delete, institute_branch_id, pharmacy_depo_id, registration_destination_id FROM pharmacy_prescription WHERE id = ? FOR UPDATE",
+            array($prescription_id)
+        );
+        $rx_lock = ($rx_lock_q === FALSE) ? null : $rx_lock_q->row();
+        if ($rx_lock === null) {
+            $this->db->trans_rollback();
+            $this->REST_Return(404, 'there is no prescription with id ' . $prescription_id);
+            return;
+        }
+
+        // Branch scope: nilai resep harus sama dengan branch pada token.
+        if ((string) $rx_lock->institute_branch_id !== $token_branch) {
+            $this->db->trans_rollback();
+            $this->_c30_audit('DENIED_BRANCH_SCOPE_MISMATCH', $prescription_id, $user_id, $token_username, array(
+                'reason'       => 'branch_mismatch',
+                'rx_branch'    => $rx_lock->institute_branch_id,
+                'token_branch' => $token_branch,
+            ), 403);
+            $this->REST_Return(403, 'Resep berada di luar branch scope.', array(), 'BRANCH_SCOPE_MISMATCH');
+            return;
+        }
+
+        // Immutability: resep yang sudah diserahkan tidak boleh diubah, di-soft-delete,
+        // atau dihapus lalu dibuat ulang.
+        if ((int) $rx_lock->flag === 1) {
+            $this->db->trans_rollback();
+            $this->_c30_audit('DENIED_ALREADY_DISPENSED', $prescription_id, $user_id, $token_username, array(
+                'reason' => 'flag_already_1',
+                'flag'   => (int) $rx_lock->flag,
+            ), 409);
+            $this->REST_Return(409, 'Resep sudah diserahkan dan tidak dapat diubah.', array(
+                'prescription_id' => $prescription_id,
+                'flag'            => 1,
+            ), 'PRESCRIPTION_ALREADY_DISPENSED');
+            return;
+        }
+
         if ($prescription_id != '' && $prescription_id != null) {
             $dt_prescription_item = array(
                 'is_delete'                 => 1,
             );
             $this->Prescription_item->update($prescription_id, $dt_prescription_item);
         }
+
+        // 4C-03C: identitas penjamin dari DB (registration_insurance), depo dari baris resep.
+        $c3c_identity  = $this->_c3c_identity($rx_lock->registration_destination_id);
+        $c3c_date      = date('Y-m-d');
+        $c3c_depo      = (string) $rx_lock->pharmacy_depo_id;
+        $c3c_snapshots = array();
 
         for ($i=0; $i < count($form_prescription); $i++) { 
             if ($form_prescription[$i]['pharmacy_catalog_id'] == null) {
@@ -2873,6 +3190,34 @@ class Prescription extends My_Controller {
                         'is_delete'                     => 0,
                     );
 
+                    // 4C-03C: snapshot harga dari server; var_1 legacy = price_sale server-side.
+                    $c3c = $this->_c3c_resolve_price($pharmacy_catalog_id, $token_branch, $c3c_depo,
+                        $c3c_identity['service_class_id'], $c3c_identity['insurance_id'], $c3c_date);
+                    if ($c3c['ok'] !== true) {
+                        $this->db->trans_rollback();
+                        $this->_c30_audit('DENIED_' . $c3c['code'], $prescription_id, $user_id, $token_username, array(
+                            'reason'       => $c3c['code'],
+                            'catalog_id'   => $pharmacy_catalog_id,
+                            'depo_id'      => $c3c_depo,
+                            'branch_id'    => $token_branch,
+                            'class_id'     => $c3c_identity['service_class_id'],
+                            'insurance_id' => $c3c_identity['insurance_id'],
+                            'price_date'   => $c3c_date,
+                        ), 409, 'update');
+                        $this->REST_Return(409, ($c3c['code'] === 'PRICE_AMBIGUOUS'
+                                ? 'Harga katalog ambigu; tidak ada satu harga canonical.'
+                                : 'Harga katalog tidak ditemukan untuk dimensi resep ini.'),
+                            array('reason' => $c3c['code'], 'pharmacy_catalog_id' => $pharmacy_catalog_id),
+                            $c3c['code']);
+                        return;
+                    }
+                    $dt_prescription_item = array_merge($dt_prescription_item, $this->_c3c_snapshot($c3c['row']));
+                    $c3c_snapshots[] = array(
+                        'pharmacy_catalog_id' => $pharmacy_catalog_id,
+                        'price_id'            => $c3c['row']->id,
+                        'price_sale'          => $c3c['row']->price_sale,
+                    );
+
                     $this->Prescription_item->replace($dt_prescription_item);
                 }
             }
@@ -2894,7 +3239,16 @@ class Prescription extends My_Controller {
         $response_data = array(
             'id'     => $id
         );
-    
+
+        // 4C-03C: audit harga server yang dipakai (bukan harga client).
+        $this->_c30_audit('PRICE_SNAPSHOT_OK', $id, $user_id, $token_username, array(
+            'branch_id'    => $token_branch,
+            'depo_id'      => $c3c_depo,
+            'class_id'     => $c3c_identity['service_class_id'],
+            'insurance_id' => $c3c_identity['insurance_id'],
+            'items'        => $c3c_snapshots,
+        ), 200, 'update');
+
         $this->REST_Return(200, 'SUCCESS', $response_data);
     }
 
@@ -2912,6 +3266,14 @@ class Prescription extends My_Controller {
         $is_valid_token = $this->authorization_token->validateToken();
         $user_id = $this->security->xss_clean($is_valid_token['data']->id);
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
+            // 4C-02: branch hanya dari token/authorization context, tidak pernah dari payload.
+            // Kosong => fail-closed (409), tidak ada tulisan apa pun.
+            $branch = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+            if (trim((string) $branch) === '') {
+                $this->_c2_audit('DENIED_BRANCH_SCOPE_UNDEFINED', $id, $user_id, array('reason' => 'branch_empty'), 409);
+                $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+                return;
+            }
             # Form Validation
             $this->form_validation->set_data($dt_put);
             $this->form_validation->set_rules('pharmacy_depo_id', 'pharmacy_depo_id', 'trim|required|max_length[36]');
@@ -2927,9 +3289,44 @@ class Prescription extends My_Controller {
                 
                 /* Start Transaction */
                 $this->db->trans_start();
+
+                // 4C-02 R2: kunci baris resep (sumber idempotensi) sebelum apa pun dibaca/ditulis.
+                // Locking read selalu melihat versi commit terbaru, jadi dua request paralel
+                // untuk resep yang sama diserialkan di sini: yang kedua melihat flag = 1.
+                $rx_lock_q = $this->db->query(
+                    "SELECT id, flag, is_delete, institute_branch_id FROM pharmacy_prescription WHERE id = ? FOR UPDATE",
+                    array($id)
+                );
+                $rx_lock = ($rx_lock_q === FALSE) ? null : $rx_lock_q->row();
+                if ($rx_lock === null) {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(404, 'Prescription with id ' . $id . ' does not exist!');
+                    return;
+                }
+                if ((int) $rx_lock->flag === 1) {
+                    $this->db->trans_rollback();
+                    $this->_c2_audit('DENIED_ALREADY_DISPENSED', $id, $user_id, array('reason' => 'flag_already_1'), 409);
+                    $this->REST_Return(409, 'Resep sudah diserahkan.', array(
+                        'prescription_id' => $id,
+                        'flag'            => 1,
+                    ), 'PRESCRIPTION_ALREADY_DISPENSED');
+                    return;
+                }
+                // Branch scope: nilai resep harus sama dengan branch pada token. NULL/berbeda => tolak.
+                if ((string) $rx_lock->institute_branch_id !== (string) $branch) {
+                    $this->db->trans_rollback();
+                    $this->_c2_audit('DENIED_BRANCH_SCOPE_MISMATCH', $id, $user_id, array(
+                        'reason'         => 'branch_mismatch',
+                        'rx_branch'      => $rx_lock->institute_branch_id,
+                        'token_branch'   => $branch,
+                    ), 403);
+                    $this->REST_Return(403, 'Resep berada di luar branch scope.', array(), 'BRANCH_SCOPE_MISMATCH');
+                    return;
+                }
                 
                 $prescription = $this->$model->read($id);
                 if(count($prescription) == 0) {
+                    $this->db->trans_rollback();
                     $this->REST_Return(404, 'Prescription with id ' . $id . ' does not exist!');
                     return;
                 }
@@ -2942,13 +3339,55 @@ class Prescription extends My_Controller {
                     return;
                 }
 
+                // 4C-02 R1: baca item + validasi stok SELURUH item (dan kunci barisnya) sebelum
+                // ada penulisan apa pun. Satu item gagal => rollback total, tidak ada item tertulis.
+                $tmp_concoction = [];
+                $price_changes  = [];
+                $this->Prescription_item->whereFields['a.is_delete'] = 0;
+                $prescription_item = $this->Prescription_item->read($id,false);
+
+                // 4C-03D: harga penyerahan WAJIB dari snapshot server-side pada baris resep.
+                // Payload client (var_1/hja/hna/var_3) tidak pernah dibaca sebagai harga.
+                // Snapshot tidak ada => tolak sebelum ada tulisan apa pun (fail-closed).
+                $price_error = $this->_c3d_snapshot_guard($prescription_item);
+                if ($price_error !== null) {
+                    $this->db->trans_rollback();
+                    $this->_c2_audit('DENIED_PRICE_SNAPSHOT_MISSING', $id, $user_id, array(
+                        'reason'              => $price_error['reason'],
+                        'index'               => $price_error['index'],
+                        'pharmacy_catalog_id' => $price_error['pharmacy_catalog_id'],
+                        'price_id'            => $price_error['price_id'],
+                        'old_price'           => $price_error['old_price'],
+                        'new_price'           => null,
+                        'snapshot_date'       => null,
+                        'applied_by'          => $user_id,
+                        'applied_from_branch' => $branch,
+                    ), 409);
+                    $this->REST_Return(409, 'Harga obat pada resep belum memiliki snapshot server.',
+                        $price_error, 'PRICE_SNAPSHOT_MISSING');
+                    return;
+                }
+
+                $stock_error = $this->_c2_check_stock($dt_put, $prescription_item, $dt_put['pharmacy_depo_id']);
+                if ($stock_error !== null) {
+                    $this->db->trans_rollback();
+                    $http = ($stock_error['reason'] === 'STOCK_INSUFFICIENT') ? 409 : 422;
+                    $this->_c2_audit('DENIED_' . $stock_error['reason'], $id, $user_id, $stock_error, $http);
+                    $this->REST_Return($http,
+                        ($http === 409) ? 'Stok tidak mencukupi.' : 'Jumlah obat tidak valid.',
+                        $stock_error, $stock_error['reason']);
+                    return;
+                }
+
                 $dt_prescription = array(
                     'id'                        => $id,
                     'pharmacy_depo_id'          => $dt_put['pharmacy_depo_id'],
                     'health_facility_item_id'   => isset($dt_put['health_facility_item_id']) ? $dt_put['health_facility_item_id'] : $prescription[0]->health_facility_item_id,
-                    'var_1'                     => isset($dt_put['var_1']) ? $dt_put['var_1'] : $prescription[0]->var_1,
-                    'var_2'                     => isset($dt_put['var_2']) ? $dt_put['var_2'] : $prescription[0]->var_2,
-                    'var_3'                     => isset($dt_put['var_3']) ? $dt_put['var_3'] : $prescription[0]->var_3,
+                    // P0-4: nilai tagihan header tidak diambil dari payload klien; dihitung ulang
+                    // dari item setelah seluruh baris ditulis (lihat _bill_total).
+                    'var_1'                     => $prescription[0]->var_1,
+                    'var_2'                     => $prescription[0]->var_2,
+                    'var_3'                     => $prescription[0]->var_3,
                     'flag'                      => 1,
                     'user_1'                    => $user_id,
                     'date_1'                    => date("Y-m-d H:i:s",time()),
@@ -2961,13 +3400,10 @@ class Prescription extends My_Controller {
                 
                 $this->$model->replace($dt_prescription);
 
-                $tmp_concoction = [];
-                $this->Prescription_item->whereFields['a.is_delete'] = 0;
-                $prescription_item = $this->Prescription_item->read($id,false);
-                // echo "<pre>";
-                // var_dump($prescription_item);
-                // echo "<pre>";
-                // die();
+                // 4C-02: seluruh penulisan item dibungkus supaya error tak terduga di tengah loop
+                // (mis. katalog hilang dari master) tetap berakhir rollback + audit, bukan
+                // separuh item tersimpan tanpa jejak. Badan loop sengaja tidak di-reindent.
+                try {
                 for ($i=0; $i < count($prescription_item); $i++) { 
                     $pharmacy_catalog_id = $prescription_item[$i]->pharmacy_catalog_id;
                     $pharmacy_catalog_name = $prescription_item[$i]->pharmacy_catalog_name;
@@ -3197,7 +3633,7 @@ class Prescription extends My_Controller {
                         }
                     }
 
-                    if ($dt_put['form_prescription'][$i]['pharmacy_catalog_id_sub']) {
+                    if (($dt_put['form_prescription'][$i]['pharmacy_catalog_id_sub'] ?? null)) {
                         $catalog = $this->Catalog->read($dt_put['form_prescription'][$i]['pharmacy_catalog_id_sub'],false)[0];
                     } else {
                         $catalog = $this->Catalog->read($dt_put['form_prescription'][$i]['pharmacy_catalog_id'],false)[0];
@@ -3207,11 +3643,27 @@ class Prescription extends My_Controller {
                     $this->Assets->whereFields['pharmacy_catalog_id'] = $catalog->id;
                     $assets = $this->Assets->read(0,false);
                     if($assets != []) {
+                        // P0-4: qty_awal dari data dispensing, qty_retur dari histori baris ini
+                        // (kolom terpisah, tidak ditimpa replace()).
+                        // 4C-03D: harga satuan dari snapshot server-side (price_sale), bukan client.
+                        $qty_awal   = (float) $dt_put['form_prescription'][$i]['qty'];
+                        $qty_retur  = (float) $prescription_item[$i]->qty_retur;
+                        $harga_sat  = $this->_c3d_price_of($prescription_item[$i], $user_id, $branch, $price_changes);
+
+                        if ($qty_awal < 0 || $qty_retur < 0 || $qty_retur > $qty_awal) {
+                            $this->REST_Return(422, 'qty_retur tidak boleh negatif atau melebihi qty', array(
+                                'pharmacy_catalog_id' => $catalog->id,
+                                'qty'                 => $qty_awal,
+                                'qty_retur'           => $qty_retur,
+                            ));
+                            return;
+                        }
+
                         $dt_prescription_item = array(
                             'pharmacy_prescription_id'      => $id,
                             'pharmacy_catalog_id'           => $catalog->id,
                             'prescription_item_type_id'     => $dt_put['form_prescription'][$i]['prescription_type_id'],
-                            'package_id'                    => $dt_put['form_prescription'][$i]['package_id'],
+                            'package_id'                    => ($dt_put['form_prescription'][$i]['package_id'] ?? '') !== '' ? $dt_put['form_prescription'][$i]['package_id'] : $catalog->package_id,
                             'package_name'                  => $dt_put['form_prescription'][$i]['package_name'],
                             'dose'                          => $dt_put['form_prescription'][$i]['dose'],
                             'batch'                         => $assets[0]->batch,
@@ -3219,9 +3671,11 @@ class Prescription extends My_Controller {
                             'dose_doctor'                   => $dt_put['form_prescription'][$i]['sum_dose'],
                             'qty'                           => $dt_put['form_prescription'][$i]['qty'],
                             'qty_copy'                      => $dt_put['form_prescription'][$i]['qty_copy'],
-                            'var_1'                         => $dt_put['form_prescription'][$i]['var_1'],
-                            'var_2'                         => $dt_put['form_prescription'][$i]['var_2'],
-                            'var_3'                         => $dt_put['form_prescription'][$i]['var_3'],
+                            'var_1'                         => $harga_sat,
+                            // P0-4: nilai baris dihitung server; var_2 kiriman client diabaikan.
+                            'var_2'                         => round(max(0, $qty_awal - $qty_retur) * $harga_sat, 2),
+                            // 4C-03D: HPP dari snapshot server, bukan var_3 client.
+                            'var_3'                         => $prescription_item[$i]->price_hpp,
                             'sort'                          => $dt_put['form_prescription'][$i]['sort'],
                             'used'                          => $dt_put['form_prescription'][$i]['used'],
                             'desc'                          => $dt_put['form_prescription'][$i]['desc'],
@@ -3231,58 +3685,45 @@ class Prescription extends My_Controller {
                         // echo "<pre>";
                         $this->Prescription_item->replace($dt_prescription_item);
 
-                        $prev_amount = $assets[0]->admin_amount;
-                        $physical_amount = $assets[0]->physical_amount - intval($dt_put['form_prescription'][$i]['qty']);
-                        $admin_amount = $assets[0]->admin_amount - intval($dt_put['form_prescription'][$i]['qty']);
-
-                        // check the catalog if it is not out of stock
-                        // if($physical_amount >= 0) {
-                            // Update pharmacy_assets stock
-                            $dt_pharmacy_assets = array(
-                                'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
+                        // 4C-02 R1: pengurangan stok atomik. Baris sudah dikunci sejak pra-validasi;
+                        // guard di WHERE membuat stok tidak mungkin negatif walau ada penulis lain.
+                        $qty_now = (float) $dt_put['form_prescription'][$i]['qty'];
+                        $stok_after = $this->_c2_decrement_stock($dt_put['pharmacy_depo_id'], $catalog->id, $qty_now);
+                        if ($stok_after === false) {
+                            $this->db->trans_rollback();
+                            $stok_error = array(
+                                'reason'                => 'STOCK_INSUFFICIENT',
                                 'pharmacy_catalog_id'   => $catalog->id,
-                                'prev_amount'           => $prev_amount,
-                                'physical_amount'       => $physical_amount,
-                                'admin_amount'          => $admin_amount,
-                                'date_updated'          => date('Y-m-d H:i:s',time()),                                    
+                                'required'              => $qty_now,
+                                'phase'                 => 'write',
                             );
+                            $this->_c2_audit('DENIED_STOCK_INSUFFICIENT', $id, $user_id, $stok_error, 409);
+                            $this->REST_Return(409, 'Stok tidak mencukupi.', $stok_error, 'STOCK_INSUFFICIENT');
+                            return;
+                        }
+                        $prev_amount     = $stok_after['prev_amount'];
+                        $physical_amount = $stok_after['physical_amount'];
+                        $admin_amount    = $stok_after['admin_amount'];
 
-                            // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                // echo "<pre>";
-                                // var_dump($dt_pharmacy_assets);
-                                // echo "<pre>";
-                                $this->Assets->replace($dt_pharmacy_assets);
-                            // }
-
-                            // Pharmacy_assets_card log
-                            $dt_pharmacy_assets_card = array(
-                                'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
-                                'pharmacy_catalog_id'   => $catalog->id,
-                                'reff_id'               => $id,
-                                'batch'                 => $assets[0]->batch,
-                                'expired_date'          => $assets[0]->expired_date,
-                                'prev_amount'           => $prev_amount,
-                                'in_amount'             => 0,
-                                'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
-                                'current_amount'        => $physical_amount,
-                                'hna_item'              => $dt_put['form_prescription'][$i]['hna'],
-                                'hp_item'               => $dt_put['form_prescription'][$i]['var_3'],
-                                'hja_item'              => $dt_put['form_prescription'][$i]['hja'],
-                                'flag'                  => 3,
-                                'date_created'          => date('Y-m-d H:i:s',time()),                                    
-                            );
-                            // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                // echo "<pre>";
-                                // var_dump($dt_pharmacy_assets_card);
-                                // echo "<pre>";
-                                $this->Assets_card->create($dt_pharmacy_assets_card);
-                            // }
-                            // die();
-                        // kunci stok
-                        // } else {
-                        //     $this->REST_Return(400, 'There is only ' . $prev_amount . ' left for pharmacy_catalog_id with id ' . $catalog->id);
-                        //     return;
-                        // }
+                        // Pharmacy_assets_card log
+                        $dt_pharmacy_assets_card = array(
+                            'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
+                            'pharmacy_catalog_id'   => $catalog->id,
+                            'reff_id'               => $id,
+                            'batch'                 => $assets[0]->batch,
+                            'expired_date'          => $assets[0]->expired_date,
+                            'prev_amount'           => $prev_amount,
+                            'in_amount'             => 0,
+                            'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
+                            'current_amount'        => $physical_amount,
+                            // 4C-03D: nilai kartu stok dari snapshot server, bukan payload client.
+                            'hna_item'              => $prescription_item[$i]->price_purchase,
+                            'hp_item'               => $prescription_item[$i]->price_hpp,
+                            'hja_item'              => $prescription_item[$i]->price_sale,
+                            'flag'                  => 3,
+                            'date_created'          => date('Y-m-d H:i:s',time()),                                    
+                        );
+                        $this->Assets_card->create($dt_pharmacy_assets_card);
                     } else {
                         $this->Assets->replace(array(
                             'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
@@ -3297,11 +3738,14 @@ class Prescription extends My_Controller {
                         $this->Assets->whereFields['pharmacy_catalog_id'] = $catalog->id;
                         $assets = $this->Assets->read(0,false);
                         
+                        // P0-4: nilai baris dihitung server (qty_awal - qty_retur histori) x harga.
+                        // 4C-03D: harga satuan dari snapshot server-side, bukan client.
+                        $harga_sat2 = $this->_c3d_price_of($prescription_item[$i], $user_id, $branch, $price_changes);
                         $dt_prescription_item = array(
                             'pharmacy_prescription_id'      => $id,
                             'pharmacy_catalog_id'           => $catalog->id,
                             'prescription_item_type_id'     => $dt_put['form_prescription'][$i]['prescription_type_id'],
-                            'package_id'                    => $dt_put['form_prescription'][$i]['package_id'],
+                            'package_id'                    => ($dt_put['form_prescription'][$i]['package_id'] ?? '') !== '' ? $dt_put['form_prescription'][$i]['package_id'] : $catalog->package_id,
                             'package_name'                  => $dt_put['form_prescription'][$i]['package_name'],
                             'dose'                          => $dt_put['form_prescription'][$i]['dose'],
                             'batch'                         => $assets[0]->batch,
@@ -3309,9 +3753,10 @@ class Prescription extends My_Controller {
                             'dose_doctor'                   => $dt_put['form_prescription'][$i]['sum_dose'],
                             'qty'                           => $dt_put['form_prescription'][$i]['qty'],
                             'qty_copy'                      => $dt_put['form_prescription'][$i]['qty_copy'],
-                            'var_1'                         => $dt_put['form_prescription'][$i]['var_1'],
-                            'var_2'                         => $dt_put['form_prescription'][$i]['var_2'],
-                            'var_3'                         => $dt_put['form_prescription'][$i]['var_3'],
+                            'var_1'                         => $harga_sat2,
+                            'var_2'                         => round(max(0, (float) $dt_put['form_prescription'][$i]['qty'] - (float) $prescription_item[$i]->qty_retur) * $harga_sat2, 2),
+                            // 4C-03D: HPP dari snapshot server, bukan var_3 client.
+                            'var_3'                         => $prescription_item[$i]->price_hpp,
                             'sort'                          => $dt_put['form_prescription'][$i]['sort'],
                             'used'                          => $dt_put['form_prescription'][$i]['used'],
                             'desc'                          => $dt_put['form_prescription'][$i]['desc'],
@@ -3322,67 +3767,118 @@ class Prescription extends My_Controller {
                         // die();
                         $this->Prescription_item->replace($dt_prescription_item);
 
-                        $prev_amount = $assets[0]->admin_amount;
-                        $physical_amount = $assets[0]->physical_amount - intval($dt_put['form_prescription'][$i]['qty']);
-                        $admin_amount = $assets[0]->admin_amount - intval($dt_put['form_prescription'][$i]['qty']);
-
-                        // check the catalog if it is not out of stock
-                        // if($physical_amount >= 0) {
-                            // Update pharmacy_assets stock
-                            $dt_pharmacy_assets = array(
-                                'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
+                        // 4C-02 R1: jalur "tidak ada baris stok" tidak lagi memberi stok negatif.
+                        // qty > 0 tanpa baris pharmacy_assets sudah ditolak di pra-validasi; kalau
+                        // sampai di sini, qty = 0 (tidak ada pergerakan stok) atau baris stok baru
+                        // saja terbentuk. Guard tetap dipasang supaya tidak pernah negatif.
+                        $qty_now = (float) $dt_put['form_prescription'][$i]['qty'];
+                        $stok_after = $this->_c2_decrement_stock($dt_put['pharmacy_depo_id'], $catalog->id, $qty_now);
+                        if ($stok_after === false) {
+                            $this->db->trans_rollback();
+                            $stok_error = array(
+                                'reason'                => 'STOCK_INSUFFICIENT',
                                 'pharmacy_catalog_id'   => $catalog->id,
-                                'prev_amount'           => $prev_amount,
-                                'physical_amount'       => $physical_amount,
-                                'admin_amount'          => $admin_amount,
-                                'date_updated'          => date('Y-m-d H:i:s',time()),                                    
+                                'required'              => $qty_now,
+                                'phase'                 => 'write',
                             );
+                            $this->_c2_audit('DENIED_STOCK_INSUFFICIENT', $id, $user_id, $stok_error, 409);
+                            $this->REST_Return(409, 'Stok tidak mencukupi.', $stok_error, 'STOCK_INSUFFICIENT');
+                            return;
+                        }
+                        $prev_amount     = $stok_after['prev_amount'];
+                        $physical_amount = $stok_after['physical_amount'];
+                        $admin_amount    = $stok_after['admin_amount'];
 
-                            // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                // echo "<pre>";
-                                // var_dump($dt_pharmacy_assets);
-                                // echo "<pre>";
-                                $this->Assets->replace($dt_pharmacy_assets);
-                            // }
-
-                            // Pharmacy_assets_card log
-                            $dt_pharmacy_assets_card = array(
-                                'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
-                                'pharmacy_catalog_id'   => $catalog->id,
-                                'reff_id'               => $id,
-                                'batch'                 => $assets[0]->batch,
-                                'expired_date'          => $assets[0]->expired_date,
-                                'prev_amount'           => $prev_amount,
-                                'in_amount'             => 0,
-                                'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
-                                'current_amount'        => $physical_amount,
-                                'hna_item'              => $dt_put['form_prescription'][$i]['hna'],
-                                'hp_item'               => $dt_put['form_prescription'][$i]['var_3'],
-                                'hja_item'              => $dt_put['form_prescription'][$i]['hja'],
-                                'flag'                  => 3,
-                                'date_created'          => date('Y-m-d H:i:s',time()),                                    
-                            );
-                            // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                // echo "<pre>";
-                                // var_dump($dt_pharmacy_assets_card);
-                                // echo "<pre>";
-                                $this->Assets_card->create($dt_pharmacy_assets_card);
-                            // }
-                            // die();
-                        // kunci stok
-                        // } else {
-                        //     $this->REST_Return(400, 'There is only ' . $prev_amount . ' left for pharmacy_catalog_id with id ' . $catalog->id);
-                        //     return;
-                        // }
+                        // Pharmacy_assets_card log
+                        $dt_pharmacy_assets_card = array(
+                            'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
+                            'pharmacy_catalog_id'   => $catalog->id,
+                            'reff_id'               => $id,
+                            'batch'                 => $assets[0]->batch,
+                            'expired_date'          => $assets[0]->expired_date,
+                            'prev_amount'           => $prev_amount,
+                            'in_amount'             => 0,
+                            'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
+                            'current_amount'        => $physical_amount,
+                            // 4C-03D: nilai kartu stok dari snapshot server, bukan payload client.
+                            'hna_item'              => $prescription_item[$i]->price_purchase,
+                            'hp_item'               => $prescription_item[$i]->price_hpp,
+                            'hja_item'              => $prescription_item[$i]->price_sale,
+                            'flag'                  => 3,
+                            'date_created'          => date('Y-m-d H:i:s',time()),                                    
+                        );
+                        $this->Assets_card->create($dt_pharmacy_assets_card);
                     }
+                }
+                } catch (\Throwable $e) {
+                    $this->db->trans_rollback();
+                    $this->_c2_audit('DISPENSE_ROLLBACK', $id, $user_id, array(
+                        'reason' => 'exception',
+                        'error'  => get_class($e) . ': ' . $e->getMessage(),
+                    ), 500);
+                    $this->REST_Return(500, 'Penyerahan gagal dan dibatalkan.', array(), 'DISPENSE_ROLLBACK');
+                    return;
                 }
 
                 // die();
+
+                // 4C-03D: setiap perubahan harga pada baris resep dicatat (audit),
+                // dengan old_price/new_price/snapshot_date/applied_by/applied_from_branch.
+                // Gagal tulis audit => transaksi dibatalkan (fail-closed).
+                if (count($price_changes) > 0) {
+                    if (!$this->_c2_audit('PRICE_APPLIED', $id, $user_id, array(
+                        'price_source'        => 'pharmacy_prescription_item.price_sale',
+                        'applied_by'          => $user_id,
+                        'applied_from_branch' => $branch,
+                        'changes'             => $price_changes,
+                    ), 200)) {
+                        $this->db->trans_rollback();
+                        $this->REST_Return(500, 'Gagal menulis audit perubahan harga.', array(), 'AUDIT_WRITE_FAILED');
+                        return;
+                    }
+                }
+
+                // P0-4: total header dihitung server dari item yang baru ditulis (lihat _bill_total).
+                $dt_header_total = $this->_bill_total($id);
+                $this->db->query(
+                    "UPDATE pharmacy_prescription SET var_1 = ?, var_3 = ? - IFNULL(var_2,0) WHERE id = ?",
+                    array($dt_header_total, $dt_header_total, $id)
+                );
+
+                // 4C-02: audit sukses ditulis DI DALAM transaksi, jadi barisnya hanya ada
+                // kalau commit benar-benar berhasil (tidak pernah "sukses" palsu).
+                // Gagal tulis audit => transaksi dibatalkan (fail-closed), sama seperti P1-b.
+                if (!$this->_c2_audit('PRESCRIPTION_DISPENSED', $id, $user_id, array(
+                    'items'         => count($prescription_item),
+                    'total'         => $dt_header_total,
+                    'depo_id'       => $dt_put['pharmacy_depo_id'],
+                    'price_source'  => 'snapshot',
+                    'price_changes' => count($price_changes),
+                ), 200)) {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Gagal menulis audit penyerahan.', array(), 'AUDIT_WRITE_FAILED');
+                    return;
+                }
+
+                // Tahap 1: jurnal otomatis penyerahan obat (debit HPP / credit persediaan).
+                // Nilai = total header server-side ($dt_header_total), bukan angka dari client.
+                $journal = $this->post_journal('PHARMACY_DISPENSE', $id, 'RX-DISP-' . $id,
+                    $prescription[0]->institute_branch_id, $user_id,
+                    array('hpp' => $dt_header_total, 'stock' => $dt_header_total),
+                    'no_rawat=' . (isset($prescription[0]->no_rawat) ? $prescription[0]->no_rawat : ''));
+                if (isset($journal['status']) && $journal['status'] === 'error') {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Jurnal penyerahan gagal (tidak balance).', $journal, 'JOURNAL_FAILED');
+                    return;
+                }
 
                 $this->db->trans_complete();
                 /* End Transaction */
                 
                 if ($this->db->trans_status() === false) {
+                    // Transaksi sudah di-rollback oleh trans_complete(): audit kegagalan ditulis
+                    // di luar transaksi supaya tetap tercatat.
+                    $this->_c2_audit('DISPENSE_ROLLBACK', $id, $user_id, array('reason' => 'trans_status_false'), 422);
                     $response_data = array();
                     $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
                 } else {
@@ -3429,6 +3925,10 @@ class Prescription extends My_Controller {
 
     public function transactiondone_put($p = 0) {
         $id         = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('write');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'write')) { return; }
         // CALL JSON POST
         $data       = $this->json_put();
         // DEFINE ATTR
@@ -3542,6 +4042,521 @@ class Prescription extends My_Controller {
         return strtotime($tanggal) * 1000;
     }
 
+    /* ==========================================================================
+     * 4C-04 — RETUR FARMASI: request -> telaah (approve/reject) -> stok kembali
+     * ==========================================================================
+     * Alur (mengikuti Khanza, dipadatkan ke 3 status):
+     *   POST returrequest/:id   pasien/poli/ranap mengajukan retur   -> pending
+     *   PUT  returapprove/:id   telaah farmasi menyetujui            -> approved + stok masuk
+     *   PUT  returreject/:id    telaah farmasi menolak               -> rejected, stok tetap
+     *   GET  returstatus/:id    status per item untuk form FE
+     * Guard: branch dari token (fail-closed), baris resep & stok dikunci FOR UPDATE,
+     * stok hanya bertambah di approve, qty_retur <= qty yang diserahkan, dan
+     * approve/reject pada baris yang sudah diproses ditolak (idempotensi).
+     */
+
+    /** GET returstatus/:id — daftar status retur per item (read-only). */
+    public function returstatus_get($p = 0) {
+        $id = $this->security->xss_clean($p);
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, isset($is_valid_token['message']) ? $is_valid_token['message'] : 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+        $branch = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+        if (trim((string) $branch) === '') {
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return;
+        }
+
+        $q = $this->db->query(
+            "SELECT i.pharmacy_catalog_id, c.name AS pharmacy_catalog_name, i.qty, IFNULL(i.qty_retur,0) AS qty_retur,
+                    i.retur_status, i.retur_qty_requested, i.retur_reason,
+                    i.retur_requested_by, i.retur_requested_at, i.retur_approved_by, i.retur_approved_at,
+                    i.is_retur, i.is_retur_full, p.flag, p.no_order, p.pharmacy_depo_id, p.institute_branch_id
+               FROM pharmacy_prescription_item i
+               JOIN pharmacy_prescription p ON p.id = i.pharmacy_prescription_id
+               LEFT JOIN pharmacy_catalog c ON c.id = i.pharmacy_catalog_id
+              WHERE i.pharmacy_prescription_id = ? AND i.is_delete = 0
+              ORDER BY i.sort",
+            array($id));
+        $rows = ($q === FALSE) ? array() : $q->result();
+
+        if (count($rows) === 0) {
+            $this->REST_Return(404, 'Prescription with id ' . $id . ' does not exist!');
+            return;
+        }
+        // Scope: branch resep harus sama dengan branch token (fail-closed).
+        if ((string) $rows[0]->institute_branch_id !== (string) $branch) {
+            $this->REST_Return(403, 'Resep berada di luar branch scope.', array(), 'BRANCH_SCOPE_MISMATCH');
+            return;
+        }
+        $out = array();
+        foreach ($rows as $r) {
+            $out[] = array(
+                'no_resep'            => $r->no_order,
+                'pharmacy_catalog_id' => $r->pharmacy_catalog_id,
+                'kode_obat'           => $r->pharmacy_catalog_name,
+                'qty'                 => (float) $r->qty,
+                'qty_retur'           => (float) $r->qty_retur,
+                'sisa_bisa_retur'     => max(0, (float) $r->qty - ((int) $r->is_retur === 1 ? (float) $r->qty_retur : 0)),
+                'status'              => ($r->retur_status === null || $r->retur_status === '') ? 'none' : $r->retur_status,
+                'qty_diminta'         => ($r->retur_qty_requested === null) ? null : (float) $r->retur_qty_requested,
+                'reason'              => $r->retur_reason,
+                'requested_by'        => $r->retur_requested_by,
+                'requested_at'        => $r->retur_requested_at,
+                'approved_by'         => $r->retur_approved_by,
+                'approved_at'         => $r->retur_approved_at,
+                'source_depo'         => $r->pharmacy_depo_id,
+            );
+        }
+        $this->REST_Return(200, 'SUCCESS', $out);
+        return;
+    }
+
+    /** POST returrequest/:id — ajukan retur (tidak mengubah stok maupun tagihan). */
+    public function returrequest_post($p = 0) {
+        $id = $this->security->xss_clean($p);
+        $data = $this->json_post();
+        $dt_post = $data['dt_postput'];
+
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, isset($is_valid_token['message']) ? $is_valid_token['message'] : 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+        $user_id = $this->security->xss_clean($is_valid_token['data']->id);
+        $branch  = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+        if (trim((string) $branch) === '') {
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return;
+        }
+        $rows = isset($dt_post['form_prescription']) ? $dt_post['form_prescription'] : array();
+        if (!is_array($rows) || count($rows) === 0) {
+            $this->REST_Return(422, 'form_prescription wajib diisi.', array(), 'RETUR_ITEMS_REQUIRED');
+            return;
+        }
+
+        $this->db->trans_start();
+        $rx = $this->_c4_lock_rx($id, $branch, $user_id, 'request');
+        if ($rx === null) {
+            return;
+        }
+        $res = $this->_c4_mark_pending($rx, $user_id, $rows);
+        if ($res['ok'] !== true) {
+            $this->_c4_deny($res['code'], $id, $user_id, $res, 409, 'Permintaan retur ditolak.');
+            return;
+        }
+        if (!$this->_c2_audit('RETUR_REQUESTED', $id, $user_id, array(
+            'no_resep'     => $rx->no_order,
+            'source_depo'  => $rx->pharmacy_depo_id,
+            'target_depo'  => $rx->pharmacy_depo_id,
+            'applied_by'   => $user_id,
+            'applied_from_branch' => $branch,
+            'items'        => $res['items'],
+        ), 200)) {
+            $this->db->trans_rollback();
+            $this->REST_Return(500, 'Gagal menulis audit permintaan retur.', array(), 'AUDIT_WRITE_FAILED');
+            return;
+        }
+        $this->db->trans_complete();
+        if ($this->db->trans_status() === false) {
+            $this->REST_Return(422, 'Permintaan retur gagal dan dibatalkan.', array(), 'RETUR_ROLLBACK');
+            return;
+        }
+        $this->REST_Return(200, 'SUCCESS', array('prescription_id' => $id, 'status' => 'pending', 'items' => $res['items']));
+        return;
+    }
+
+    /** PUT returapprove/:id — setujui retur; stok masuk ke depo asal (satu-satunya titik tulis stok). */
+    public function returapprove_put($p = 0) {
+        $id = $this->security->xss_clean($p);
+        $data = $this->json_put();
+        $dt_put = $data['dt_postput'];
+
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, isset($is_valid_token['message']) ? $is_valid_token['message'] : 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+        $user_id = $this->security->xss_clean($is_valid_token['data']->id);
+        $branch  = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+        if (trim((string) $branch) === '') {
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return;
+        }
+        $depo_id = isset($dt_put['pharmacy_depo_id']) ? $this->security->xss_clean($dt_put['pharmacy_depo_id']) : '';
+
+        $this->db->trans_start();
+        $rx = $this->_c4_lock_rx($id, $branch, $user_id, 'approve');
+        if ($rx === null) {
+            return;
+        }
+        $res = $this->_c4_approve_pending($rx, $user_id, $depo_id);
+        if ($res['ok'] !== true) {
+            $this->_c4_deny($res['code'], $id, $user_id, $res, 409, 'Persetujuan retur ditolak.');
+            return;
+        }
+
+        $dt_header_total = $this->_bill_total($id);
+        $this->db->query(
+            "UPDATE pharmacy_prescription SET var_1 = ?, var_3 = ? - IFNULL(var_2,0), is_retur = 1, user_retur = ? WHERE id = ?",
+            array($dt_header_total, $dt_header_total, $user_id, $id));
+
+        if (!$this->_c2_audit('RETUR_APPROVED', $id, $user_id, array(
+            'no_resep'    => $rx->no_order,
+            'source_depo' => $rx->pharmacy_depo_id,
+            'target_depo' => $rx->pharmacy_depo_id,
+            'approved_by' => $user_id,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'applied_from_branch' => $branch,
+            'total_setelah_retur' => $dt_header_total,
+            'items'       => $res['items'],
+        ), 200)) {
+            $this->db->trans_rollback();
+            $this->REST_Return(500, 'Gagal menulis audit persetujuan retur.', array(), 'AUDIT_WRITE_FAILED');
+            return;
+        }
+        $this->db->trans_complete();
+        if ($this->db->trans_status() === false) {
+            $this->REST_Return(422, 'Persetujuan retur gagal dan dibatalkan.', array(), 'RETUR_ROLLBACK');
+            return;
+        }
+        $this->REST_Return(200, 'SUCCESS', array(
+            'prescription_id' => $id, 'status' => 'approved',
+            'total' => $dt_header_total, 'items' => $res['items'],
+        ));
+        return;
+    }
+
+    /** PUT returreject/:id — tolak retur; tidak ada perubahan stok maupun tagihan. */
+    public function returreject_put($p = 0) {
+        $id = $this->security->xss_clean($p);
+        $data = $this->json_put();
+        $dt_put = $data['dt_postput'];
+
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, isset($is_valid_token['message']) ? $is_valid_token['message'] : 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+        $user_id = $this->security->xss_clean($is_valid_token['data']->id);
+        $branch  = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+        if (trim((string) $branch) === '') {
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return;
+        }
+        $reason = isset($dt_put['reason']) ? trim((string) $dt_put['reason']) : '';
+
+        $this->db->trans_start();
+        $rx = $this->_c4_lock_rx($id, $branch, $user_id, 'reject');
+        if ($rx === null) {
+            return;
+        }
+        $items = $this->_c4_items_locked($id);
+        $pending = array();
+        foreach ($items as $it) {
+            if ((string) $it->retur_status === 'pending') {
+                $pending[] = $it;
+            }
+        }
+        if (count($pending) === 0) {
+            $this->_c4_deny('RETUR_NOT_PENDING', $id, $user_id, array('reason' => 'no_pending_retur'), 409,
+                'Tidak ada permintaan retur yang menunggu telaah.');
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        $detail = array();
+        foreach ($pending as $it) {
+            $this->db->query(
+                "UPDATE pharmacy_prescription_item
+                    SET retur_status = 'rejected', retur_reason = ?, retur_approved_by = ?, retur_approved_at = ?
+                  WHERE pharmacy_prescription_id = ? AND pharmacy_catalog_id = ?",
+                array(($reason === '' ? $it->retur_reason : $reason), $user_id, $now,
+                      $rx->id, $it->pharmacy_catalog_id));
+            $detail[] = array(
+                'no_resep'            => $rx->no_order,
+                'kode_obat'           => $it->pharmacy_catalog_id,
+                'qty_retur'           => (float) $it->retur_qty_requested,
+                'reason'              => ($reason === '' ? $it->retur_reason : $reason),
+                'approved_by'         => $user_id,
+                'approved_at'         => $now,
+                'old_stok'            => null,
+                'new_stok'            => null,
+                'source_depo'         => $rx->pharmacy_depo_id,
+                'target_depo'         => null,
+            );
+        }
+        if (!$this->_c2_audit('RETUR_REJECTED', $id, $user_id, array(
+            'no_resep'    => $rx->no_order,
+            'reason'      => $reason,
+            'approved_by' => $user_id,
+            'approved_at' => $now,
+            'applied_from_branch' => $branch,
+            'items'       => $detail,
+        ), 200)) {
+            $this->db->trans_rollback();
+            $this->REST_Return(500, 'Gagal menulis audit penolakan retur.', array(), 'AUDIT_WRITE_FAILED');
+            return;
+        }
+        $this->db->trans_complete();
+        if ($this->db->trans_status() === false) {
+            $this->REST_Return(422, 'Penolakan retur gagal dan dibatalkan.', array(), 'RETUR_ROLLBACK');
+            return;
+        }
+        $this->REST_Return(200, 'SUCCESS', array('prescription_id' => $id, 'status' => 'rejected', 'items' => $detail));
+        return;
+    }
+
+    /**
+     * 4C-04 — kunci baris resep + guard scope/status. Return null bila ditolak
+     * (respons sudah dikirim + audit ditulis).
+     */
+    protected function _c4_lock_rx($id, $branch, $user_id, $operation) {
+        $q = $this->db->query(
+            "SELECT id, no_order, flag, is_delete, is_retur, institute_branch_id, pharmacy_depo_id,
+                    registration_destination_id, var_1, var_2, var_3
+               FROM pharmacy_prescription WHERE id = ? FOR UPDATE",
+            array($id));
+        $rx = ($q === FALSE) ? null : $q->row();
+        if ($rx === null) {
+            $this->_c4_deny('RETUR_RX_NOT_FOUND', $id, $user_id, array('reason' => 'not_found', 'operation' => $operation), 404,
+                'Prescription with id ' . $id . ' does not exist!');
+            return null;
+        }
+        if ((int) $rx->is_delete === 1) {
+            $this->_c4_deny('RETUR_RX_DELETED', $id, $user_id, array('reason' => 'is_delete', 'operation' => $operation), 409,
+                'Resep sudah dihapus.');
+            return null;
+        }
+        // Retur hanya untuk obat yang benar-benar sudah diserahkan.
+        if ((int) $rx->flag !== 1) {
+            $this->_c4_deny('RETUR_NOT_DISPENSED', $id, $user_id, array('reason' => 'flag_not_1', 'flag' => $rx->flag, 'operation' => $operation), 409,
+                'Resep belum diserahkan, tidak ada obat yang bisa diretur.');
+            return null;
+        }
+        if ((string) $rx->institute_branch_id !== (string) $branch) {
+            $this->_c4_deny('RETUR_BRANCH_SCOPE_MISMATCH', $id, $user_id, array(
+                'reason' => 'branch_mismatch', 'rx_branch' => $rx->institute_branch_id,
+                'token_branch' => $branch, 'operation' => $operation), 403,
+                'Resep berada di luar branch scope.');
+            return null;
+        }
+        return $rx;
+    }
+
+    /** 4C-04 — baris item resep, dikunci FOR UPDATE (urutan deterministik). */
+    protected function _c4_items_locked($id) {
+        $q = $this->db->query(
+            "SELECT * FROM pharmacy_prescription_item
+              WHERE pharmacy_prescription_id = ? AND is_delete = 0 ORDER BY pharmacy_catalog_id FOR UPDATE",
+            array($id));
+        return ($q === FALSE) ? array() : $q->result();
+    }
+
+    /** 4C-04 — tandai item sebagai pending (tanpa menyentuh stok/tagihan). */
+    protected function _c4_mark_pending($rx, $user_id, $rows) {
+        $items = $this->_c4_items_locked($rx->id);
+        $by_cat = array();
+        foreach ($items as $it) {
+            $by_cat[$it->pharmacy_catalog_id] = $it;
+        }
+        $now = date('Y-m-d H:i:s');
+        $detail = array();
+        foreach ($rows as $row) {
+            $cat = isset($row['pharmacy_catalog_id']) ? trim((string) $row['pharmacy_catalog_id']) : '';
+            $qty = isset($row['qty_retur']) ? $row['qty_retur'] : null;
+            $reason = isset($row['reason']) ? trim((string) $row['reason']) : (isset($row['retur_reason']) ? trim((string) $row['retur_reason']) : '');
+            if (!is_numeric($qty) || (float) $qty <= 0) {
+                return array('ok' => false, 'code' => 'RETUR_QTY_INVALID', 'kode_obat' => $cat, 'qty_retur' => $qty);
+            }
+            if (!isset($by_cat[$cat])) {
+                return array('ok' => false, 'code' => 'RETUR_ITEM_NOT_FOUND', 'kode_obat' => $cat);
+            }
+            $it = $by_cat[$cat];
+            if ((string) $it->retur_status === 'pending') {
+                return array('ok' => false, 'code' => 'RETUR_ALREADY_PENDING', 'kode_obat' => $cat);
+            }
+            if ((string) $it->retur_status === 'approved') {
+                return array('ok' => false, 'code' => 'RETUR_ALREADY_PROCESSED', 'kode_obat' => $cat);
+            }
+            $returned = ((int) $it->is_retur === 1) ? (float) $it->qty_retur : 0.0;
+            $avail    = (float) $it->qty - $returned;
+            if ((float) $qty > $avail) {
+                return array('ok' => false, 'code' => 'RETUR_QTY_EXCEEDS_DISPENSED', 'kode_obat' => $cat,
+                             'qty' => (float) $it->qty, 'qty_retur' => (float) $qty, 'sisa' => $avail);
+            }
+            $this->db->query(
+                "UPDATE pharmacy_prescription_item
+                    SET retur_status = 'pending', retur_qty_requested = ?, retur_reason = ?,
+                        retur_requested_by = ?, retur_requested_at = ?,
+                        retur_approved_by = NULL, retur_approved_at = NULL
+                  WHERE pharmacy_prescription_id = ? AND pharmacy_catalog_id = ?",
+                array((float) $qty, $reason, $user_id, $now, $rx->id, $cat));
+            $detail[] = array(
+                'no_resep'    => $rx->no_order,
+                'kode_obat'   => $cat,
+                'qty_retur'   => (float) $qty,
+                'reason'      => $reason,
+                'requested_by' => $user_id,
+                'requested_at' => $now,
+                'sisa_bisa_retur' => $avail,
+                'source_depo' => $rx->pharmacy_depo_id,
+                'target_depo' => $rx->pharmacy_depo_id,
+            );
+        }
+        return array('ok' => true, 'items' => $detail);
+    }
+
+    /**
+     * 4C-04 — setujui semua baris pending: kunci stok FOR UPDATE, tambah stok,
+     * tulis qty_retur + audit detail. Ini satu-satunya tempat stok retur bertambah.
+     */
+    protected function _c4_approve_pending($rx, $user_id, $depo_id) {
+        $target = trim((string) $depo_id) === '' ? (string) $rx->pharmacy_depo_id : trim((string) $depo_id);
+        // Pemulangan stok hanya ke depo asal penyerahan (bukan depo lain / pusat).
+        if ($target !== (string) $rx->pharmacy_depo_id) {
+            return array('ok' => false, 'code' => 'RETUR_DEPO_MISMATCH',
+                         'source_depo' => $rx->pharmacy_depo_id, 'target_depo' => $target);
+        }
+
+        $items = $this->_c4_items_locked($rx->id);
+        $pending = array();
+        foreach ($items as $it) {
+            if ((string) $it->retur_status === 'pending') {
+                $pending[] = $it;
+            }
+        }
+        if (count($pending) === 0) {
+            return array('ok' => false, 'code' => 'RETUR_NOT_PENDING', 'reason' => 'no_pending_retur');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $detail = array();
+        foreach ($pending as $it) {
+            $cat = $it->pharmacy_catalog_id;
+            $qty = (float) $it->retur_qty_requested;
+            if ($qty <= 0) {
+                return array('ok' => false, 'code' => 'RETUR_QTY_INVALID', 'kode_obat' => $cat, 'qty_retur' => $qty);
+            }
+            $returned = ((int) $it->is_retur === 1) ? (float) $it->qty_retur : 0.0;
+            $avail    = (float) $it->qty - $returned;
+            if ($qty > $avail) {
+                return array('ok' => false, 'code' => 'RETUR_QTY_EXCEEDS_DISPENSED', 'kode_obat' => $cat,
+                             'qty' => (float) $it->qty, 'qty_retur' => $qty, 'sisa' => $avail);
+            }
+
+            $stock = $this->_c4_add_stock($target, $cat, $qty);
+            if ($stock === false) {
+                return array('ok' => false, 'code' => 'RETUR_STOCK_WRITE_FAILED', 'kode_obat' => $cat);
+            }
+
+            $new_returned = $returned + $qty;
+            $is_full      = ($new_returned >= (float) $it->qty) ? 1 : 0;
+            // Harga retur = snapshot server-side pada baris resep (4C-03D), bukan payload.
+            $price = ($it->price_sale !== null) ? (float) $it->price_sale : (float) $it->var_1;
+
+            $this->db->query(
+                "UPDATE pharmacy_prescription_item
+                    SET qty_retur = ?, is_retur = 1, is_retur_full = ?, var_1 = ?,
+                        var_2 = ROUND(GREATEST(IFNULL(qty,0) - ?, 0) * ?, 2),
+                        retur_status = 'approved', retur_approved_by = ?, retur_approved_at = ?
+                  WHERE pharmacy_prescription_id = ? AND pharmacy_catalog_id = ?",
+                array($new_returned, $is_full, $price, $new_returned, $price, $user_id, $now, $rx->id, $cat));
+
+            // Kartu stok: nilai dari snapshot server, bukan payload client.
+            $this->Assets_card->create(array(
+                'pharmacy_depo_id'    => $target,
+                'pharmacy_catalog_id' => $cat,
+                'reff_id'             => $rx->id,
+                'batch'               => $it->batch,
+                'expired_date'        => $it->expired,
+                'prev_amount'         => $stock['prev'],
+                'in_amount'           => $qty,
+                'out_amount'          => 0,
+                'current_amount'      => $stock['new'],
+                'hna_item'            => ($it->price_purchase === null) ? null : (float) $it->price_purchase,
+                'hp_item'             => ($it->price_hpp === null) ? null : (float) $it->price_hpp,
+                'hja_item'            => $price,
+                'flag'                => 3,
+                'date_created'        => $now,
+            ));
+
+            $detail[] = array(
+                'no_resep'    => $rx->no_order,
+                'kode_obat'   => $cat,
+                'qty_retur'   => $qty,
+                'reason'      => $it->retur_reason,
+                'approved_by' => $user_id,
+                'approved_at' => $now,
+                'old_stok'    => $stock['prev'],
+                'new_stok'    => $stock['new'],
+                'source_depo' => $rx->pharmacy_depo_id,
+                'target_depo' => $target,
+            );
+        }
+        return array('ok' => true, 'items' => $detail);
+    }
+
+    /**
+     * 4C-04 — tambah stok atomik dengan baris dikunci FOR UPDATE.
+     * Satu statement UPDATE (bukan baca-lalu-tulis) sehingga dua approve paralel
+     * tidak saling menimpa. Baris stok dibuat bila belum ada.
+     *
+     * @return array|false array('prev'=>x,'new'=>y) atau false bila gagal.
+     */
+    protected function _c4_add_stock($depo_id, $catalog_id, $qty) {
+        $qty = (float) $qty;
+        $q = $this->db->query(
+            "SELECT admin_amount, physical_amount FROM pharmacy_assets
+              WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ? FOR UPDATE",
+            array($depo_id, $catalog_id));
+        $row = ($q === FALSE) ? null : $q->row();
+        if ($row === null) {
+            $this->Assets->replace(array(
+                'pharmacy_depo_id'    => $depo_id,
+                'pharmacy_catalog_id' => $catalog_id,
+                'prev_amount'         => 0,
+                'physical_amount'     => 0,
+                'admin_amount'        => 0,
+                'date_updated'        => date('Y-m-d H:i:s'),
+            ));
+            $q = $this->db->query(
+                "SELECT admin_amount, physical_amount FROM pharmacy_assets
+                  WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ? FOR UPDATE",
+                array($depo_id, $catalog_id));
+            $row = ($q === FALSE) ? null : $q->row();
+            if ($row === null) {
+                return false;
+            }
+        }
+        $prev = (float) $row->admin_amount;
+        $this->db->query(
+            "UPDATE pharmacy_assets
+                SET prev_amount = admin_amount,
+                    admin_amount = admin_amount + ?,
+                    physical_amount = physical_amount + ?,
+                    date_updated = ?
+              WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ?",
+            array($qty, $qty, date('Y-m-d H:i:s'), $depo_id, $catalog_id));
+        if ($this->db->affected_rows() !== 1) {
+            return false;
+        }
+        return array('prev' => $prev, 'new' => $prev + $qty);
+    }
+
+    /** 4C-04 — rollback + audit penolakan retur (dipakai semua jalur retur). */
+    protected function _c4_deny($code, $id, $user_id, $detail, $http, $message) {
+        $this->db->trans_rollback();
+        $this->_c2_audit('DENIED_' . $code, $id, $user_id, array_merge(array(
+            'applied_by'          => $user_id,
+            'applied_from_branch' => isset($this->s1_actor['branch']) ? $this->s1_actor['branch'] : null,
+            'old_stok'            => null,
+            'new_stok'            => null,
+        ), is_array($detail) ? $detail : array()), $http);
+        $this->REST_Return($http, $message, is_array($detail) ? $detail : array(), $code);
+    }
+
     public function retur_put($p = 0) {
         $id         = $this->security->xss_clean($p);
         // CALL JSON POST
@@ -3556,6 +4571,12 @@ class Prescription extends My_Controller {
         $is_valid_token = $this->authorization_token->validateToken();
         $user_id = $this->security->xss_clean($is_valid_token['data']->id);
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
+            // 4C-04: branch hanya dari token; kosong => fail-closed sebelum tulisan apa pun.
+            $branch = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
+            if (trim((string) $branch) === '') {
+                $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+                return;
+            }
             # Form Validation
             $this->form_validation->set_data($dt_put);
             $this->form_validation->set_rules('pharmacy_depo_id', 'pharmacy_depo_id', 'trim|required|max_length[36]');
@@ -3570,15 +4591,58 @@ class Prescription extends My_Controller {
                 $model = $this->name;
                 /* Start Transaction */
                 $this->db->trans_start();
+                // 4C-04: kunci baris resep + guard branch/flag/is_delete sebelum tulisan apa pun.
+                $rx_locked = $this->_c4_lock_rx($id, $branch, $user_id, 'legacy');
+                if ($rx_locked === null) {
+                    return;
+                }
                 $prescription = $this->$model->read($id);
                 if($prescription != []) {
                     if($this->Depo->read($dt_put['pharmacy_depo_id'], false) != []) {
+                        // 4C-04: retur hanya ke depo asal penyerahan.
+                        if ((string) $dt_put['pharmacy_depo_id'] !== (string) $rx_locked->pharmacy_depo_id) {
+                            $this->_c4_deny('RETUR_DEPO_MISMATCH', $id, $user_id, array(
+                                'source_depo' => $rx_locked->pharmacy_depo_id,
+                                'target_depo' => $dt_put['pharmacy_depo_id'],
+                            ), 409, 'Retur hanya boleh dikembalikan ke depo asal penyerahan.');
+                            return;
+                        }
+                        // P0-4: validasi qty_retur SEMUA item sebelum satu baris pun ditulis.
+                        // qty_retur negatif atau melebihi qty_awal ditolak (422), bukan diabaikan.
+                        // 4C-04: baris yang sudah diretur tidak bisa diretur lagi (idempotensi).
+                        $this->Prescription_item->whereFields['a.is_delete'] = 0;
+                        $prescription_item_check = $this->Prescription_item->read($id,false);
+                        for ($v=0; $v < count($prescription_item_check); $v++) {
+                            $qty_retur_check = (float) $dt_put['form_prescription'][$v]['qty_retur'];
+                            $qty_awal_check  = (float) $prescription_item_check[$v]->qty;
+                            $sudah_retur     = ((int) $prescription_item_check[$v]->is_retur === 1)
+                                ? (float) $prescription_item_check[$v]->qty_retur : 0.0;
+                            if ($qty_retur_check > 0 && (int) $prescription_item_check[$v]->is_retur === 1) {
+                                $this->_c4_deny('RETUR_ALREADY_PROCESSED', $id, $user_id, array(
+                                    'kode_obat' => $prescription_item_check[$v]->pharmacy_catalog_id,
+                                    'qty_retur' => $qty_retur_check,
+                                    'sudah_retur' => $sudah_retur,
+                                ), 409, 'Item ini sudah pernah diretur.');
+                                return;
+                            }
+                            if ($qty_retur_check < 0 || $qty_retur_check > ($qty_awal_check - $sudah_retur)) {
+                                $this->REST_Return(422, 'qty_retur tidak boleh negatif atau melebihi qty', array(
+                                    'pharmacy_catalog_id' => $prescription_item_check[$v]->pharmacy_catalog_id,
+                                    'qty'                 => $qty_awal_check,
+                                    'qty_retur'           => $qty_retur_check,
+                                ));
+                                return;
+                            }
+                        }
+
                         $dt_prescription = array(
                             'id'                        => $id,
                             'pharmacy_depo_id'          => $dt_put['pharmacy_depo_id'],
-                            'var_1'                     => isset($dt_put['var_1']) ? $dt_put['var_1'] : $prescription[0]->var_1,
-                            'var_2'                     => isset($dt_put['var_2']) ? $dt_put['var_2'] : $prescription[0]->var_2,
-                            'var_3'                     => isset($dt_put['var_3']) ? $dt_put['var_3'] : $prescription[0]->var_3,
+                            // P0-4: nilai tagihan header dihitung ulang dari item setelah retur
+                            // (lihat _bill_total); nilai kiriman client tidak dipakai.
+                            'var_1'                     => $prescription[0]->var_1,
+                            'var_2'                     => $prescription[0]->var_2,
+                            'var_3'                     => $prescription[0]->var_3,
                             'flag'                      => 1,
                             'is_retur'                  => 1,
                             'user_retur'                => $user_id,
@@ -3593,7 +4657,24 @@ class Prescription extends My_Controller {
                         $prescription_item = $this->Prescription_item->read($id,false);
                         for ($i=0; $i < count($prescription_item); $i++) { 
                             if ($dt_put['form_prescription'][$i]['qty_retur'] > 0 && $dt_put['form_prescription'][$i]['is_retur'] == 0) {
-                                if ($dt_put['form_prescription'][$i]['pharmacy_catalog_id_sub']) {
+                                // P0-4: qty_retur tidak boleh negatif atau melebihi qty_awal.
+                                $qty_awal_retur  = (float) $prescription_item[$i]->qty;
+                                $qty_retur_input = (float) $dt_put['form_prescription'][$i]['qty_retur'];
+                                // 4C-04: harga retur = snapshot server-side pada baris resep (4C-03D).
+                                $harga_sat_retur = ($prescription_item[$i]->price_sale === null)
+                                    ? max(0, (float) $prescription_item[$i]->var_1)
+                                    : (float) $prescription_item[$i]->price_sale;
+
+                                if ($qty_retur_input < 0 || $qty_retur_input > $qty_awal_retur) {
+                                    $this->REST_Return(422, 'qty_retur tidak boleh negatif atau melebihi qty', array(
+                                        'pharmacy_catalog_id' => $prescription_item[$i]->pharmacy_catalog_id,
+                                        'qty'                 => $qty_awal_retur,
+                                        'qty_retur'           => $qty_retur_input,
+                                    ));
+                                    return;
+                                }
+
+                                if (($dt_put['form_prescription'][$i]['pharmacy_catalog_id_sub'] ?? null)) {
                                     $catalog = $this->Catalog->read($dt_put['form_prescription'][$i]['pharmacy_catalog_id_sub'],false)[0];
                                 } else {
                                     $catalog = $this->Catalog->read($dt_put['form_prescription'][$i]['pharmacy_catalog_id'],false)[0];
@@ -3610,8 +4691,14 @@ class Prescription extends My_Controller {
                                         'qty_retur'                     => $dt_put['form_prescription'][$i]['qty_retur'],
                                         'is_retur_full'                 => $dt_put['form_prescription'][$i]['qty'] == $dt_put['form_prescription'][$i]['qty_retur'] ? 1 : 0,
                                         'is_retur'                      => 1,
-                                        'var_1'                         => $dt_put['form_prescription'][$i]['var_1'],
-                                        'var_2'                         => $dt_put['form_prescription'][$i]['var_2'],
+                                        // 4C-04: status retur ikut dicatat (approved, karena stok sudah dikembalikan).
+                                        'retur_status'                  => 'approved',
+                                        'retur_qty_requested'           => $qty_retur_input,
+                                        'retur_approved_by'             => $user_id,
+                                        'retur_approved_at'             => date('Y-m-d H:i:s'),
+                                        'var_1'                         => $harga_sat_retur,
+                                        // P0-4: nilai baris setelah retur dihitung server; var_2 client diabaikan.
+                                        'var_2'                         => round(max(0, $qty_awal_retur - $qty_retur_input) * $harga_sat_retur, 2),
                                         'var_3'                         => $dt_put['form_prescription'][$i]['var_3'],
                                         'sort'                          => $dt_put['form_prescription'][$i]['sort'],
                                         'used'                          => $dt_put['form_prescription'][$i]['used'],
@@ -3622,58 +4709,37 @@ class Prescription extends My_Controller {
                                     // echo "<pre>";
                                     $this->Prescription_item->replace($dt_prescription_item);
 
-                                    $prev_amount = $assets[0]->admin_amount;
-                                    $physical_amount = $assets[0]->physical_amount + intval($dt_put['form_prescription'][$i]['qty_retur']);
-                                    $admin_amount = $assets[0]->admin_amount + intval($dt_put['form_prescription'][$i]['qty_retur']);
+                                    // 4C-04: tambah stok atomik (baris dikunci FOR UPDATE), bukan baca-lalu-tulis.
+                                    $retur_qty_now = (float) $dt_put['form_prescription'][$i]['qty_retur'];
+                                    $stok_retur = $this->_c4_add_stock($dt_put['pharmacy_depo_id'], $catalog->id, $retur_qty_now);
+                                    if ($stok_retur === false) {
+                                        $this->_c4_deny('RETUR_STOCK_WRITE_FAILED', $id, $user_id, array(
+                                            'kode_obat' => $catalog->id, 'qty_retur' => $retur_qty_now), 409,
+                                            'Pemulangan stok gagal.');
+                                        return;
+                                    }
+                                    $prev_amount     = $stok_retur['prev'];
+                                    $physical_amount = $stok_retur['new'];
+                                    $admin_amount    = $stok_retur['new'];
 
-                                    // check the catalog if it is not out of stock
-                                    // if($physical_amount >= 0) {
-                                        // Update pharmacy_assets stock
-                                        $dt_pharmacy_assets = array(
-                                            'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
-                                            'pharmacy_catalog_id'   => $catalog->id,
-                                            'prev_amount'           => $prev_amount,
-                                            'physical_amount'       => $physical_amount,
-                                            'admin_amount'          => $admin_amount,
-                                            'date_updated'          => date('Y-m-d H:i:s',time()),                                    
-                                        );
-
-                                        // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                            // echo "<pre>";
-                                            // var_dump($dt_pharmacy_assets);
-                                            // echo "<pre>";
-                                            $this->Assets->replace($dt_pharmacy_assets);
-                                        // }
-        
-                                        // Pharmacy_assets_card log
-                                        $dt_pharmacy_assets_card = array(
-                                            'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
-                                            'pharmacy_catalog_id'   => $catalog->id,
-                                            'reff_id'               => $id,
-                                            'batch'                 => NULL,
-                                            'expired_date'          => NULL,
-                                            'prev_amount'           => $prev_amount,
-                                            'in_amount'             => $dt_put['form_prescription'][$i]['qty_retur'],
-                                            'out_amount'            => 0,
-                                            'current_amount'        => $physical_amount,
-                                            'hna_item'              => $dt_put['form_prescription'][$i]['hna'],
-                                            'hp_item'               => $dt_put['form_prescription'][$i]['hp'],
-                                            'hja_item'              => $dt_put['form_prescription'][$i]['hja'],
-                                            'flag'                  => 3,
-                                            'date_created'          => date('Y-m-d H:i:s',time()),                                    
-                                        );
-                                        // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                            // echo "<pre>";
-                                            // var_dump($dt_pharmacy_assets_card);
-                                            // echo "<pre>";
-                                            $this->Assets_card->create($dt_pharmacy_assets_card);
-                                        // }
-                                        // die();
-                                    // kunci stok
-                                    // } else {
-                                    //     $this->REST_Return(400, 'There is only ' . $prev_amount . ' left for pharmacy_catalog_id with id ' . $catalog->id);
-                                    //     return;
-                                    // }
+                                    // Pharmacy_assets_card log (nilai dari snapshot server, bukan payload).
+                                    $dt_pharmacy_assets_card = array(
+                                        'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
+                                        'pharmacy_catalog_id'   => $catalog->id,
+                                        'reff_id'               => $id,
+                                        'batch'                 => NULL,
+                                        'expired_date'          => NULL,
+                                        'prev_amount'           => $prev_amount,
+                                        'in_amount'             => $retur_qty_now,
+                                        'out_amount'            => 0,
+                                        'current_amount'        => $physical_amount,
+                                        'hna_item'              => ($prescription_item[$i]->price_purchase === null) ? null : (float) $prescription_item[$i]->price_purchase,
+                                        'hp_item'               => ($prescription_item[$i]->price_hpp === null) ? null : (float) $prescription_item[$i]->price_hpp,
+                                        'hja_item'              => $harga_sat_retur,
+                                        'flag'                  => 3,
+                                        'date_created'          => date('Y-m-d H:i:s',time()),
+                                    );
+                                    $this->Assets_card->create($dt_pharmacy_assets_card);
                                 } else {
                                     $this->Assets->replace(array(
                                         'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
@@ -3690,7 +4756,7 @@ class Prescription extends My_Controller {
                                         'pharmacy_prescription_id'      => $id,
                                         'pharmacy_catalog_id'           => $catalog->id,
                                         'prescription_item_type_id'     => $dt_put['form_prescription'][$i]['prescription_type_id'],
-                                        'package_id'                    => $dt_put['form_prescription'][$i]['package_id'],
+                                        'package_id'                    => ($dt_put['form_prescription'][$i]['package_id'] ?? '') !== '' ? $dt_put['form_prescription'][$i]['package_id'] : $catalog->package_id,
                                         'package_name'                  => $dt_put['form_prescription'][$i]['package_name'],
                                         'dose'                          => $dt_put['form_prescription'][$i]['dose'],
                                         'batch'                         => $assets[0]->batch,
@@ -3698,8 +4764,16 @@ class Prescription extends My_Controller {
                                         'dose_doctor'                   => $dt_put['form_prescription'][$i]['sum_dose'],
                                         'qty'                           => $dt_put['form_prescription'][$i]['qty'],
                                         'qty_copy'                      => $dt_put['form_prescription'][$i]['qty_copy'],
-                                        'var_1'                         => $dt_put['form_prescription'][$i]['var_1'],
-                                        'var_2'                         => $dt_put['form_prescription'][$i]['var_2'],
+                                        'qty_retur'                     => $qty_retur_input,
+                                        'is_retur'                      => 1,
+                                        'is_retur_full'                 => ($qty_retur_input >= $qty_awal_retur) ? 1 : 0,
+                                        'retur_status'                  => 'approved',
+                                        'retur_qty_requested'           => $qty_retur_input,
+                                        'retur_approved_by'             => $user_id,
+                                        'retur_approved_at'             => date('Y-m-d H:i:s'),
+                                        'var_1'                         => $harga_sat_retur,
+                                        // P0-4: nilai baris setelah retur dihitung server; var_2 client diabaikan.
+                                        'var_2'                         => round(max(0, $qty_awal_retur - $qty_retur_input) * $harga_sat_retur, 2),
                                         'var_3'                         => $dt_put['form_prescription'][$i]['var_3'],
                                         'sort'                          => $dt_put['form_prescription'][$i]['sort'],
                                         'used'                          => $dt_put['form_prescription'][$i]['used'],
@@ -3711,58 +4785,37 @@ class Prescription extends My_Controller {
                                     // die();
                                     $this->Prescription_item->replace($dt_prescription_item);
 
-                                    $prev_amount = $assets[0]->admin_amount;
-                                    $physical_amount = $assets[0]->physical_amount - intval($dt_put['form_prescription'][$i]['qty']);
-                                    $admin_amount = $assets[0]->admin_amount - intval($dt_put['form_prescription'][$i]['qty']);
+                                    // 4C-04: retur selalu MENAMBAH stok depo asal (atomik, FOR UPDATE).
+                                    $retur_qty_now = (float) $dt_put['form_prescription'][$i]['qty_retur'];
+                                    $stok_retur = $this->_c4_add_stock($dt_put['pharmacy_depo_id'], $catalog->id, $retur_qty_now);
+                                    if ($stok_retur === false) {
+                                        $this->_c4_deny('RETUR_STOCK_WRITE_FAILED', $id, $user_id, array(
+                                            'kode_obat' => $catalog->id, 'qty_retur' => $retur_qty_now), 409,
+                                            'Pemulangan stok gagal.');
+                                        return;
+                                    }
+                                    $prev_amount     = $stok_retur['prev'];
+                                    $physical_amount = $stok_retur['new'];
+                                    $admin_amount    = $stok_retur['new'];
 
-                                    // check the catalog if it is not out of stock
-                                    // if($physical_amount >= 0) {
-                                        // Update pharmacy_assets stock
-                                        $dt_pharmacy_assets = array(
-                                            'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
-                                            'pharmacy_catalog_id'   => $catalog->id,
-                                            'prev_amount'           => $prev_amount,
-                                            'physical_amount'       => $physical_amount,
-                                            'admin_amount'          => $admin_amount,
-                                            'date_updated'          => date('Y-m-d H:i:s',time()),                                    
-                                        );
-
-                                        // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                            // echo "<pre>";
-                                            // var_dump($dt_pharmacy_assets);
-                                            // echo "<pre>";
-                                            $this->Assets->replace($dt_pharmacy_assets);
-                                        // }
-        
-                                        // Pharmacy_assets_card log
-                                        $dt_pharmacy_assets_card = array(
-                                            'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
-                                            'pharmacy_catalog_id'   => $catalog->id,
-                                            'reff_id'               => $id,
-                                            'batch'                 => $assets[0]->batch,
-                                            'expired_date'          => $assets[0]->expired_date,
-                                            'prev_amount'           => $prev_amount,
-                                            'in_amount'             => 0,
-                                            'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
-                                            'current_amount'        => $physical_amount,
-                                            'hna_item'              => $dt_put['form_prescription'][$i]['hna'],
-                                            'hp_item'               => $dt_put['form_prescription'][$i]['hp'],
-                                            'hja_item'              => $dt_put['form_prescription'][$i]['hja'],
-                                            'flag'                  => 3,
-                                            'date_created'          => date('Y-m-d H:i:s',time()),                                    
-                                        );
-                                        // if (date('Y-m-d', strtotime($dt_put['date_added'])) == date('Y-m-d')) {
-                                            // echo "<pre>";
-                                            // var_dump($dt_pharmacy_assets_card);
-                                            // echo "<pre>";
-                                            $this->Assets_card->create($dt_pharmacy_assets_card);
-                                        // }
-                                        // die();
-                                    // kunci stok
-                                    // } else {
-                                    //     $this->REST_Return(400, 'There is only ' . $prev_amount . ' left for pharmacy_catalog_id with id ' . $catalog->id);
-                                    //     return;
-                                    // }
+                                    // Pharmacy_assets_card log (nilai dari snapshot server, bukan payload).
+                                    $dt_pharmacy_assets_card = array(
+                                        'pharmacy_depo_id'      => $dt_put['pharmacy_depo_id'],
+                                        'pharmacy_catalog_id'   => $catalog->id,
+                                        'reff_id'               => $id,
+                                        'batch'                 => $assets[0]->batch,
+                                        'expired_date'          => $assets[0]->expired_date,
+                                        'prev_amount'           => $prev_amount,
+                                        'in_amount'             => $retur_qty_now,
+                                        'out_amount'            => 0,
+                                        'current_amount'        => $physical_amount,
+                                        'hna_item'              => ($prescription_item[$i]->price_purchase === null) ? null : (float) $prescription_item[$i]->price_purchase,
+                                        'hp_item'               => ($prescription_item[$i]->price_hpp === null) ? null : (float) $prescription_item[$i]->price_hpp,
+                                        'hja_item'              => $harga_sat_retur,
+                                        'flag'                  => 3,
+                                        'date_created'          => date('Y-m-d H:i:s',time()),
+                                    );
+                                    $this->Assets_card->create($dt_pharmacy_assets_card);
                                 }
                             // SYARAT GANTI CATALOG ADALAH RETUR PENUH PADA BARANG!
                             } else if ($dt_put['form_prescription'][$i]['pharmacy_catalog_id_ref'] && $dt_put['form_prescription'][$i]['is_retur_full'] == 1) {
@@ -3775,7 +4828,7 @@ class Prescription extends My_Controller {
                                         'pharmacy_prescription_id'      => $id,
                                         'pharmacy_catalog_id'           => $catalog->id,
                                         'prescription_item_type_id'     => $dt_put['form_prescription'][$i]['prescription_type_id'],
-                                        'package_id'                    => $dt_put['form_prescription'][$i]['package_id'],
+                                        'package_id'                    => ($dt_put['form_prescription'][$i]['package_id'] ?? '') !== '' ? $dt_put['form_prescription'][$i]['package_id'] : $catalog->package_id,
                                         'package_name'                  => $dt_put['form_prescription'][$i]['package_name'],
                                         'dose'                          => $dt_put['form_prescription'][$i]['dose'],
                                         'batch'                         => $assets[0]->batch,
@@ -3785,21 +4838,29 @@ class Prescription extends My_Controller {
                                         'dose_doctor'                   => $dt_put['form_prescription'][$i]['sum_dose'],
                                         'qty'                           => $dt_put['form_prescription'][$i]['qty'],
                                         'qty_copy'                      => $dt_put['form_prescription'][$i]['qty_copy'],
-                                        'var_1'                         => $dt_put['form_prescription'][$i]['var_1'],
-                                        'var_2'                         => $dt_put['form_prescription'][$i]['var_2'],
+                                        'var_1'                         => $harga_sat_retur,
+                                        // P0-4: nilai baris setelah retur dihitung server; var_2 client diabaikan.
+                                        'var_2'                         => round(max(0, $qty_awal_retur - $qty_retur_input) * $harga_sat_retur, 2),
                                         'var_3'                         => $dt_put['form_prescription'][$i]['var_3'],
                                         'sort'                          => $dt_put['form_prescription'][$i]['sort'],
                                         'used'                          => $dt_put['form_prescription'][$i]['used'],
                                         'desc'                          => $dt_put['form_prescription'][$i]['desc'],
                                     );
-                                    echo "<pre>";
-                                    var_dump($dt_prescription_item);
-                                    echo "<pre>";
+                                    // 4C-04: debug var_dump dihapus (merusak body JSON respons).
                                     $this->Prescription_item->replace($dt_prescription_item);
     
-                                    $prev_amount = $assets[0]->admin_amount;
-                                    $physical_amount = $assets[0]->physical_amount - intval($dt_put['form_prescription'][$i]['qty']);
-                                    $admin_amount = $assets[0]->admin_amount - intval($dt_put['form_prescription'][$i]['qty']);
+                                    // 4C-04: pengurangan stok atomik (compare-and-set), bukan baca-lalu-tulis.
+                                    $sub_qty = (float) $dt_put['form_prescription'][$i]['qty'];
+                                    $stok_sub = $this->_c2_decrement_stock($dt_put['pharmacy_depo_id'], $catalog->id, $sub_qty);
+                                    if ($stok_sub === false) {
+                                        $this->_c4_deny('STOCK_INSUFFICIENT', $id, $user_id, array(
+                                            'kode_obat' => $catalog->id, 'required' => $sub_qty), 409,
+                                            'Stok tidak mencukupi untuk substitusi.');
+                                        return;
+                                    }
+                                    $prev_amount     = $stok_sub['prev_amount'];
+                                    $physical_amount = $stok_sub['physical_amount'];
+                                    $admin_amount    = $stok_sub['admin_amount'];
     
                                     // check the catalog if it is not out of stock
                                     // if($physical_amount >= 0) {
@@ -3831,9 +4892,10 @@ class Prescription extends My_Controller {
                                             'in_amount'             => 0,
                                             'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
                                             'current_amount'        => $physical_amount,
-                                            'hna_item'              => $dt_put['form_prescription'][$i]['hna'],
-                                            'hp_item'               => $dt_put['form_prescription'][$i]['hp'],
-                                            'hja_item'              => $dt_put['form_prescription'][$i]['hja'],
+                                            // 4C-04: nilai kartu stok dari snapshot server, bukan payload client.
+                                            'hna_item'              => ($prescription_item[$i]->price_purchase === null) ? null : (float) $prescription_item[$i]->price_purchase,
+                                            'hp_item'               => ($prescription_item[$i]->price_hpp === null) ? null : (float) $prescription_item[$i]->price_hpp,
+                                            'hja_item'              => $harga_sat_retur,
                                             'flag'                  => 3,
                                             'date_created'          => date('Y-m-d H:i:s',time()),                                    
                                         );
@@ -3865,7 +4927,7 @@ class Prescription extends My_Controller {
                                         'pharmacy_prescription_id'      => $id,
                                         'pharmacy_catalog_id'           => $catalog->id,
                                         'prescription_item_type_id'     => $dt_put['form_prescription'][$i]['prescription_type_id'],
-                                        'package_id'                    => $dt_put['form_prescription'][$i]['package_id'],
+                                        'package_id'                    => ($dt_put['form_prescription'][$i]['package_id'] ?? '') !== '' ? $dt_put['form_prescription'][$i]['package_id'] : $catalog->package_id,
                                         'package_name'                  => $dt_put['form_prescription'][$i]['package_name'],
                                         'dose'                          => $dt_put['form_prescription'][$i]['dose'],
                                         'batch'                         => $assets[0]->batch,
@@ -3873,8 +4935,9 @@ class Prescription extends My_Controller {
                                         'dose_doctor'                   => $dt_put['form_prescription'][$i]['sum_dose'],
                                         'qty'                           => $dt_put['form_prescription'][$i]['qty'],
                                         'qty_copy'                      => $dt_put['form_prescription'][$i]['qty_copy'],
-                                        'var_1'                         => $dt_put['form_prescription'][$i]['var_1'],
-                                        'var_2'                         => $dt_put['form_prescription'][$i]['var_2'],
+                                        'var_1'                         => $harga_sat_retur,
+                                        // P0-4: nilai baris setelah retur dihitung server; var_2 client diabaikan.
+                                        'var_2'                         => round(max(0, $qty_awal_retur - $qty_retur_input) * $harga_sat_retur, 2),
                                         'var_3'                         => $dt_put['form_prescription'][$i]['var_3'],
                                         'sort'                          => $dt_put['form_prescription'][$i]['sort'],
                                         'used'                          => $dt_put['form_prescription'][$i]['used'],
@@ -3886,9 +4949,18 @@ class Prescription extends My_Controller {
                                     // die();
                                     $this->Prescription_item->replace($dt_prescription_item);
     
-                                    $prev_amount = $assets[0]->admin_amount;
-                                    $physical_amount = $assets[0]->physical_amount - intval($dt_put['form_prescription'][$i]['qty']);
-                                    $admin_amount = $assets[0]->admin_amount - intval($dt_put['form_prescription'][$i]['qty']);
+                                    // 4C-04: pengurangan stok atomik (compare-and-set), bukan baca-lalu-tulis.
+                                    $sub_qty = (float) $dt_put['form_prescription'][$i]['qty'];
+                                    $stok_sub = $this->_c2_decrement_stock($dt_put['pharmacy_depo_id'], $catalog->id, $sub_qty);
+                                    if ($stok_sub === false) {
+                                        $this->_c4_deny('STOCK_INSUFFICIENT', $id, $user_id, array(
+                                            'kode_obat' => $catalog->id, 'required' => $sub_qty), 409,
+                                            'Stok tidak mencukupi untuk substitusi.');
+                                        return;
+                                    }
+                                    $prev_amount     = $stok_sub['prev_amount'];
+                                    $physical_amount = $stok_sub['physical_amount'];
+                                    $admin_amount    = $stok_sub['admin_amount'];
     
                                     // check the catalog if it is not out of stock
                                     // if($physical_amount >= 0) {
@@ -3920,9 +4992,10 @@ class Prescription extends My_Controller {
                                             'in_amount'             => 0,
                                             'out_amount'            => $dt_put['form_prescription'][$i]['qty'],
                                             'current_amount'        => $physical_amount,
-                                            'hna_item'              => $dt_put['form_prescription'][$i]['hna'],
-                                            'hp_item'               => $dt_put['form_prescription'][$i]['hp'],
-                                            'hja_item'              => $dt_put['form_prescription'][$i]['hja'],
+                                            // 4C-04: nilai kartu stok dari snapshot server, bukan payload client.
+                                            'hna_item'              => ($prescription_item[$i]->price_purchase === null) ? null : (float) $prescription_item[$i]->price_purchase,
+                                            'hp_item'               => ($prescription_item[$i]->price_hpp === null) ? null : (float) $prescription_item[$i]->price_hpp,
+                                            'hja_item'              => $harga_sat_retur,
                                             'flag'                  => 3,
                                             'date_created'          => date('Y-m-d H:i:s',time()),                                    
                                         );
@@ -3949,6 +5022,76 @@ class Prescription extends My_Controller {
                     $this->REST_Return(404, 'Prescription with id ' . $id . ' does not exist!');
                     return;
                 }
+
+                // P0-4: total header dihitung server dari item (lihat _bill_total di akhir method).
+                $dt_header_total = $this->_bill_total($id);
+                $this->db->query(
+                    "UPDATE pharmacy_prescription SET var_1 = ?, var_3 = ? - IFNULL(var_2,0) WHERE id = ?",
+                    array($dt_header_total, $dt_header_total, $id)
+                );
+
+                // 4C-04: audit retur dengan field wajib (no_resep, kode_obat, qty_retur, reason,
+                // approved_by/at, old_stok, new_stok, source_depo, target_depo).
+                $retur_audit_items = array();
+                foreach ($this->_c4_items_locked($id) as $it_audit) {
+                    if ((int) $it_audit->is_retur !== 1) {
+                        continue;
+                    }
+                    $st = $this->db->query(
+                        "SELECT admin_amount FROM pharmacy_assets WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ?",
+                        array($dt_put['pharmacy_depo_id'], $it_audit->pharmacy_catalog_id))->row();
+                    $new_stok = ($st === null) ? null : (float) $st->admin_amount;
+                    $retur_audit_items[] = array(
+                        'no_resep'    => $rx_locked->no_order,
+                        'kode_obat'   => $it_audit->pharmacy_catalog_id,
+                        'qty_retur'   => (float) $it_audit->qty_retur,
+                        'reason'      => $it_audit->retur_reason,
+                        'approved_by' => $user_id,
+                        'approved_at' => $it_audit->retur_approved_at,
+                        'old_stok'    => ($new_stok === null) ? null : $new_stok - (float) $it_audit->qty_retur,
+                        'new_stok'    => $new_stok,
+                        'source_depo' => $rx_locked->pharmacy_depo_id,
+                        'target_depo' => $dt_put['pharmacy_depo_id'],
+                    );
+                }
+                if (!$this->_c2_audit('RETUR_APPLIED', $id, $user_id, array(
+                    'no_resep'            => $rx_locked->no_order,
+                    'source_depo'         => $rx_locked->pharmacy_depo_id,
+                    'target_depo'         => $dt_put['pharmacy_depo_id'],
+                    'approved_by'         => $user_id,
+                    'approved_at'         => date('Y-m-d H:i:s'),
+                    'applied_from_branch' => $branch,
+                    'total_setelah_retur' => $dt_header_total,
+                    'items'               => $retur_audit_items,
+                ), 200)) {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Gagal menulis audit retur.', array(), 'AUDIT_WRITE_FAILED');
+                    return;
+                }
+
+                // E-5: retur obat dari pasien kembali ke persediaan.
+                // Debit persediaan / credit HPP (membalik HPP penyerahan).
+                // ref_no memuat total setelah retur supaya replay retur yang sama
+                // tidak menambah jurnal, tetapi retur berikutnya tetap tercatat.
+                $ret_val = $this->db->query(
+                    "SELECT IFNULL(SUM(qty_retur * IFNULL(price_hpp,0)),0) AS amt
+                       FROM pharmacy_prescription_item
+                      WHERE pharmacy_prescription_id = ? AND IFNULL(qty_retur,0) > 0",
+                    array($id))->row();
+                $ret_total = $ret_val === null ? 0.0 : round((float) $ret_val->amt, 2);
+                if ($ret_total > 0) {
+                    $ref = 'RET-' . $id . '-' . str_replace('.', '_', number_format((float) $dt_header_total, 2, '.', ''));
+                    $journal = $this->post_journal('STOCK_RETURN', $id, $ref,
+                        $rx_locked->institute_branch_id, $user_id,
+                        array('stock' => $ret_total, 'hpp' => $ret_total),
+                        'no_resep=' . $rx_locked->no_order);
+                    if (isset($journal['status']) && $journal['status'] === 'error') {
+                        $this->db->trans_rollback();
+                        $this->REST_Return(500, 'Jurnal retur gagal (tidak balance).', $journal, 'JOURNAL_FAILED');
+                        return;
+                    }
+                }
+
                 $this->db->trans_complete();
                 /* End Transaction */
                 if ($this->db->trans_status() === false) {
@@ -3982,6 +5125,13 @@ class Prescription extends My_Controller {
         $user_id = $this->security->xss_clean($is_valid_token['data']->id);
         $institute_branch_id = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
         if (!empty($is_valid_token) AND $is_valid_token['status'] === TRUE) {
+            // 4C-03D: branch hanya dari token; kosong => fail-closed sebelum tulisan apa pun.
+            if (trim((string) $institute_branch_id) === '') {
+                $this->_c2_audit('DENIED_BRANCH_SCOPE_UNDEFINED', $id, $user_id, array(
+                    'reason' => 'branch_empty', 'operation' => 'add'), 409);
+                $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+                return;
+            }
             $this->form_validation->set_data($dt_post);
             # Form Validation
             if ($dt_post['type_prescription_id'] != 5) {
@@ -3999,6 +5149,38 @@ class Prescription extends My_Controller {
                 /* Start Transaction */
                 $this->db->trans_start();
                 if($this->Depo->read($dt_post['pharmacy_depo_id'], false) != []) {
+                    // 4C-03D: harga seluruh item dari pharmacy_catalog_price (server-side).
+                    // Payload client (var_1/hja/hna/var_3) tidak dipakai. Satu item tanpa harga
+                    // => rollback total, tidak ada resep/penyerahan yang ditulis.
+                    $c3d_identity = $this->_c3c_identity($dt_post['registration_destination_id']);
+                    $c3d_prices   = array();
+                    for ($i = 0; $i < count($dt_post['form_prescription']); $i++) {
+                        $res = $this->_c3c_resolve_price(
+                            $dt_post['form_prescription'][$i]['pharmacy_catalog_id'],
+                            $institute_branch_id, $dt_post['pharmacy_depo_id'],
+                            $c3d_identity['service_class_id'], $c3d_identity['insurance_id'], date('Y-m-d'));
+                        if (!$res['ok']) {
+                            $this->db->trans_rollback();
+                            $this->_c2_audit('DENIED_' . $res['code'], $id, $user_id, array(
+                                'operation'           => 'add',
+                                'index'               => $i,
+                                'pharmacy_catalog_id' => $dt_post['form_prescription'][$i]['pharmacy_catalog_id'],
+                                'old_price'           => null,
+                                'new_price'           => null,
+                                'snapshot_date'       => null,
+                                'applied_by'          => $user_id,
+                                'applied_from_branch' => $institute_branch_id,
+                                'reason'              => $res['code'],
+                            ), 409);
+                            $this->REST_Return(409, 'Harga obat tidak ditemukan pada master harga.', array(
+                                'index'               => $i,
+                                'pharmacy_catalog_id' => $dt_post['form_prescription'][$i]['pharmacy_catalog_id'],
+                            ), $res['code']);
+                            return;
+                        }
+                        $c3d_prices[$i] = $this->_c3c_snapshot($res['row']);
+                    }
+
                     // $this->Prescription->whereFields['a.date_added >='] = date('Y-m-d').' 00:00:00';
                     // $this->Prescription->whereFields['a.date_added <='] = date('Y-m-d').' 23:59:59';
                     // $this->Prescription->orderFields = array('a.no_order' => 'DESC');
@@ -4059,9 +5241,11 @@ class Prescription extends My_Controller {
                         'doctor_in_charge_id'           => $dt_post['doctor_in_charge_id'],
                         'no_order'                      => $no_order,
                         'user_1'                        => $user_id,
-                        'var_1'                         => isset($dt_post['var_1']) ? $dt_post['var_1'] : '',
-                        'var_2'                         => isset($dt_post['var_2']) ? $dt_post['var_2'] : '',
-                        'var_3'                         => isset($dt_post['var_3']) ? $dt_post['var_3'] : '',
+                        // 4C-03D: nilai tagihan header dihitung server dari snapshot item
+                        // (lihat _bill_total); var_1/var_2/var_3 client tidak dipakai.
+                        'var_1'                         => 0,
+                        'var_2'                         => 0,
+                        'var_3'                         => 0,
                         'date_added'                    => date("Y-m-d H:i:s",time()),
                         'date_0'                        => date("Y-m-d H:i:s",time()),
                         'date_1'                        => date("Y-m-d H:i:s",time()),
@@ -4088,9 +5272,10 @@ class Prescription extends My_Controller {
                                 'dose_doctor'                   => $dt_post['form_prescription'][$i]['sum_dose'],
                                 'qty'                           => $dt_post['form_prescription'][$i]['qty'],
                                 'qty_copy'                      => $dt_post['form_prescription'][$i]['qty_copy'],
-                                'var_1'                         => $dt_post['form_prescription'][$i]['var_1'],
-                                'var_2'                         => $dt_post['form_prescription'][$i]['var_2'],
-                                'var_3'                         => $dt_post['form_prescription'][$i]['var_3'],
+                                // 4C-03D: harga dari snapshot server, bukan payload client.
+                                'var_1'                         => $c3d_prices[$i]['var_1'],
+                                'var_2'                         => round(max(0, (float) $dt_post['form_prescription'][$i]['qty']) * (float) $c3d_prices[$i]['var_1'], 2),
+                                'var_3'                         => $c3d_prices[$i]['price_hpp'],
                                 'sort'                          => $dt_post['form_prescription'][$i]['sort'],
                                 'used'                          => $dt_post['form_prescription'][$i]['used'],
                                 'desc'                          => $dt_post['form_prescription'][$i]['desc'],
@@ -4098,6 +5283,8 @@ class Prescription extends My_Controller {
                             // echo "<pre>";
                             // var_dump($dt_prescription_item);
                             // echo "<pre>";
+                            // 4C-03D: kolom snapshot server ikut ditulis pada baris resep.
+                            $dt_prescription_item = array_merge($dt_prescription_item, $c3d_prices[$i]);
                             $this->Prescription_item->replace($dt_prescription_item);
 
                             $prev_amount = $assets[0]->admin_amount;
@@ -4120,9 +5307,10 @@ class Prescription extends My_Controller {
                                         'in_amount'             => 0,
                                         'out_amount'            => $dt_post['form_prescription'][$i]['qty'],
                                         'current_amount'        => $physical_amount,
-                                        'hna_item'              => $dt_post['form_prescription'][$i]['hna'],
-                                        'hp_item'               => $dt_post['form_prescription'][$i]['hp'],
-                                        'hja_item'              => $dt_post['form_prescription'][$i]['hja'],
+                                        // 4C-03D: nilai kartu stok dari snapshot server, bukan payload client.
+                                        'hna_item'              => $c3d_prices[$i]['price_purchase'],
+                                        'hp_item'               => $c3d_prices[$i]['price_hpp'],
+                                        'hja_item'              => $c3d_prices[$i]['price_sale'],
                                         'flag'                  => 6,
                                         'date_created'          => date('Y-m-d H:i:s',time()),                                    
                                     );
@@ -4160,9 +5348,10 @@ class Prescription extends My_Controller {
                                         'in_amount'             => 0,
                                         'out_amount'            => $dt_post['form_prescription'][$i]['qty'],
                                         'current_amount'        => $physical_amount,
-                                        'hna_item'              => $dt_post['form_prescription'][$i]['hna'],
-                                        'hp_item'               => $dt_post['form_prescription'][$i]['var_3'],
-                                        'hja_item'              => $dt_post['form_prescription'][$i]['hja'],
+                                        // 4C-03D: nilai kartu stok dari snapshot server, bukan payload client.
+                                        'hna_item'              => $c3d_prices[$i]['price_purchase'],
+                                        'hp_item'               => $c3d_prices[$i]['price_hpp'],
+                                        'hja_item'              => $c3d_prices[$i]['price_sale'],
                                         'flag'                  => 3,
                                         'date_created'          => date('Y-m-d H:i:s',time()),                                    
                                     );
@@ -4204,9 +5393,10 @@ class Prescription extends My_Controller {
                                 'dose_doctor'                   => $dt_post['form_prescription'][$i]['sum_dose'],
                                 'qty'                           => $dt_post['form_prescription'][$i]['qty'],
                                 'qty_copy'                      => $dt_post['form_prescription'][$i]['qty_copy'],
-                                'var_1'                         => $dt_post['form_prescription'][$i]['var_1'],
-                                'var_2'                         => $dt_post['form_prescription'][$i]['var_2'],
-                                'var_3'                         => $dt_post['form_prescription'][$i]['var_3'],
+                                // 4C-03D: harga dari snapshot server, bukan payload client.
+                                'var_1'                         => $c3d_prices[$i]['var_1'],
+                                'var_2'                         => round(max(0, (float) $dt_post['form_prescription'][$i]['qty']) * (float) $c3d_prices[$i]['var_1'], 2),
+                                'var_3'                         => $c3d_prices[$i]['price_hpp'],
                                 'sort'                          => $dt_post['form_prescription'][$i]['sort'],
                                 'used'                          => $dt_post['form_prescription'][$i]['used'],
                                 'desc'                          => $dt_post['form_prescription'][$i]['desc'],
@@ -4214,6 +5404,8 @@ class Prescription extends My_Controller {
                             // echo "<pre>";
                             // var_dump($dt_prescription_item);
                             // echo "<pre>";
+                            // 4C-03D: kolom snapshot server ikut ditulis pada baris resep.
+                            $dt_prescription_item = array_merge($dt_prescription_item, $c3d_prices[$i]);
                             $this->Prescription_item->replace($dt_prescription_item);
 
                             $prev_amount = $assets[0]->admin_amount;
@@ -4235,9 +5427,10 @@ class Prescription extends My_Controller {
                                         'in_amount'             => 0,
                                         'out_amount'            => $dt_post['form_prescription'][$i]['qty'],
                                         'current_amount'        => $physical_amount,
-                                        'hna_item'              => $dt_post['form_prescription'][$i]['hna'],
-                                        'hp_item'               => $dt_post['form_prescription'][$i]['var_3'],
-                                        'hja_item'              => $dt_post['form_prescription'][$i]['hja'],
+                                        // 4C-03D: nilai kartu stok dari snapshot server, bukan payload client.
+                                        'hna_item'              => $c3d_prices[$i]['price_purchase'],
+                                        'hp_item'               => $c3d_prices[$i]['price_hpp'],
+                                        'hja_item'              => $c3d_prices[$i]['price_sale'],
                                         'flag'                  => 6,
                                         'date_created'          => date('Y-m-d H:i:s',time()),                                    
                                     );
@@ -4274,9 +5467,10 @@ class Prescription extends My_Controller {
                                         'in_amount'             => 0,
                                         'out_amount'            => $dt_post['form_prescription'][$i]['qty'],
                                         'current_amount'        => $physical_amount,
-                                        'hna_item'              => $dt_post['form_prescription'][$i]['hna'],
-                                        'hp_item'               => $dt_post['form_prescription'][$i]['var_3'],
-                                        'hja_item'              => $dt_post['form_prescription'][$i]['hja'],
+                                        // 4C-03D: nilai kartu stok dari snapshot server, bukan payload client.
+                                        'hna_item'              => $c3d_prices[$i]['price_purchase'],
+                                        'hp_item'               => $c3d_prices[$i]['price_hpp'],
+                                        'hja_item'              => $c3d_prices[$i]['price_sale'],
                                         'flag'                  => 3,
                                         'date_created'          => date('Y-m-d H:i:s',time()),                                    
                                     );
@@ -4298,6 +5492,12 @@ class Prescription extends My_Controller {
                             // return;
                         }
                     }
+                    // 4C-03D: total header dari snapshot item server-side (bukan var_1 client).
+                    $c3d_total = $this->_bill_total($id_prescription);
+                    $this->db->query(
+                        "UPDATE pharmacy_prescription SET var_1 = ?, var_3 = ? - IFNULL(var_2,0) WHERE id = ?",
+                        array($c3d_total, $c3d_total, $id_prescription)
+                    );
                 } else {
                     $this->REST_Return(404, 'Wrong pharmacy_depo_id or soap_id!');
                     return;
@@ -4308,6 +5508,23 @@ class Prescription extends My_Controller {
                     $response_data = array();
                     $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
                 } else {
+                    // 4C-03D: audit snapshot harga server (bukan harga client) setelah commit.
+                    $c3d_items_audit = array();
+                    foreach ($c3d_prices as $i => $p) {
+                        $c3d_items_audit[] = array(
+                            'pharmacy_catalog_id' => $dt_post['form_prescription'][$i]['pharmacy_catalog_id'],
+                            'price_id'            => $p['price_id'],
+                            'price_sale'          => $p['price_sale'],
+                            'snapshot_date'       => $p['price_snapshot_at'],
+                        );
+                    }
+                    $this->_c2_audit('PRICE_SNAPSHOT_OK', $id_prescription, $user_id, array(
+                        'operation'           => 'add',
+                        'price_source'        => 'pharmacy_catalog_price',
+                        'applied_by'          => $user_id,
+                        'applied_from_branch' => $institute_branch_id,
+                        'items'               => $c3d_items_audit,
+                    ), 200);
                     $response_data = $id_prescription;
                     $this->REST_Return(200, 'SUCCESS', $response_data);
                 }
@@ -4327,6 +5544,10 @@ class Prescription extends My_Controller {
         $dt_put     = $data['dt_postput'];
         $model      = $this->name;
         $id         = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('write');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'write')) { return; }
     
         // Token Validation
         $is_valid_token = $this->authorization_token->validateToken();
@@ -4429,7 +5650,10 @@ class Prescription extends My_Controller {
         $this->$model->limit = $limit;
         $this->$model->offset = $offset;
 
-        $where = array();
+        // 4C-05: daftar resep difilter branch dari token.
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
+        $where = array('a.institute_branch_id' => $ph_branch);
     
         $norm = $q_strings['norm'] ?? null;
         if ($norm != null) {
@@ -4587,6 +5811,9 @@ class Prescription extends My_Controller {
 
         $norm = $q_strings['norm'] ?? null;
 
+        // 4C-05: daftar BHP difilter branch dari token.
+        $ph_branch = $this->_ph_branch('read');
+        if ($ph_branch === null) { return; }
         $where = '';
 
         if ($norm == null) {
@@ -4603,7 +5830,8 @@ class Prescription extends My_Controller {
                 return;
             }
 
-            $where = "AND rd.registration_id = '$registration_id' OR rd2.registration_id = '$registration_id'";
+            // 4C-05: OR dikurung supaya tidak melewati filter is_delete/branch.
+            $where = "AND (rd.registration_id = '$registration_id' OR rd2.registration_id = '$registration_id')";
             
             $norm = $registration[0]->norm;
         }
@@ -4627,7 +5855,7 @@ class Prescription extends My_Controller {
             FROM (
                 SELECT id
                 FROM pharmacy_prescription
-                WHERE norm = '$norm'
+                WHERE norm = '$norm' AND institute_branch_id = '" . $this->db->escape_str($ph_branch) . "'
             ) as a
             INNER JOIN pharmacy_prescription as full_a ON a.id = full_a.id
             LEFT JOIN employee e ON full_a.doctor_in_charge_id = e.id
@@ -4720,7 +5948,7 @@ class Prescription extends My_Controller {
             FROM (
                 SELECT id
                 FROM pharmacy_prescription
-                WHERE norm = '$norm'
+                WHERE norm = '$norm' AND institute_branch_id = '" . $this->db->escape_str($ph_branch) . "'
             ) as a
             INNER JOIN pharmacy_prescription as full_a ON a.id = full_a.id
             LEFT JOIN employee e ON full_a.doctor_in_charge_id = e.id
@@ -4750,6 +5978,10 @@ class Prescription extends My_Controller {
         $dt_put     = $data['dt_postput'];
         $model      = $this->name;
         $id         = $this->security->xss_clean($p);
+        // 4C-05: scope branch fail-closed (objek harus milik branch token).
+        $ph_branch = $this->_ph_branch('write');
+        if ($ph_branch === null) { return; }
+        if (!$this->_ph_object_scope($id, $ph_branch, 'write')) { return; }
 
         // Token Validation
         $is_valid_token = $this->authorization_token->validateToken();
@@ -5292,5 +6524,383 @@ class Prescription extends My_Controller {
         
         $this->REST_Return(200, 'SUCCESS', $response_data);
         return;
+    }
+
+    /**
+     * P0-4: nilai tagihan resep dihitung server.
+     * nilai = SUM( MAX(qty - qty_retur, 0) x var_1 ) atas item yang tidak dihapus.
+     * qty dan qty_retur tetap tersimpan sebagai histori; retur penuh menghasilkan 0
+     * tanpa menghapus baris. var_2 kiriman client tidak pernah dipakai di sini.
+     */
+    protected function _bill_total($prescription_id) {
+        $row = $this->db->query(
+            "SELECT IFNULL(SUM(GREATEST(IFNULL(qty,0) - IFNULL(qty_retur,0), 0) * IFNULL(var_1,0)),0) AS total
+             FROM pharmacy_prescription_item WHERE pharmacy_prescription_id = ? AND is_delete = 0",
+            array($prescription_id))->row();
+        return round((float) $row->total, 2);
+    }
+
+    /**
+     * 4C-02 R1 — validasi stok SELURUH item sebelum ada penulisan apa pun.
+     *
+     * - qty wajib numerik dan >= 0 (nilai negatif / non-numerik ditolak 422, bukan di-coerce).
+     * - qty dijumlahkan per (depo, catalog) supaya dua baris obat yang sama tidak lolos
+     *   masing-masing sendiri-sendiri.
+     * - tiap baris pharmacy_assets dikunci FOR UPDATE, dalam urutan catalog_id yang
+     *   deterministik, sehingga dua transaksi paralel tidak saling deadlock.
+     *
+     * @return array|null null = semua cukup; array = error (reason dipakai sebagai code).
+     */
+    protected function _c2_check_stock($dt_put, $prescription_item, $depo_id) {
+        $need = array();
+        for ($i = 0; $i < count($prescription_item); $i++) {
+            if (!isset($dt_put['form_prescription'][$i])) {
+                return array('reason' => 'INVALID_ITEM', 'index' => $i);
+            }
+            $row = $dt_put['form_prescription'][$i];
+            $qty = isset($row['qty']) ? $row['qty'] : null;
+            if (!is_numeric($qty) || (float) $qty < 0) {
+                return array('reason' => 'INVALID_QTY', 'index' => $i, 'qty' => $qty);
+            }
+            $catalog_id = !empty($row['pharmacy_catalog_id_sub'])
+                ? $row['pharmacy_catalog_id_sub']
+                : (isset($row['pharmacy_catalog_id']) ? $row['pharmacy_catalog_id'] : '');
+            if (!is_string($catalog_id) || trim($catalog_id) === '') {
+                return array('reason' => 'INVALID_CATALOG', 'index' => $i);
+            }
+            $need[$catalog_id] = (isset($need[$catalog_id]) ? $need[$catalog_id] : 0) + (float) $qty;
+        }
+
+        ksort($need);
+        foreach ($need as $catalog_id => $qty) {
+            $q = $this->db->query(
+                "SELECT admin_amount, physical_amount FROM pharmacy_assets
+                  WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ? FOR UPDATE",
+                array($depo_id, $catalog_id));
+            $row   = ($q === FALSE) ? null : $q->row();
+            $admin = $row ? (float) $row->admin_amount : 0;
+            $phys  = $row ? (float) $row->physical_amount : 0;
+            $avail = min($admin, $phys);
+            if ($qty > $avail) {
+                return array(
+                    'reason'              => 'STOCK_INSUFFICIENT',
+                    'pharmacy_catalog_id' => $catalog_id,
+                    'required'            => $qty,
+                    'available'           => $avail,
+                );
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 4C-02 R1 — pengurangan stok atomik.
+     *
+     * Satu statement UPDATE dengan guard di WHERE (compare-and-set), bukan baca-lalu-tulis:
+     * dua penulis paralel tidak bisa sama-sama lolos. Dipanggil setelah baris dikunci oleh
+     * _c2_check_stock(), jadi hasilnya deterministik di dalam transaksi yang sama.
+     *
+     * @return array|false nilai stok setelah pengurangan, atau false bila stok tidak cukup.
+     */
+    protected function _c2_decrement_stock($depo_id, $catalog_id, $qty) {
+        $qty = (float) $qty;
+
+        if ($qty <= 0) {
+            $q   = $this->db->query(
+                "SELECT admin_amount, physical_amount FROM pharmacy_assets
+                  WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ?",
+                array($depo_id, $catalog_id));
+            $row = ($q === FALSE) ? null : $q->row();
+            return array(
+                'prev_amount'     => $row ? $row->admin_amount : 0,
+                'admin_amount'    => $row ? $row->admin_amount : 0,
+                'physical_amount' => $row ? $row->physical_amount : 0,
+            );
+        }
+
+        $q = $this->db->query(
+            "UPDATE pharmacy_assets
+                SET prev_amount = admin_amount,
+                    physical_amount = physical_amount - ?,
+                    admin_amount = admin_amount - ?,
+                    date_updated = ?
+              WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ?
+                AND admin_amount >= ? AND physical_amount >= ?",
+            array($qty, $qty, date('Y-m-d H:i:s'), $depo_id, $catalog_id, $qty, $qty));
+
+        if ($q === FALSE || $this->db->affected_rows() !== 1) {
+            return false;
+        }
+
+        $r   = $this->db->query(
+            "SELECT prev_amount, admin_amount, physical_amount FROM pharmacy_assets
+              WHERE pharmacy_depo_id = ? AND pharmacy_catalog_id = ?",
+            array($depo_id, $catalog_id));
+        $row = ($r === FALSE) ? null : $r->row();
+        return array(
+            'prev_amount'     => $row ? $row->prev_amount : 0,
+            'admin_amount'    => $row ? $row->admin_amount : 0,
+            'physical_amount' => $row ? $row->physical_amount : 0,
+        );
+    }
+
+    /**
+     * 4C-02 — audit penyerahan ke log_activity (tabel & kolom yang sudah ada).
+     * Tidak pernah menulis token/password/payload pasien.
+     */
+    protected function _c2_audit($result, $prescription_id, $user_id, $detail = array(), $http = null) {
+        $b = random_bytes(16);
+        $b[6] = chr((ord($b[6]) & 0x0f) | 0x40);
+        $b[8] = chr((ord($b[8]) & 0x3f) | 0x80);
+        $row = array(
+            'id'            => vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4)),
+            'noregistrasi'  => null,
+            'user_id'       => $user_id,
+            'user_name'     => isset($this->s1_actor['username']) ? $this->s1_actor['username'] : null,
+            'category_id'   => 0,
+            'description'   => json_encode(array_merge(array(
+                'request_id'      => $this->debug_uniq,
+                'endpoint'        => 'pharmacy/prescription',
+                'action'          => strtolower(isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'get'),
+                'operation'       => 'transaction',
+                'prescription_id' => $prescription_id,
+                'branch'          => isset($this->s1_actor['branch']) ? $this->s1_actor['branch'] : null,
+                'result'          => $result,
+                'http_status'     => $http,
+                // 4C-05: no_rawat (nomor kunjungan) ikut dicatat di setiap audit farmasi.
+                'no_rawat'        => $this->_ph_no_rawat($prescription_id),
+            ), $detail)),
+            'related_id'    => $prescription_id,
+            'related_table' => 'pharmacy_prescription',
+            'created_at'    => date('Y-m-d H:i:s'),
+        );
+        $ok = $this->db->query(
+            "INSERT INTO log_activity (id, noregistrasi, user_id, user_name, category_id, description, "
+            . "related_id, related_table, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            array($row['id'], $row['noregistrasi'], $row['user_id'], $row['user_name'], $row['category_id'],
+                  $row['description'], $row['related_id'], $row['related_table'], $row['created_at']));
+        if (!$ok) {
+            Logger::error($this->debug_uniq, 'C2 audit write failed: ' . $result);
+        }
+        return (bool) $ok;
+    }
+
+    /**
+     * 4C-03C — identitas penjamin untuk dimensi harga, dibaca dari DB.
+     * Sumber: registration_insurance (is_primary=1, tidak dibatalkan).
+     */
+    protected function _c3c_identity($registration_destination_id) {
+        $q = $this->db->query(
+            "SELECT insurance_id, service_class_id FROM registration_insurance
+              WHERE registration_destination_id = ? AND is_primary = 1 AND (is_cancel = 0 OR is_cancel IS NULL)
+              ORDER BY insurance_id ASC LIMIT 1",
+            array($registration_destination_id)
+        );
+        $row = ($q === FALSE || $q->num_rows() === 0) ? null : $q->row();
+        return array(
+            'insurance_id'     => ($row === null) ? 0 : (int) $row->insurance_id,
+            'service_class_id' => ($row === null || $row->service_class_id === null) ? '' : (string) $row->service_class_id,
+        );
+    }
+
+    /**
+     * ALKES GUARD — daftar item resep yang katalognya berkategori "Alat Kesehatan".
+     * Kosong = aman. Dipakai create_post sebelum transaksi dimulai (fail-closed).
+     */
+    protected function _alkes_in_prescription($dt_post) {
+        $ids = array();
+        if (isset($dt_post['form_prescription']) && is_array($dt_post['form_prescription'])) {
+            foreach ($dt_post['form_prescription'] as $row) {
+                $cid = isset($row['pharmacy_catalog_id']) ? trim((string) $row['pharmacy_catalog_id']) : '';
+                if ($cid !== '') { $ids[$cid] = true; }
+            }
+        }
+        if (empty($ids)) { return array(); }
+
+        $ids = array_keys($ids);
+        $ph  = implode(',', array_fill(0, count($ids), '?'));
+        $rows = $this->db->query(
+            "SELECT c.id, c.code, c.name
+               FROM pharmacy_catalog c
+               JOIN category_catalog cc ON cc.id = c.category_catalog_id
+              WHERE c.id IN ($ph) AND cc.name = 'Alat Kesehatan' AND IFNULL(cc.is_delete,0) = 0",
+            $ids)->result();
+        $out = array();
+        foreach ($rows as $r) {
+            $out[] = array('pharmacy_catalog_id' => $r->id, 'code' => $r->code, 'name' => $r->name);
+        }
+        return $out;
+    }
+
+    /**
+     * 4C-03C — resolver harga canonical. Sumber tunggal: pharmacy_catalog_price.
+     * Empat dimensi: branch, depo, service_class, insurance. Paling spesifik menang
+     * (rank = branch*8 + depo*4 + class*2 + insurance*1). Tidak ada ORDER BY id DESC.
+     * 0 kandidat  -> PRICE_NOT_FOUND
+     * >1 pada rank tertinggi -> PRICE_AMBIGUOUS
+     */
+    protected function _c3c_resolve_price($catalog_id, $branch_id, $depo_id, $service_class_id, $insurance_id, $price_date) {
+        $branch = trim((string) $branch_id);
+        $depo   = trim((string) $depo_id);
+        $class  = trim((string) $service_class_id);
+        $ins    = (int) $insurance_id;
+
+        $q = $this->db->query(
+            "SELECT id, institute_branch_id, pharmacy_depo_id, service_class_id, insurance_id,
+                    price_sale, price_purchase, price_hpp, valid_from,
+                    (institute_branch_id = ?) AS m_branch,
+                    (pharmacy_depo_id = ?)    AS m_depo,
+                    (service_class_id = ?)    AS m_class,
+                    (insurance_id = ?)        AS m_ins
+               FROM pharmacy_catalog_price
+              WHERE pharmacy_catalog_id = ?
+                AND batch = ''
+                AND is_active = 1
+                AND valid_from <= ?
+                AND (valid_to IS NULL OR valid_to >= ?)
+                AND (institute_branch_id = ? OR institute_branch_id = '')
+                AND (pharmacy_depo_id = ? OR pharmacy_depo_id = '')
+                AND (service_class_id = ? OR service_class_id = '')
+                AND (insurance_id = ? OR insurance_id = 0)",
+            array($branch, $depo, $class, $ins, $catalog_id, $price_date, $price_date,
+                  $branch, $depo, $class, $ins)
+        );
+        if ($q === FALSE) {
+            return array('ok' => false, 'code' => 'PRICE_NOT_FOUND', 'reason' => 'query_error');
+        }
+
+        $rows = $q->result();
+        if (count($rows) === 0) {
+            return array('ok' => false, 'code' => 'PRICE_NOT_FOUND');
+        }
+
+        $best  = null;
+        $ties  = 0;
+        foreach ($rows as $r) {
+            $rank = ((int) $r->m_branch) * 8 + ((int) $r->m_depo) * 4
+                  + ((int) $r->m_class) * 2 + ((int) $r->m_ins);
+            if ($best === null || $rank > $best['rank']) {
+                $best = array('rank' => $rank, 'row' => $r);
+                $ties = 1;
+            } else if ($rank === $best['rank']) {
+                $ties++;
+            }
+        }
+        if ($ties > 1) {
+            return array('ok' => false, 'code' => 'PRICE_AMBIGUOUS', 'candidates' => $ties);
+        }
+        return array('ok' => true, 'row' => $best['row']);
+    }
+
+    /**
+     * 4C-03C — snapshot harga per item resep. var_1 legacy diisi price_sale server-side.
+     */
+    protected function _c3c_snapshot($price) {
+        return array(
+            'var_1'                  => $price->price_sale,
+            'price_id'               => $price->id,
+            'price_sale'             => $price->price_sale,
+            'price_purchase'         => $price->price_purchase,
+            'price_hpp'              => $price->price_hpp,
+            'price_service_class_id' => (string) $price->service_class_id,
+            'price_insurance_id'     => (int) $price->insurance_id,
+            'price_branch_id'        => (string) $price->institute_branch_id,
+            'price_valid_from'       => $price->valid_from,
+            'price_snapshot_at'      => date('Y-m-d H:i:s'),
+        );
+    }
+
+    /**
+     * 4C-03D — guard snapshot harga pada penyerahan (dispensing).
+     * Semua baris resep yang akan diserahkan wajib punya snapshot server-side
+     * (price_sale + price_snapshot_at). Snapshot hilang/negatif => tolak, bukan ditebak.
+     *
+     * @return array|null null = semua baris punya snapshot valid.
+     */
+    protected function _c3d_snapshot_guard($prescription_item) {
+        for ($i = 0; $i < count($prescription_item); $i++) {
+            $row = $prescription_item[$i];
+            $snapshot_at = isset($row->price_snapshot_at) ? (string) $row->price_snapshot_at : '';
+            $price_sale  = isset($row->price_sale) ? $row->price_sale : null;
+            $reason = null;
+            if ($snapshot_at === '' || $snapshot_at === '0000-00-00 00:00:00') {
+                $reason = 'snapshot_missing';
+            } else if ($price_sale === null) {
+                $reason = 'price_sale_null';
+            } else if ((float) $price_sale < 0) {
+                $reason = 'price_sale_negative';
+            }
+            if ($reason !== null) {
+                return array(
+                    'reason'              => $reason,
+                    'index'               => $i,
+                    'pharmacy_catalog_id' => isset($row->pharmacy_catalog_id) ? $row->pharmacy_catalog_id : null,
+                    'price_id'            => isset($row->price_id) ? $row->price_id : null,
+                    'old_price'           => isset($row->var_1) ? $row->var_1 : null,
+                );
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 4C-03D — harga satuan penyerahan = snapshot server-side (price_sale) pada baris resep.
+     * Payload client tidak pernah dipakai. Bila harga baris berubah, catat ke $changes
+     * (audit PRICE_APPLIED: old_price/new_price/snapshot_date/applied_by/applied_from_branch).
+     */
+    protected function _c3d_price_of($row, $user_id, $branch, &$changes) {
+        $new = (float) $row->price_sale;
+        $old = ($row->var_1 === null) ? null : (float) $row->var_1;
+        if ($old === null || $old != $new) {
+            $changes[] = array(
+                'pharmacy_catalog_id' => $row->pharmacy_catalog_id,
+                'price_id'            => $row->price_id,
+                'old_price'           => $old,
+                'new_price'           => $new,
+                'snapshot_date'       => $row->price_snapshot_at,
+                'applied_by'          => $user_id,
+                'applied_from_branch' => $branch,
+            );
+        }
+        return $new;
+    }
+
+    /**
+     * 4C-03C-0 — audit penolakan update resep (immutability / branch scope).
+     * Ditulis SETELAH rollback, tidak pernah sebelum commit. Tidak menulis token/password.
+     */
+    protected function _c30_audit($result, $prescription_id, $user_id, $username = null, $detail = array(), $http = null, $operation = 'update') {
+        $b = random_bytes(16);
+        $b[6] = chr((ord($b[6]) & 0x0f) | 0x40);
+        $b[8] = chr((ord($b[8]) & 0x3f) | 0x80);
+        $audit_id = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4));
+        $description = json_encode(array_merge(array(
+            'request_id'      => $this->debug_uniq,
+            'endpoint'        => 'pharmacy/prescription',
+            'action'          => ($operation === 'create' ? 'post' : 'put'),
+            'operation'       => $operation,
+            'prescription_id' => $prescription_id,
+            'result'          => $result,
+            'http_status'     => $http,
+        ), $detail));
+        $ok = $this->db->query(
+            "INSERT INTO log_activity (id, noregistrasi, user_id, user_name, category_id, description, "
+            . "related_id, related_table, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            array($audit_id, null, $user_id, $username, 0, $description,
+                  $prescription_id, 'pharmacy_prescription', date('Y-m-d H:i:s')));
+        if (!$ok) {
+            Logger::error($this->debug_uniq, 'C3-0 audit write failed: ' . $result);
+        }
+        return (bool) $ok;
+    }
+
+    /** Tahap 1: jurnal otomatis; 'skipped' diaudit, 'error' => pemanggil rollback. */
+    protected function post_journal($type, $ref_id, $ref_no, $branch, $user_id, $amounts, $note = '') {
+        $this->load->library('Journal');
+        $res = $this->journal->post($type, $ref_id, $ref_no, $branch, $user_id, $amounts, null, (string) $note);
+        if (isset($res['status']) && $res['status'] !== 'posted' && $res['status'] !== 'duplicate') {
+            $this->_c2_audit('JOURNAL_' . strtoupper($res['status']), $ref_id, $user_id, $res, 200);
+        }
+        return $res;
     }
 }

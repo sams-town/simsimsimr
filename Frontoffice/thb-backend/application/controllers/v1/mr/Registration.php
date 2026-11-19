@@ -109,6 +109,39 @@ class Registration extends My_Controller {
         return strtotime($tanggal) * 1000;
     }
 
+    // no_rawat = 17 char (YYYY/M/D/NNNNNN). Urutan diambil dari 4 digit terakhir
+    // registration.code (counter harian yang sudah dipakai generate code).
+    // Sebelumnya kolom ini tidak pernah diisi -> NULL, dan unique index tidak
+    // menahan duplikat karena NULL boleh berulang.
+    private function _no_rawat($code) {
+        return date('Y/n/j') . '/' . str_pad(substr((string) $code, 11), 6, '0', STR_PAD_LEFT);
+    }
+
+    // Counter kode harian. Sebelumnya urutan diambil dari baris code DESC apa pun,
+    // sehingga baris non-REG (ZZE2EREG, ZZFIXD3, ...) membuat intval(substr()) = 0
+    // dan kode selalu jatuh ke 0001 -> Duplicate entry for key 'code'.
+    private function _registration_code($prefix = 'REG', $pad = 4) {
+        $ymd = date('Ymd');
+        $row = $this->db->query("SELECT code FROM registration WHERE code LIKE '" . $prefix . $ymd . "%' ORDER BY code DESC LIMIT 1")->row();
+        $seq = $row ? intval(substr($row->code, strlen($prefix) + 8)) + 1 : 1;
+        return $prefix . $ymd . str_pad($seq, $pad, '0', STR_PAD_LEFT);
+    }
+
+    // Nomor rekam medis berikutnya (6 digit) untuk satu branch, dijamin belum dipakai.
+    private function _next_norm($institute_branch_id) {
+        $row = $this->db->query(
+            "SELECT MAX(CAST(norm AS UNSIGNED)) AS n FROM patient
+              WHERE institute_branch_id = ? AND type_patient_id = 1 AND norm REGEXP '^[0-9]+$'",
+            array($institute_branch_id))->row();
+        $seq = (int) ($row ? $row->n : 0);
+        do {
+            $seq++;
+            $norm = str_pad((string) $seq, 6, '0', STR_PAD_LEFT);
+            $exists = $this->db->query("SELECT 1 AS x FROM patient WHERE norm = ?", array($norm))->row();
+        } while ($exists !== null && $seq < 999999);
+        return $norm;
+    }
+
     public function create_post() {
         // CALL JSON POST
         $data       = $this->json_post();
@@ -138,6 +171,23 @@ class Registration extends My_Controller {
                 $response_data = $this->form_validation->error_array();
                 $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
             } else {
+                // Tujuan registrasi wajib lengkap. Tanpa poli/dokter, Health_facility_item->read(null)
+                // melewati filter primary key dan mengembalikan baris acak, sehingga pengecekan
+                // "if($health_facility_item != [] && $doctor_in_charge != [])" lolos lalu
+                // Queue::get_queue_number() gagal dengan 404 "Doctor schedule not found!".
+                $destination_errors = array();
+                if (empty($dt_post['destinations']) || !is_array($dt_post['destinations'])) {
+                    $destination_errors['destinations'] = 'The destinations field is required.';
+                } else {
+                    foreach ($dt_post['destinations'] as $dst) {
+                        if (empty($dst['health_facility_item_id'])) $destination_errors['health_facility_item_id'] = 'The health_facility_item_id field is required.';
+                        if (empty($dst['doctor_in_charge_id'])) $destination_errors['doctor_in_charge_id'] = 'The doctor_in_charge_id field is required.';
+                    }
+                }
+                if ($destination_errors != array()) {
+                    $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $destination_errors);
+                    return;
+                }
                 $institute_branch_id = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
                 $user_id = $this->security->xss_clean($is_valid_token['data']->id);
                 // Check how_to_enter
@@ -167,15 +217,7 @@ class Registration extends My_Controller {
                         $this->$model->limit = 1;
                         $tmp = $this->$model->read(0,false);
                         $waktu = date("Ymd",time());
-                        if($tmp != []) {
-                            $code = 'EREG' . $waktu . str_pad(intval(substr($tmp[0]->code,12)) + 1, 3, '0', STR_PAD_LEFT);
-                            // Check if reset is needed
-                            if(substr($tmp[0]->code,4,8) != date('Ymd',time())) {
-                                $code = 'EREG' . $waktu . '001';
-                            }
-                        } else {
-                            $code = 'EREG' . $waktu . '001';
-                        }
+                        $code = $this->_registration_code('EREG', 3);
                         
                         $dt_registration['code']   = $code;
 
@@ -225,6 +267,9 @@ class Registration extends My_Controller {
                         $dt_patient['zip_code']            = isset($dt_post['patient']['zip_code']) ? $dt_post['patient']['zip_code'] : '';
                         $dt_patient['patient_issue_id']    = isset($dt_post['patient']['patient_issue_id']) ? $dt_post['patient']['patient_issue_id'] : '';
                         $dt_patient['patient_issue_text']  = isset($dt_post['patient']['patient_issue_text']) ? $dt_post['patient']['patient_issue_text'] : '';
+                        $dt_patient['suku_bangsa_id']      = isset($dt_post['patient']['suku_bangsa_id']) ? $dt_post['patient']['suku_bangsa_id'] : '';
+                        $dt_patient['bahasa_id']           = isset($dt_post['patient']['bahasa_id']) ? $dt_post['patient']['bahasa_id'] : '';
+                        $dt_patient['cacat_fisik_id']      = isset($dt_post['patient']['cacat_fisik_id']) ? $dt_post['patient']['cacat_fisik_id'] : '';
                         $dt_patient['date_added']          = date("Y-m-d H:i:s",time());
                         $dt_patient['date_updated']        = date("Y-m-d H:i:s",time());
                         $dt_patient['type_patient_id']     = '2';
@@ -244,15 +289,7 @@ class Registration extends My_Controller {
                         $this->$model->orderFields = array('a.code' => 'DESC');
                         $tmp = $this->$model->read(0,false);
                         $waktu = date("Ymd",time());
-                        if($tmp != []) {
-                            $code = 'REG' . $waktu . str_pad(intval(substr($tmp[0]->code,11)) + 1, 4, '0', STR_PAD_LEFT);
-                            // Check if reset is needed
-                            if(substr($tmp[0]->code,3,8) != date('Ymd',time())) {
-                                $code = 'REG' . $waktu . '0001';
-                            }
-                        } else {
-                            $code = 'REG' . $waktu . '0001';
-                        }
+                        $code = $this->_registration_code('REG', 4);
 
                         $dt_registration['code'] = $code;
 
@@ -260,24 +297,11 @@ class Registration extends My_Controller {
                         if($dt_post['norm'] != '') {
                             $norm = $dt_post['norm'];
                         } else { // new patient
-                            // Count norm
-                            $this->Patient->limit = 1;
-                            $this->Patient->orderFields = array('a.norm' => 'DESC');
-                            $this->Patient->whereFields['a.type_patient_id'] = '1';
-                            $this->Patient->whereFields['b.institute_branch_id'] = $institute_branch_id;
-                            $this->Patient->whereFields['g.institute_branch_id'] = $institute_branch_id;
-                            $this->Patient->whereFields['h.institute_branch_id'] = $institute_branch_id;
-                            $this->Patient->whereFields['i.institute_branch_id'] = $institute_branch_id;
-                            $tmp = $this->Patient->read(0,false);
-                            if($tmp != []) {
-                                $norm = str_pad(($tmp[0]->norm) + 1, 6, "0", STR_PAD_LEFT);  
-                                // $norm = str_pad(intval(substr($tmp[0]->norm,2)) + 1, 6, '0', STR_PAD_LEFT);
-                            } else {
-                                $norm = '000001';
-                                $response_data = array();
-                                $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
-                                return;
-                            }
+                            // Count norm. Versi lama memfilter lewat join alamat (b/g/h/i) dan
+                            // menolak 422 kalau hasilnya kosong -> pasien pertama sebuah branch
+                            // tidak pernah bisa didaftarkan. Sekarang pakai max norm numerik
+                            // milik branch ini + cek ketersediaan (replace() menimpa kalau bentrok).
+                            $norm = $this->_next_norm($institute_branch_id);
 
                             // Patient
                             $dt_patient['norm']                = $norm;
@@ -292,6 +316,9 @@ class Registration extends My_Controller {
                             $dt_patient['birth_place']         = isset($dt_post['patient']['birth_place']) ? $dt_post['patient']['birth_place'] : '';
                             $dt_patient['address']             = isset($dt_post['patient']['address']) ? $dt_post['patient']['address'] : '';
                             $dt_patient['phone']               = isset($dt_post['patient']['phone']) ? $dt_post['patient']['phone'] : '';
+                            $dt_patient['suku_bangsa_id']      = isset($dt_post['patient']['suku_bangsa_id']) ? $dt_post['patient']['suku_bangsa_id'] : '';
+                            $dt_patient['bahasa_id']           = isset($dt_post['patient']['bahasa_id']) ? $dt_post['patient']['bahasa_id'] : '';
+                            $dt_patient['cacat_fisik_id']      = isset($dt_post['patient']['cacat_fisik_id']) ? $dt_post['patient']['cacat_fisik_id'] : '';
                             $dt_patient['date_added']          = date("Y-m-d H:i:s",time());
                             $dt_patient['date_updated']        = date("Y-m-d H:i:s",time());
                             $dt_patient['type_patient_id']     = '1';
@@ -344,15 +371,7 @@ class Registration extends My_Controller {
                                 $this->Registration_val->limit = 1;
                                 $tmp = $this->Registration_val->read(0,false);
                                 $waktu = date("Ymd",time());
-                                if($tmp != []) {
-                                    $code = 'REG' . $waktu . str_pad(intval(substr($tmp[0]->code,11)) + 1, 4, '0', STR_PAD_LEFT);
-                                    // Check if reset is needed
-                                    if(substr($tmp[0]->code,3,8) != date('Ymd',time())) {
-                                        $code = 'REG' . $waktu . '0001';
-                                    }
-                                } else {
-                                    $code = 'REG' . $waktu . '0001';
-                                }
+                                $code = $this->_registration_code('REG', 4);
                                 $norm = $dt_post['norm'];
     
                                 $dt_registration['code']   = $code;
@@ -385,8 +404,30 @@ class Registration extends My_Controller {
                     // var_dump($dt_registration);
                     // die();
                     $dt_registration['type_visit_id']   = $dt_post['type_visit_id'];
-                    $dt_registration['code_booking']   = $dt_post['code_booking'];
-                    $dt_registration['appointment_id']   = $dt_post['destinations'][0]['appointment_id'] != null && $dt_post['destinations'][0]['appointment_id'] != '' ? $dt_post['destinations'][0]['appointment_id'] : null;
+                    // Null-coalescing: field ini opsional di payload FE, akses langsung memunculkan
+                    // notice "Undefined array key" (E2E-11/12) dan mengotori log.
+                    $dt_registration['code_booking']   = $dt_post['code_booking'] ?? null;
+                    $dt_registration['appointment_id']   = isset($dt_post['destinations'][0]['appointment_id']) && $dt_post['destinations'][0]['appointment_id'] != '' ? $dt_post['destinations'][0]['appointment_id'] : null;
+                    $dt_registration['no_rawat']            = $this->_no_rawat($dt_registration['code']);
+                    $dt_registration['institute_branch_id'] = $institute_branch_id;
+                    $dt_registration['is_booking']          = $dt_post['type_register_id'] == '2' ? 1 : 0;
+                    // CHECK DUPLIKAT SEBELUM INSERT. Pengecekan ini dulu berada di dalam loop
+                    // destinations SETELAH create() di bawah, sehingga request duplikat sudah
+                    // menulis baris registration lebih dulu dan baru dijawab 422.
+                    // Aturan aktif: is_cancel NULL sama dengan 0 (lihat flag_patient_double).
+                    if(isset($dt_post['destinations']) && $dt_post['type_register_id'] != '3') {
+                        for ($i=0; $i < count($dt_post['destinations']); $i++) {
+                            $dst_check = $dt_post['destinations'][$i];
+                            if(empty($dst_check['health_facility_item_id']) || empty($dst_check['doctor_in_charge_id'])) continue;
+                            $flag_patient_double = $this->Registration->flag_patient_double($norm, $dst_check['health_facility_item_id'], $dst_check['doctor_in_charge_id']);
+                            if ($flag_patient_double == 'N') {
+                                $hfi_check = $this->Health_facility_item->read($dst_check['health_facility_item_id'], false);
+                                $doc_check = $this->Employee->read($dst_check['doctor_in_charge_id'], false);
+                                $this->REST_Return(422, 'Pasien Sudah di Daftarkan ke '.($hfi_check != [] ? $hfi_check[0]->name : '').', '.($doc_check != [] ? $doc_check[0]->fullname : '').'. Pada hari ini!');
+                                return;
+                            }
+                        }
+                    }
                     $id = $this->$model->create($dt_registration);
 
                     // if($patient) {
@@ -409,22 +450,13 @@ class Registration extends My_Controller {
                             // Check health_facility_item id & doctor_in_charge_id
                             $health_facility_item = $this->Health_facility_item->read($dt_post['destinations'][$i]['health_facility_item_id'], false);
                             $health_facility_item_id = $dt_post['destinations'][$i]['health_facility_item_id'];
-                            $health_facility_item_name = $health_facility_item[0]->name;
+                            $health_facility_item_name = $health_facility_item != [] ? $health_facility_item[0]->name : '';
                             $doctor_in_charge = $this->Employee->read($dt_post['destinations'][$i]['doctor_in_charge_id'], false);
                             if($health_facility_item != [] && $doctor_in_charge != []) {
 
                                 // CHECK IF THE PATIENT IS DOUBLE DESTINATION
+                                // (dipindah ke atas, sebelum create() — lihat guard sebelum INSERT)
                                 if($dt_post['type_register_id'] != '3'){
-                                    // if ($dt_post['destinations'][0]['insurances'][0]['company_id'] != '' && $dt_post['destinations'][0]['insurances'][0]['company_id'] != null) {
-                                    //     $flag_patient_double = $this->Registration->flag_patient_double_insurance($norm,$dt_post['destinations'][$i]['health_facility_item_id'],$dt_post['destinations'][$i]['doctor_in_charge_id'],$dt_post['destinations'][0]['insurances'][0]['company_id']);
-                                    // } else {
-                                        $flag_patient_double = $this->Registration->flag_patient_double($norm,$dt_post['destinations'][$i]['health_facility_item_id'],$dt_post['destinations'][$i]['doctor_in_charge_id']);
-                                    // }
-                                    if ($flag_patient_double == 'N') {
-                                        $this->REST_Return(422, 'Pasien Sudah di Daftarkan ke '.$health_facility_item[0]->name.', '.$doctor_in_charge[0]->fullname.'. Pada hari ini!');
-                                        return;
-                                    }
-
                                     $flag_patient_appointment = $this->Registration->flag_appointment($norm,$dt_post['destinations'][$i]['health_facility_item_id'],$dt_post['destinations'][$i]['doctor_in_charge_id']);
                                     
                                     if ($flag_patient_appointment == 'MJKN') {
@@ -439,7 +471,7 @@ class Registration extends My_Controller {
                                     //     }
                                     // }
 
-                                    if ($dt_post['destinations'][0]['jeniskunjungan'] != 2 && $dt_post['destinations'][0]['insurances'][0]['company_id'] == '1a055e0f-1b9d-42d2-bb84-7d8bf82fc4b8') {
+                                    if (($dt_post['destinations'][0]['jeniskunjungan'] ?? null) != 2 && $dt_post['destinations'][0]['insurances'][0]['company_id'] == '1a055e0f-1b9d-42d2-bb84-7d8bf82fc4b8') {
                                         $flag_check_bpjs_feasible = $this->Registration->check_bpjs_feasible($norm);
                                         if ($flag_check_bpjs_feasible == 0) {
                                             $this->REST_Return(422, 'Pasien Sudah di Daftarkan kurang dari 7 hari sebelumnya (fragmentasi tl)');
@@ -499,7 +531,7 @@ class Registration extends My_Controller {
                                 $is_new = $this->Registration->flag_patient_destination($norm,$dt_post['destinations'][$i]['health_facility_item_id']);
 
                                 // GET QUEUE NUMBER
-                                if($dt_post['destinations'][$i]['appointment_id'] != '') {
+                                if(isset($dt_post['destinations'][$i]['appointment_id']) && $dt_post['destinations'][$i]['appointment_id'] != '') {
                                     $this->Appointment->whereFields['e.institute_branch_id'] = $institute_branch_id;
                                     $appointment = $this->Appointment->read($dt_post['destinations'][$i]['appointment_id'],false);
                                     // Check appointment_id
@@ -548,7 +580,7 @@ class Registration extends My_Controller {
                                 }
 
                                 if ($dt_post['type_register_id'] == '1'){ // RAWAT JALAN
-                                    if ($dt_post['code_booking'] == "") {
+                                    if (($dt_post['code_booking'] ?? '') == "") {
                                         $this->load->library("transaction");
                                         //NEW COUNTER KODEBOOKING
                                         $codecounter_book = array(
@@ -596,7 +628,7 @@ class Registration extends My_Controller {
                                     'date_task_2'                   => ($dataLoket) ? date("Y-m-d H:i:s",time()) : NULL,
                                     'is_new'                        => $is_new,
                                     'code_queue'                    => ($dt_post['type_register_id'] == 3 || $dt_post['type_register_id'] == 4) ? NULL : $queue['queue_code'], // if emergency or inpatient queue 0
-                                    'queue'                         => ($dt_post['type_register_id'] == 3 || $dt_post['type_register_id'] == 4) ? 0 : ($dt_post['queue_manual'] != "" ? $dt_post['queue_manual'] : $queue['queue']), // if emergency or inpatient queue 0
+                                    'queue'                         => ($dt_post['type_register_id'] == 3 || $dt_post['type_register_id'] == 4) ? 0 : (($dt_post['queue_manual'] ?? '') != "" ? $dt_post['queue_manual'] : $queue['queue']), // if emergency or inpatient queue 0
                                     'type_emergency_id'             => isset($dt_post['destinations'][$i]['type_emergency_id']) ? $dt_post['destinations'][$i]['type_emergency_id'] : '',
                                     'type_emergency_case_id'        => isset($dt_post['destinations'][$i]['type_emergency_case_id']) ? $dt_post['destinations'][$i]['type_emergency_case_id'] : '',
                                     'case_location'                 => isset($dt_post['destinations'][$i]['case_location']) ? $dt_post['destinations'][$i]['case_location'] : '',
@@ -609,7 +641,7 @@ class Registration extends My_Controller {
                                     $dataDokter = $this->Employee->read($dt_post['destinations'][$i]['doctor_in_charge_id'],false)[0];
                                     $dataSchedule = $this->Doctor_schedule_item->read($queue['doctor_schedule_item_id'],false)[0];
                                     // $jeniskunjungan = $dataPoli->bride_bpjs != $dt_post['poliRujukan'] ? '2' : $dt_post['destinations'][0]['jeniskunjungan'];
-                                    $jeniskunjungan = $dt_post['destinations'][0]['jeniskunjungan'];
+                                    $jeniskunjungan = $dt_post['destinations'][0]['jeniskunjungan'] ?? null;
                                     // $jeniskunjungan = 2;
                                     // Tambah Antrean BPJS RIN2024111800000003
                                     // JKN
@@ -649,7 +681,7 @@ class Registration extends My_Controller {
                                             }
                                         //ADM PASIEN
                                         $data_antrean = array(
-                                            'kodebooking'=> $dt_post['code_booking'],
+                                            'kodebooking'=> $dt_post['code_booking'] ?? null,
                                             'jenispasien'=> ($dt_post['destinations'][0]['insurances'][0]['number_insurance'] != '') ? "JKN" : "NON JKN",
                                             'nomorkartu'=> $dt_post['destinations'][0]['insurances'][0]['number_insurance'],
                                             'nik'=> $patient[0]->idcard,
@@ -712,7 +744,7 @@ class Registration extends My_Controller {
                                         //ADM PASIEN
                                         $jeniskunjungan = 3;
                                         $data_antrean = array(
-                                            'kodebooking'=> $dt_post['code_booking'],
+                                            'kodebooking'=> $dt_post['code_booking'] ?? null,
                                             'jenispasien'=> "NON JKN",
                                             'nomorkartu'=> "",
                                             'nik'=> $patient[0]->idcard,
@@ -836,7 +868,10 @@ class Registration extends My_Controller {
                                                         'registration_destination_id'   => $reg_destination,
                                                         'insurance_id'                  => isset($dt_post['destinations'][$i]['insurances'][$a]['insurance_id']) ? $dt_post['destinations'][$i]['insurances'][$a]['insurance_id'] : '',
                                                         'number_insurance'              => isset($dt_post['destinations'][$i]['insurances'][$a]['number_insurance']) ? $dt_post['destinations'][$i]['insurances'][$a]['number_insurance'] : '',
-                                                        'is_primary'                    => isset($dt_post['destinations'][$i]['insurances'][$a]['is_primary']) ? $dt_post['destinations'][$i]['insurances'][$a]['is_primary'] : '',
+                                                        // Penjamin Tunai selalu primary; service_class diambil dari payload,
+                                                        // kalau kosong pakai Umum (a0000000-...-016) supaya tidak NULL.
+                                                        'is_primary'                    => 1,
+                                                        'service_class_id'              => isset($dt_post['destinations'][$i]['insurances'][$a]['service_class_id']) && $dt_post['destinations'][$i]['insurances'][$a]['service_class_id'] != '' ? $dt_post['destinations'][$i]['insurances'][$a]['service_class_id'] : 'a0000000-0000-4000-8000-000000000016',
                                                     );
                                                 }
                                                 $this->Registration_Insurance->replace($dt_registration_insurance);
@@ -1167,16 +1202,7 @@ class Registration extends My_Controller {
                             $tmp = $this->Registration->select(0, $select, $where, $join, $order);
                             $waktu = date("Ymd",time());
 
-                            if(count($tmp) > 0) {
-                                $code = 'REG' . $waktu . str_pad(intval(substr($tmp[0]->code,11)) + 1, 4, '0', STR_PAD_LEFT);
-
-                                // Check if reset is needed
-                                if(substr($tmp[0]->code,3,8) != date('Ymd',time())) {
-                                    $code = 'REG' . $waktu . '0001';
-                                }
-                            } else {
-                                $code = 'REG' . $waktu . '0001';
-                            }
+                            $code = $this->_registration_code('REG', 4);
                             $norm = $dt_post['norm'];
 
                             $dt_registration['code']   = $code;
@@ -1208,7 +1234,10 @@ class Registration extends My_Controller {
                     // var_dump($dt_registration);
                     // die();
                     $dt_registration['type_visit_id']   = $type_visit_id;
-                    $dt_registration['code_booking']   = $dt_post['code_booking'];
+                    $dt_registration['code_booking']   = $dt_post['code_booking'] ?? null;
+                    $dt_registration['no_rawat']            = $this->_no_rawat($dt_registration['code']);
+                    $dt_registration['institute_branch_id'] = $institute_branch_id;
+                    $dt_registration['is_booking']          = $dt_post['type_register_id'] == '2' ? 1 : 0;
                     $id = $this->$model->create($dt_registration);
 
                     //ADM PASIEN
@@ -1252,7 +1281,7 @@ class Registration extends My_Controller {
                             // Check health_facility_item id & doctor_in_charge_id
                             $health_facility_item = $this->Health_facility_item->read($dt_post['destinations'][$i]['health_facility_item_id'], false);
                             $health_facility_item_id = $dt_post['destinations'][$i]['health_facility_item_id'];
-                            $health_facility_item_name = $health_facility_item[0]->name;
+                            $health_facility_item_name = $health_facility_item != [] ? $health_facility_item[0]->name : '';
                             $doctor_in_charge = $this->Employee->read($dt_post['destinations'][$i]['doctor_in_charge_id'], false);
                             if($health_facility_item != [] && $doctor_in_charge != []) {
 
@@ -1287,7 +1316,7 @@ class Registration extends My_Controller {
                                 $is_new = $this->Registration->flag_patient_destination($norm,$doctor_in_charge[0]->health_facility_item_id);
 
                                 // GET QUEUE NUMBER
-                                if($dt_post['destinations'][$i]['appointment_id'] != '') {
+                                if(isset($dt_post['destinations'][$i]['appointment_id']) && $dt_post['destinations'][$i]['appointment_id'] != '') {
                                     $this->Appointment->whereFields['e.institute_branch_id'] = $institute_branch_id;
                                     $appointment = $this->Appointment->read($dt_post['destinations'][$i]['appointment_id'],false);
                                     // Check appointment_id
@@ -1324,7 +1353,7 @@ class Registration extends My_Controller {
                                 // die();
 
                                 if ($dt_post['type_register_id'] == '1'){ // RAWAT JALAN
-                                    if ($dt_post['code_booking'] == "") {
+                                    if (($dt_post['code_booking'] ?? '') == "") {
                                         $this->load->library("transaction");
                                         //NEW COUNTER KODEBOOKING
                                         $codecounter_book = array(
@@ -1375,14 +1404,14 @@ class Registration extends My_Controller {
                                     $dataDokter = $this->Employee->read($dt_post['destinations'][$i]['doctor_in_charge_id'],false)[0];
                                     $dataSchedule = $this->Doctor_schedule_item->read($queue['doctor_schedule_item_id'],false)[0];
                                     // $jeniskunjungan = $dataPoli->bride_bpjs != $dt_post['poliRujukan'] ? '2' : $dt_post['destinations'][0]['jeniskunjungan'];
-                                    $jeniskunjungan = $dt_post['destinations'][0]['jeniskunjungan'];
+                                    $jeniskunjungan = $dt_post['destinations'][0]['jeniskunjungan'] ?? null;
                                     // $jeniskunjungan = 2;
                                     // Tambah Antrean BPJS RIN2024111800000003
                                     // JKN
                                     $fullnamepatient = $patient[0]->name;
                                     if ($dt_post['destinations'][0]['insurances'][0]['company_id'] == '1a055e0f-1b9d-42d2-bb84-7d8bf82fc4b8') {
                                         $data_antrean = array(
-                                            'kodebooking'=> $dt_post['code_booking'],
+                                            'kodebooking'=> $dt_post['code_booking'] ?? null,
                                             'jenispasien'=> ($dt_post['destinations'][0]['insurances'][0]['number_insurance'] != '') ? "JKN" : "NON JKN",
                                             'nomorkartu'=> $dt_post['destinations'][0]['insurances'][0]['number_insurance'],
                                             'nik'=> $patient[0]->idcard,
@@ -1657,7 +1686,10 @@ class Registration extends My_Controller {
                                                         'registration_destination_id'   => $reg_destination,
                                                         'insurance_id'                  => isset($dt_post['destinations'][$i]['insurances'][$a]['insurance_id']) ? $dt_post['destinations'][$i]['insurances'][$a]['insurance_id'] : '',
                                                         'number_insurance'              => isset($dt_post['destinations'][$i]['insurances'][$a]['number_insurance']) ? $dt_post['destinations'][$i]['insurances'][$a]['number_insurance'] : '',
-                                                        'is_primary'                    => isset($dt_post['destinations'][$i]['insurances'][$a]['is_primary']) ? $dt_post['destinations'][$i]['insurances'][$a]['is_primary'] : '',
+                                                        // Penjamin Tunai selalu primary; service_class diambil dari payload,
+                                                        // kalau kosong pakai Umum (a0000000-...-016) supaya tidak NULL.
+                                                        'is_primary'                    => 1,
+                                                        'service_class_id'              => isset($dt_post['destinations'][$i]['insurances'][$a]['service_class_id']) && $dt_post['destinations'][$i]['insurances'][$a]['service_class_id'] != '' ? $dt_post['destinations'][$i]['insurances'][$a]['service_class_id'] : 'a0000000-0000-4000-8000-000000000016',
                                                     );
                                                 }
                                                 $this->Registration_Insurance->replace($dt_registration_insurance);
@@ -1858,16 +1890,7 @@ class Registration extends My_Controller {
 
         $now = date("Ymd",time());
 
-        if(count($tmp) > 0) {
-            $code = 'REG' . $now . str_pad(intval(substr($tmp[0]->code,11)) + 1, 4, '0', STR_PAD_LEFT);
-
-            // Check if reset is needed
-            if(substr($tmp[0]->code,3,8) != date('Ymd',time())) {
-                $code = 'REG' . $now . '0001';
-            }
-        } else {
-            $code = 'REG' . $now . '0001';
-        }
+        $code = $this->_registration_code('REG', 4);
 
         $dt_registration = array(
             'code'              => $code,
@@ -1878,7 +1901,10 @@ class Registration extends My_Controller {
             'type_register_id'  => $type_register_id,
             'how_to_enter_id'   => $how_to_enter_id,
             'type_visit_id'     => $type_visit_id,
-            'register_date'     => date("Y-m-d H:i:s", time())
+            'register_date'     => date("Y-m-d H:i:s", time()),
+            'no_rawat'          => $this->_no_rawat($code),
+            'institute_branch_id' => $institute_branch_id,
+            'is_booking'        => $type_register_id == '2' ? 1 : 0
         );
 
         $id = $this->$model->create($dt_registration);
@@ -2492,15 +2518,7 @@ class Registration extends My_Controller {
                     $this->Registration_val->limit = 1;
                     $tmp = $this->Registration_val->read(0,false);
                     $waktu = date("Ymd",time());
-                    if($tmp != []) {
-                        $code = 'REG' . $waktu . str_pad(intval(substr($tmp[0]->code,11)) + 1, 4, '0', STR_PAD_LEFT);
-                        // Check if reset is needed
-                        if(substr($tmp[0]->code,3,8) != date('Ymd',time())) {
-                            $code = 'REG' . $waktu . '0001';
-                        }
-                    } else {
-                        $code = 'REG' . $waktu . '0001';
-                    }
+                    $code = $this->_registration_code('REG', 4);
                     $norm = $dt_appoitnment->norm;
 
                     $dt_registration['code']   = $code;
@@ -2508,7 +2526,7 @@ class Registration extends My_Controller {
                     $dt_registration['type_register_id']   = 1;
                     $dt_registration['how_to_enter_id']   = 'cd67965b-b409-474c-a6a9-b4be1a1a9d5a';
                     $dt_registration['register_date']   = date("Y-m-d H:i:s");
-                    $dt_registration['code_booking']   = $dt_post['booking_code'];
+                    $dt_registration['code_booking']   = $dt_post['booking_code'] ?? null;
                 } else {
                     $this->REST_Return(404, 'Wrong norm!');
                     return;
@@ -2516,7 +2534,7 @@ class Registration extends My_Controller {
                 // var_dump($dt_registration);
 
                 //CEK DULU APAKAH SUDAH TER REGISTER
-                $this->Registration_val->whereFields['a.code_booking'] = $dt_post['booking_code']; 
+                $this->Registration_val->whereFields['a.code_booking'] = $dt_post['booking_code'] ?? ''; 
                 $this->Registration_val->whereFields['a.norm'] = $norm; 
                 $this->Registration_val->limit = 1;
                 $cekisregist = $this->Registration_val->read(0,false);
@@ -7141,7 +7159,8 @@ class Registration extends My_Controller {
         $filter_norm_like = $q_strings['norm_like'] ?? null; $filter_norm_like = $filter_norm_like == null ? '': $filter[] = array('p.norm' => 'LIKE "%' . $filter_norm_like . '%"');
         $filter_norm = $q_strings['norm'] ?? null; $filter_norm == null ? '': $filter[] = array('p.norm' => '= "' . $filter_norm . '"');
         $filter_sep = $q_strings['sep'] ?? null; $filter_sep == null ? '': $filter[] = array('ri.sep' => '= "' . $filter_sep . '"');
-        $filter_code = $q_strings['code'] ?? null; $filter_code == null ? '': $filter[] = array('r.code' => '= "' . $filter_code . '"');
+        $filter_how_to_enter_id = $q_strings['how_to_enter_id'] ?? null; $filter_how_to_enter_id == null ? '': $filter[] = array('full_r.how_to_enter_id' => '= "' . $filter_how_to_enter_id . '"');
+        $filter_code = $q_strings['code'] ?? null; $filter_code == null ? '': $filter[] = array('full_r.code' => '= "' . $filter_code . '"');
         $filter_sex = $q_strings['sex'] ?? null; $filter_sex == null ? '': $filter[] = array('p.sex' => '= "' . $filter_sex . '"');
         $filter_birth_date = $q_strings['birth_date'] ?? null; $filter_birth_date == null ? '': $filter[] = array('p.birth_date' => '= "' . $filter_birth_date . '"');
         $filter_is_new = $q_strings['is_new'] ?? null; $filter_is_new == null ? '': $filter[] = array('p.is_new' => '= "' . $filter_is_new . '"');
@@ -7284,7 +7303,9 @@ class Registration extends My_Controller {
             }
             if ($is_number == 0) { $output[$i]->room_abbreviation = $room_code; }
 
-            if (count($ews_score) == null) {
+            // ews_score comes straight from SELECT as an int (0 when no EWS row).
+            // count() on an int is a FATAL TypeError on PHP 8 — treat "no EWS" as 99.
+            if ($ews_score === null) {
                 $output[$i]->ews_score = 99;
             }
 
@@ -7304,7 +7325,7 @@ class Registration extends My_Controller {
             if ($key == 'p') {
                 $key_p = $done_key['p'] ?? null;
                 if ($key_p == null) {
-                    $join_total = $join_total .  ' INNER JOIN patient p ON r.norm = p.norm';
+                    $join_total = $join_total .  ' INNER JOIN patient p ON full_r.norm = p.norm';
                     $done_key['p'] = 1;
                 } 
             } elseif ($key == 'ri') {
@@ -7331,8 +7352,8 @@ class Registration extends My_Controller {
                 AND register_date < '$date_end 00:00:00'
                 AND is_cancel = 0
             ) as r_sub
-            INNER JOIN registration r ON r_sub.id = r.id
-            INNER JOIN registration_destination rd ON r.id = rd.registration_id
+            INNER JOIN registration full_r ON r_sub.id = full_r.id
+            INNER JOIN registration_destination rd ON full_r.id = rd.registration_id
             $join_total
             $filter_text
         ")->result()[0]->iTotal;
@@ -7852,6 +7873,15 @@ class Registration extends My_Controller {
         $model  = $this->name;
 
         // Token Validation
+        // P4-SEC: method ini sebelumnya hanya berkomentar "// Token Validation" tanpa
+        // memanggil validateToken(), sehingga XLSX berisi data pasien bisa diunduh tanpa
+        // Authorization. Guard dipasang SEBELUM Spreadsheet dialokasikan / data dibaca.
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         // Buat sebuah variabel untuk menampung pengaturan style dari header tabel
@@ -8209,6 +8239,15 @@ class Registration extends My_Controller {
         $model  = $this->name;
 
         // Token Validation
+        // P4-SEC: cacat identik dengan export_kunjungan — komentar "// Token Validation"
+        // tanpa memanggil validateToken(), sehingga XLSX penjamin bisa diunduh anonim.
+        // Guard dipasang SEBELUM Spreadsheet dialokasikan / data dibaca.
+        $is_valid_token = $this->authorization_token->validateToken();
+        if (empty($is_valid_token) OR $is_valid_token['status'] !== TRUE) {
+            $this->REST_Return(401, 'Invalid Token.', 'Invalid Token.');
+            return;
+        }
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         // Buat sebuah variabel untuk menampung pengaturan style dari header tabel

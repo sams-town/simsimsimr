@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setPageTitle, setTitle, setBreadcrumbTitle } from '@/store/themeConfigSlice';
 import { useGetDashboardFullQuery, DashboardMetrics, MetricData } from '@/store/api/dashboard/dashboardApiSlice';
 import { FormatNumber } from '@/utils/formatNumber';
@@ -26,18 +26,22 @@ const FinanceDashboard = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
 
-  // Check if user is Staff or Petty Cash role and redirect
+  // Check if user is Staff or Petty Cash role and redirect.
+  // Role dibaca dari state Redux (sudah dinormalisasi oleh authSlice), bukan localStorage,
+  // supaya sesi baru (setelah login) langsung dikenali tanpa menunggu reload.
+  const authUser = useSelector((state: any) => state.auth.user);
+  const userRoleID = Number(authUser?.role?.roleID ?? authUser?.role?.roleId ?? NaN);
+
   useEffect(() => {
-    const user = getProfile();
-    if (user?.role?.roleID === 4) {
+    if (userRoleID === 4) {
       window.location.href = '/staff-dashboard';
       return;
     }
-    if (user?.role?.roleID === 5) {
+    if (userRoleID === 5) {
       window.location.href = '/petty-cash/dashboard';
       return;
     }
-  }, []);
+  }, [userRoleID]);
 
   useEffect(() => {
     dispatch(setPageTitle(t('dashboard.title')));
@@ -47,10 +51,10 @@ const FinanceDashboard = () => {
 
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), 0, 1);
-  const [dateRange, setDateRange] = useState<[Date, Date]>([firstDay, today]);
+  const [dateRange] = useState<[Date, Date]>([firstDay, today]);
 
   // Fetch real data from API
-  const { data: dashboardData, isLoading, error } = useGetDashboardFullQuery();
+  const { data: dashboardData, isLoading } = useGetDashboardFullQuery();
 
   // Default empty metric
   const emptyMetric: MetricData = { today: 0, yesterday: 0, thisMonth: 0, lastMonth: 0 };
@@ -229,13 +233,13 @@ const FinanceDashboard = () => {
             options={{
               chart: { toolbar: { show: false }, zoom: { enabled: false } },
               stroke: { curve: 'smooth', width: 3 },
-              colors: ['#6366f1', '#fb7185'], // Indigo-500, Rose-400
+              colors: ['#6366f1', '#fb7185'],
               fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0 } },
               xaxis: { categories: monthlyTrend.months, axisBorder: { show: false }, axisTicks: { show: false } },
-              yaxis: { labels: { formatter: (val) => `${val}M` } },
+              yaxis: { labels: { formatter: (val: any) => `${val}M` } },
               grid: { borderColor: '#f1f5f9' },
               legend: { show: false },
-              tooltip: { theme: 'light', y: { formatter: (val) => `Rp ${val} Juta` } }
+              tooltip: { theme: 'light', y: { formatter: (val: any) => `Rp ${val} Juta` } }
             }}
             series={[
               { name: t('dashboard.charts.revenue'), data: monthlyTrend.revenue },
@@ -293,12 +297,12 @@ const FinanceDashboard = () => {
                 </tr>
               </thead>
               <tbody className="text-sm text-gray-700">
-                {topRevenueAccounts.map((account, idx) => (
+                {topRevenueAccounts.map((account) => (
                   <tr key={account.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0">
                     <td className="py-3 px-4 font-mono text-xs text-indigo-600">{account.coaCode}</td>
                     <td className="py-3 px-4 font-medium">{account.accountName}</td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700`}>
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
                         {account.group}
                       </span>
                     </td>
@@ -319,7 +323,7 @@ const FinanceDashboard = () => {
             options={{
               chart: { type: 'pie', fontFamily: 'inherit' },
               labels: paymentMethods.labels,
-              colors: ['#22c55e', '#3b82f6', '#f97316', '#a8a29e'], // Green, Blue, Orange, Gray
+              colors: ['#22c55e', '#3b82f6', '#f97316', '#a8a29e'],
               legend: { position: 'bottom', horizontalAlign: 'center', fontSize: '13px' },
               dataLabels: { enabled: true, dropShadow: { enabled: false } },
               stroke: { width: 0 },
@@ -379,23 +383,22 @@ const LuxuryMetricCard = ({ title, data, icon: Icon, gradient, variant = 'defaul
     const isUp = percent >= 0;
     if (isSolid) {
       return (
-        <div className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-md`}>
+        <div className="flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-md">
           {isUp ? <TrendingUp size={10} className="mr-1" /> : <TrendingDown size={10} className="mr-1" />}
           {Math.abs(percent).toFixed(1)}%
         </div>
-      )
+      );
     }
     return (
       <div className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
         {isUp ? <TrendingUp size={10} className="mr-1" /> : <TrendingDown size={10} className="mr-1" />}
         {Math.abs(percent).toFixed(1)}%
       </div>
-    )
+    );
   };
 
   return (
     <div className={`${containerClasses} group`}>
-      {/* Watermark Icon - Reduced Opacity & Scale */}
       <Icon
         size={80}
         className={`absolute -right-4 -bottom-4 opacity-[0.08] transform rotate-12 group-hover:scale-105 transition-all duration-700 ${isSolid ? 'text-white' : 'text-gray-400'}`}
@@ -431,9 +434,6 @@ const LuxuryMetricCard = ({ title, data, icon: Icon, gradient, variant = 'defaul
           </div>
         </div>
       </div>
-
-      {/* Remove bottom bar for cleaner look in compact mode */}
-      {/* {!isSolid && <div className={`h-1 w-full bg-gradient-to-r ${gradient}`}></div>} */}
     </div>
   );
 };

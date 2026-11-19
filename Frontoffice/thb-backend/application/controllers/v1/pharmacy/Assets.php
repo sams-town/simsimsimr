@@ -13,6 +13,9 @@ class Assets extends My_Controller {
         $this->load->model("$this->directory/Catalog_model", "Catalog");
         $this->load->model("v1/setting/Transaction_signature_validation_model", "TransactionSignatureValidation");
         $this->load->model("$this->directory/Pharmacy_assets_model", "PharmacyAssets");
+        // MY_Controller::list_get() memakai model bernama sama dengan controller
+        // ($this->Assets). Tanpa alias ini list_get jatuh ke 501.
+        $this->Assets = $this->PharmacyAssets;
         $this->load->model("$this->directory/Mutation_model_item", "Mutation_item");
         $this->load->model("$this->directory/Receipt_model_item", "Receipt_item");
         $this->load->model("$this->directory/Prescription_item_model", "Prescription_item");

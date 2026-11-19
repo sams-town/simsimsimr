@@ -98,6 +98,15 @@ $route['{VERSION}/setting/group_module_item/detail/(:any)'] = '{VERSION}/setting
 $route['{VERSION}/setting/group_module_item/update/(:any)'] = '{VERSION}/setting/group_module_item/update/$1';
 $route['{VERSION}/setting/group_module_item/delete/(:any)'] = '{VERSION}/setting/group_module_item/delete/$1';
 
+// setting/Api_credentials API Routes
+$route['{VERSION}/setting/api_credentials/list'] = '{VERSION}/setting/api_credentials/list';
+$route['{VERSION}/setting/api_credentials/create'] = '{VERSION}/setting/api_credentials/create';
+$route['{VERSION}/setting/api_credentials/status'] = '{VERSION}/setting/api_credentials/status';
+$route['{VERSION}/setting/api_credentials/detail'] = '{VERSION}/setting/api_credentials/detail';
+$route['{VERSION}/setting/api_credentials/detail/(:any)'] = '{VERSION}/setting/api_credentials/detail/$1';
+$route['{VERSION}/setting/api_credentials/update/(:any)'] = '{VERSION}/setting/api_credentials/update/$1';
+$route['{VERSION}/setting/api_credentials/delete/(:any)'] = '{VERSION}/setting/api_credentials/delete/$1';
+
 // setting/Helper API Routes
 $route['{VERSION}/setting/helper/create'] = '{VERSION}/setting/helper/create';
 $route['{VERSION}/setting/helper/detail'] = '{VERSION}/setting/helper/detail';
@@ -384,3 +393,9 @@ $route['{VERSION}/finance/costing_health_facility_item/delete/(:any)'] = '{VERSI
 
 // getlistreff Routes
 // $route['getlist/(:num)/(:num)'] = '/reff/$1/$1';
+
+// INAP CLOSING GABUNGAN + DISCHARGE (v1 nyata; pola {VERSION} di atas tidak pernah
+// match karena kurung kurawal bukan placeholder CI3 -> dipakai literal 'v1').
+$route['v1/tr/inap-closing/calculate'] = 'v1/tr/transaction_invoice/calculate_inap_closing';
+$route['v1/tr/inap-closing/submit']    = 'v1/tr/transaction_invoice/inap_discharge_close';
+$route['v1/tr/inap-closing/discharge'] = 'v1/tr/transaction_invoice/inap_discharge_release';

@@ -96,7 +96,8 @@ const Index = () => {
     // API Query
     const {
         data: historyList,
-        refetch,
+        error: historyError,
+        isFetching: isFetchingHistory,
         isLoading,
     } = useGetJournalQuery<any>({
         keyword: search,
@@ -109,13 +110,26 @@ const Index = () => {
         coaCode: selectedCoa?.desc || '' // Pass selected COA Code
     });
 
-    useEffect(() => {
-        refetch();
-    }, [page, pageSize, sortStatus, search, startDate, endDate, selectedCoa]);
+    // Response backend: { message, data: { data: [...], totalData: n } }.
+    // Semua level dibuat defensif: undefined/null tidak boleh sampai ke DataTable (yang
+    // sebelumnya membuat halaman blank saat request gagal, mis. 401/400).
+    const historyRows: journalType[] = Array.isArray(historyList?.data?.data) ? historyList.data.data : [];
+    const historyTotal: number = Number(historyList?.data?.totalData ?? 0);
+
+    // Pesan error yang bisa dibaca user, bukan layar kosong.
+    const historyErrorMessage = (() => {
+        if (!historyError) return null;
+        const status = (historyError as any)?.status;
+        const message = (historyError as any)?.data?.message ?? (historyError as any)?.data;
+        if (status === 401 || status === 403) return 'Sesi Anda tidak memiliki akses ke riwayat jurnal (401/403). Silakan login ulang.';
+        if (status === 404) return 'Endpoint riwayat (Journal) tidak ditemukan di server (404).';
+        if (status) return `Gagal memuat riwayat (HTTP ${status})${message ? `: ${typeof message === 'string' ? message : JSON.stringify(message)}` : ''}`;
+        return 'Gagal memuat riwayat. Periksa koneksi ke API.';
+    })();
 
     // Calculate Totals for Visible Data
-    const totalDebit = historyList?.data?.data?.reduce((acc: number, curr: journalType) => acc + (curr.debitAmount || 0), 0) || 0;
-    const totalCredit = historyList?.data?.data?.reduce((acc: number, curr: journalType) => acc + (curr.creditAmount || 0), 0) || 0;
+    const totalDebit = historyRows.reduce((acc: number, curr: journalType) => acc + (curr.debitAmount || 0), 0);
+    const totalCredit = historyRows.reduce((acc: number, curr: journalType) => acc + (curr.creditAmount || 0), 0);
 
     // Helper function to get detail URL based on source
     const getDetailUrl = (row: journalType): string | null => {
@@ -221,6 +235,11 @@ const Index = () => {
                 </CardHeader>
 
                 <CardContent className="pt-6">
+                    {historyErrorMessage && (
+                        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                            {historyErrorMessage}
+                        </div>
+                    )}
                     <div className="datatables z-0 rounded-lg border border-gray-100 overflow-hidden">
                         {/* Summary Header */}
                         <div className="bg-gray-50 dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-end items-center gap-4 sm:gap-8 text-sm">
@@ -236,8 +255,8 @@ const Index = () => {
                         <DataTable
                             highlightOnHover
                             className="whitespace-nowrap table-hover"
-                            records={historyList?.data?.data}
-                            totalRecords={historyList?.data?.totalData}
+                            records={historyRows}
+                            totalRecords={historyTotal}
                             recordsPerPage={pageSize}
                             page={page}
                             onPageChange={(p) => setPage(p)}
