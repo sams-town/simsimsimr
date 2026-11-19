@@ -336,9 +336,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                             }
             
                             // 4 Rad
+                            // P1-3: guard wajib memakai detail radiologi, bukan $dt_lab sisa
+                            // iterasi laboratorium. Tanpa ini item radiologi hilang dari payload
+                            // bila tidak ada transaksi lab sebelumnya.
                             if($dt_post['transactions'][$i]['type_transaction_id'] == 12) {
                                 $dt_rad = $this->Radiology_request_read->read($dt_post['transactions'][$i]['transaction_id'],false);
-                                if ($dt_lab[0]->costing_id) {
+                                if (!empty($dt_rad) && $dt_rad[0]->costing_id) {
                                     $this->Costing_services_class->whereFields = array();
                                     $this->Costing_services_class->whereFields['a.costing_id'] = $dt_rad[0]->costing_id; 
                                     $dt_cost = $this->Costing_services_class->read(0,false);
@@ -353,9 +356,11 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                             }
             
                             // 4 Phy
-                            if($dt_post['transactions'][$i]['type_transaction_id'] == 12) {
+                            // P1-3: tipe fisioterapi = 15 (helper type_transaction). Sebelumnya 12,
+                            // sama dengan radiologi, sehingga item fisio tidak pernah masuk payload.
+                            if($dt_post['transactions'][$i]['type_transaction_id'] == 15) {
                                 $dt_phy = $this->Physiotherapy_request_read->read($dt_post['transactions'][$i]['transaction_id'],false);
-                                if ($dt_phy[0]->costing_id) {
+                                if (!empty($dt_phy) && $dt_phy[0]->costing_id) {
                                     $this->Costing_services_class->whereFields = array();
                                     $this->Costing_services_class->whereFields['a.costing_id'] = $dt_phy[0]->costing_id; 
                                     $dt_cost = $this->Costing_services_class->read(0,false);
@@ -373,12 +378,18 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                                 $dt_presc = $this->Transaction_prescription->read($dt_post['transactions'][$i]['transaction_id'],false);
                                 $dt_presc_item = $this->Transaction_prescription_item->read($dt_post['transactions'][$i]['transaction_id'],false);
                                 for ($pi=0; $pi < count($dt_presc_item); $pi++) { 
+                                    // P0-4: quantity = qty_awal - qty_retur (dihitung server dari kolom
+                                    // histori). Retur penuh -> 0 -> tidak ada baris tagihan, histori tetap ada.
+                                    $qty_tersisa = max(0, (float)$dt_presc_item[$pi]->qty - (float)$dt_presc_item[$pi]->qty_retur);
+                                    if ($qty_tersisa <= 0) {
+                                        continue;
+                                    }
                                     $detailPrescItem[$pi] = array(
                                         'itemNo' => $dt_presc_item[$pi]->bride_code,
                                         'unitPrice' => $dt_presc_item[$pi]->var_1,
                                         'warehouseName' => $dt_presc[0]->depo_name,
                                         'departmentName' => 'FARMASI',
-                                        'quantity' => $dt_presc_item[$pi]->qty-($dt_presc_item[$pi]->is_retur_full === 1 && $dt_presc_item[$pi]->pharmacy_catalog_id_retur || $dt_presc_item[$pi]->pharmacy_catalog_id_ref ? 0 : $dt_presc_item[$pi]->qty_retur)
+                                        'quantity' => $qty_tersisa
                                     );
                                 }
                             }
@@ -437,6 +448,34 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                         $title = 'Invoice Selesai';
                         $message = "Invoice Selesai Pasien $patient_data_patient->name ($data_patient->norm) dari $data_patient->health_facility_item_name sudah Bisa melakukan pembayaran atau pelunasan.";
                         $this->Notifications->createNotification(null, '238b6c22-caaf-4bd2-9009-e1553909324f', $title, $message, 'form_checkout_patient', ['registration_id' => $dt_post['registration_id']]);
+                    }
+
+                    // E-8: jurnal pendapatan lab/radiologi saat masuk billing.
+                    // Debit piutang pasien, kredit pendapatan sesuai jenis layanan.
+                    // Baris non-lab/rad (administrasi, dokter, dll) belum dijurnal
+                    // pada fase ini — dicatat sebagai gap di laporan.
+                    $jrn = array();
+                    $lab = $this->_invoice_sum_by_type($id, 12);
+                    if ($lab > 0) {
+                        $jrn['lab'] = $this->post_journal('LAB_REVENUE', $id, 'INV-LAB-' . $code,
+                            $institute_branch_id, $user_id,
+                            array('receivable' => $lab, 'revenue' => $lab), 'invoice=' . $code);
+                        if (isset($jrn['lab']['status']) && $jrn['lab']['status'] === 'error') {
+                            $this->db->trans_rollback();
+                            $this->REST_Return(500, 'Jurnal laboratorium gagal (tidak balance).', $jrn['lab'], 'JOURNAL_FAILED');
+                            return;
+                        }
+                    }
+                    $rad = $this->_invoice_sum_by_type($id, 15);
+                    if ($rad > 0) {
+                        $jrn['radiology'] = $this->post_journal('RAD_REVENUE', $id, 'INV-RAD-' . $code,
+                            $institute_branch_id, $user_id,
+                            array('receivable' => $rad, 'revenue' => $rad), 'invoice=' . $code);
+                        if (isset($jrn['radiology']['status']) && $jrn['radiology']['status'] === 'error') {
+                            $this->db->trans_rollback();
+                            $this->REST_Return(500, 'Jurnal radiologi gagal (tidak balance).', $jrn['radiology'], 'JOURNAL_FAILED');
+                            return;
+                        }
                     }
 
                     $this->db->trans_complete();
@@ -1387,13 +1426,16 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                 WHERE `a`.`registration_destination_id` = '{$output[$i]->registration_destination_id}'
                 AND `a`.`is_delete` = 0 AND `b`.`is_delete` = 0")->result();
             $output[$i]->total += $response_data_rad[0]->total;
+            // P0-4: nilai tagihan obat = (qty_awal - qty_retur) x harga satuan yang berlaku.
+            // Dihitung server dari kolom histori (qty, qty_retur, var_1); var_2 kiriman client
+            // tidak dipakai. Retur penuh menghasilkan 0 tanpa menghapus baris histori.
             $response_data_pres = $this->db->query("
-                SELECT `c`.`name`,SUM(`b`.`var_2`) as `total` 
+                SELECT `c`.`name`,SUM(GREATEST(IFNULL(`b`.`qty`,0) - IFNULL(`b`.`qty_retur`,0), 0) * IFNULL(`b`.`var_1`,0)) as `total` 
                 FROM `pharmacy_prescription` as `a` 
                 LEFT JOIN `pharmacy_prescription_item` `b` ON `a`.`id` = `b`.`pharmacy_prescription_id` 
                 LEFT JOIN `pharmacy_catalog` `c` ON `b`.`pharmacy_catalog_id` = `c`.`id` 
                 WHERE `a`.`registration_destination_id` = '{$output[$i]->registration_destination_id}'
-                AND `a`.`is_delete` = 0 AND `b`.`is_delete` = 0 AND `b`.`is_retur_full` = 0")->result();
+                AND `a`.`is_delete` = 0 AND `b`.`is_delete` = 0")->result();
             $output[$i]->total += $response_data_pres[0]->total;
         }
         $this->REST_Return(200, 'SUCCESS', $output);
@@ -3451,7 +3493,21 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
             } else {
                 $institute_branch_id = $this->security->xss_clean($is_valid_token['data']->institute_branch_id);
                 $user_id = $this->security->xss_clean($is_valid_token['data']->id);
+                $username = $this->security->xss_clean($is_valid_token['data']->username);
                 $model = $this->name;
+
+                // P0-5: guard terpusat SEBELUM satu baris pun diubah.
+                // Berlaku untuk operasi yang secara bisnis membatalkan invoice, bukan
+                // berdasarkan method HTTP: PUT .../delete tetap melewati guard ini.
+                $p05 = $this->_p05_guard($id, $dt_put['reason'], array(
+                    'user_id'  => $user_id,
+                    'username' => $username,
+                    'branch'   => $institute_branch_id,
+                ));
+                if ($p05 === null) {
+                    return;
+                }
+
                 /* Start Transaction */
                 $this->db->trans_start();
                 // $this->$model->whereFields['c.institute_branch_id'] = $institute_branch_id;
@@ -3470,6 +3526,15 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                         'reason'               => $dt_put['reason']
                     );
                     $this->$model->replace($dt_inv);
+
+                    // P0-5: audit ALLOW di dalam transaksi. Gagal tulis audit => rollback
+                    // seluruh perubahan (tidak ada pembatalan tanpa jejak audit).
+                    if (!$this->_p05_audit('ALLOWED', $p05, 200)) {
+                        $this->db->trans_rollback();
+                        $this->_p05_audit('ROLLBACK_AUDIT_FAILED', $p05, 500);
+                        $this->REST_Return(500, 'Terjadi kesalahan pada server.', array(), 'AUDIT_WRITE_FAILED');
+                        return;
+                    }
 
                     $this->Transaction_invoice_item->whereFields['transaction_invoice_id'] = $id;
                     $dt_item = $this->Transaction_invoice_item->read(0,false);
@@ -3500,9 +3565,21 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
                 $this->db->trans_complete();
                 /* End Transaction */
                 if ($this->db->trans_status() === false) {
+                    // P0-5: transaksi dibatalkan => catat ROLLBACK di luar transaksi
+                    $this->_p05_audit('ROLLBACK', $p05, 422);
                     $response_data = array();
                     $this->REST_Return(422, 'Oops, something went wrong, Please try again latter.', $response_data);
                 } else {
+                    // P0-5: audit hasil COMMIT + status sesudah (soft cancel, bukan physical delete)
+                    $after = $this->Transaction_invoice->read($id, false);
+                    $snapshot_after = ($after == []) ? null : array(
+                        'is_delete'    => $after[0]->is_delete,
+                        'user_deleted' => $after[0]->user_deleted,
+                        'date_deleted' => $after[0]->date_deleted,
+                        'reason'       => $after[0]->reason,
+                        'var_3'        => $after[0]->var_3,
+                    );
+                    $this->_p05_audit('COMMIT', $p05, 200, $snapshot_after);
                     $response_data = $id;
                     $this->REST_Return(200, 'SUCCESS', $response_data);
                 }
@@ -3641,5 +3718,849 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;class Transaction_invoice extends My_Co
 
         $this->REST_Return(200, 'SUCCESS', $response_data);
         return;
+    }
+
+    /* ================= P0-5: guard pembatalan invoice =================
+     *
+     * Sumber kebenaran payment = tabel `payment` (invoice_id + is_delete = 0).
+     * `transaction_invoice.payment_id` SENGAJA tidak dipakai: kolom itu ditimpa
+     * setiap kali payment baru dibuat (finance/Payment.php:76-80) sehingga pada
+     * invoice dengan beberapa payment hanya menunjuk payment terakhir, dan di
+     * produksi ada 2 payment aktif tanpa back-pointer sama sekali.
+     * Pembalikan payment = `payment.is_delete = 1` (finance/Payment.php:295-302).
+     *
+     * Tidak pernah menghapus baris. Fail-closed: apa pun yang tidak dapat
+     * diverifikasi => 409 dan tidak ada perubahan.
+     */
+
+    /** UUID v4 inline (tidak me-require UUID.php: MY_Model sudah require tanpa once). */
+    protected function _p05_uuid() {
+        $b = random_bytes(16);
+        $b[6] = chr((ord($b[6]) & 0x0f) | 0x40);
+        $b[8] = chr((ord($b[8]) & 0x3f) | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4));
+    }
+
+    /**
+     * Role kebijakan pemanggil. Dibaca dari config delete_policy yang sudah ada
+     * (tidak diubah). Default deny: config tidak ada => array() => 403.
+     */
+    protected function _p05_roles($user_id, $branch) {
+        $this->config->load('delete_policy', TRUE);
+        $allowed = $this->config->item('delete_policy_allowed_roles', 'delete_policy');
+        $map     = $this->config->item('delete_policy_roles', 'delete_policy');
+        $allowed = is_array($allowed) ? $allowed : array();
+        $map     = is_array($map) ? $map : array();
+        if ($allowed === array() || $map === array()) {
+            return array();
+        }
+
+        $user = $this->db->select('institute_branch_id, is_delete')->from('user')
+            ->where('id', $user_id)->limit(1)->get()->row();
+        if (!$user || (string) $user->is_delete === '1') {
+            return array();
+        }
+        // token tidak boleh mengklaim cabang yang bukan cabang user-nya
+        if ((string) $user->institute_branch_id !== (string) $branch) {
+            return array();
+        }
+
+        $groups = $this->db->select('g.name')->from('user_group ug')
+            ->join('group g', 'g.id = ug.group_id', 'inner')
+            ->where('ug.user_id', $user_id)
+            ->where('ug.is_delete', 0)
+            ->where('g.is_delete', 0)
+            ->where('g.institute_branch_id', $branch)
+            ->get()->result();
+
+        $key = array();
+        foreach ($map as $role => $names) {
+            foreach ((array) $names as $n) {
+                $key[strtolower(trim((string) $n))] = $role;
+            }
+        }
+        $roles = array();
+        foreach ($groups as $g) {
+            // TRIM wajib: nama group produksi memuat spasi ekor
+            $k = strtolower(trim((string) $g->name));
+            if (isset($key[$k])) {
+                $roles[$key[$k]] = true;
+            }
+        }
+        return array_values(array_intersect(array_keys($roles), $allowed));
+    }
+
+    /**
+     * Bukti payment untuk satu invoice. null = tidak dapat diverifikasi (fail closed).
+     * @return array|null active_count, active_ids, paid, reversed_count, reversed_ids
+     */
+    protected function _p05_payment_evidence($invoice_id) {
+        $active = $this->db->select('p.id, p.date_added, p.flag_status_id')
+            ->from('payment p')
+            ->where('p.invoice_id', $invoice_id)
+            ->where('p.is_delete', 0)
+            ->order_by('p.date_added', 'ASC')
+            ->get();
+        if ($active === FALSE) {
+            return null;
+        }
+        $active = $active->result();
+
+        $reversed = $this->db->select('p.id, p.date_deleted')
+            ->from('payment p')
+            ->where('p.invoice_id', $invoice_id)
+            ->where('p.is_delete', 1)
+            ->get();
+        if ($reversed === FALSE) {
+            return null;
+        }
+        $reversed = $reversed->result();
+
+        $paid = $this->db->query(
+            "SELECT IFNULL(SUM(pi.var_3),0) AS paid
+             FROM `payment_item` pi
+             JOIN `payment` p ON p.id = pi.payment_id
+             WHERE p.invoice_id = ? AND p.is_delete = 0",
+            array($invoice_id)
+        );
+        if ($paid === FALSE || $paid->row() === null) {
+            return null;
+        }
+
+        $active_ids = array();
+        foreach ($active as $p) { $active_ids[] = $p->id; }
+        $reversed_ids = array();
+        foreach ($reversed as $p) { $reversed_ids[] = $p->id; }
+
+        return array(
+            'source'         => 'payment.invoice_id + payment.is_delete=0 (bukan transaction_invoice.payment_id)',
+            'active_count'   => count($active_ids),
+            'active_ids'     => $active_ids,
+            'paid'           => (float) $paid->row()->paid,
+            'reversed_count' => count($reversed_ids),
+            'reversed_ids'   => $reversed_ids,
+        );
+    }
+
+    /** Audit ke log_activity (tabel & bentuk kolom sama dengan Delete_policy::audit). */
+    protected function _p05_audit($result, $ctx, $http = null, $status_after = null) {
+        $detail = array(
+            'request_id'       => $ctx['request_id'],
+            'endpoint'         => 'tr/transaction_invoice',
+            'action'           => 'put',
+            'operation'        => 'cancel_invoice',
+            'user_id'          => $ctx['actor']['user_id'],
+            'username'         => $ctx['actor']['username'],
+            'role'             => $ctx['roles'],
+            'branch'           => $ctx['actor']['branch'],
+            'invoice_id'       => $ctx['invoice_id'],
+            'reason'           => $ctx['reason'],
+            'status_before'    => $ctx['status_before'],
+            'status_after'     => $status_after,
+            'payment_evidence' => $ctx['evidence'],
+            'result'           => $result,
+            'http_status'      => $http,
+        );
+        $row = array(
+            'id'            => $this->_p05_uuid(),
+            'noregistrasi'  => null,
+            'user_id'       => $ctx['actor']['user_id'],
+            'user_name'     => $ctx['actor']['username'],
+            'category_id'   => 0,
+            'description'   => json_encode($detail),
+            'related_id'    => $ctx['invoice_id'] === '' ? null : $ctx['invoice_id'],
+            'related_table' => 'transaction_invoice',
+            'created_at'    => date('Y-m-d H:i:s'),
+        );
+        return (bool) $this->db->insert('log_activity', $row);
+    }
+
+    /**
+     * Guard terpusat. Dipanggil SEBELUM satu baris pun diubah, untuk setiap
+     * operasi yang secara bisnis membatalkan invoice (PUT .../delete, dan
+     * nama lain yang memetakan ke method ini).
+     * @return array|null ctx bila boleh lanjut; null bila sudah dijawab (403/404/409).
+     */
+    protected function _p05_guard($id, $reason, $actor) {
+        $ctx = array(
+            'request_id'    => $this->debug_uniq,
+            'invoice_id'    => $id,
+            'actor'         => $actor,
+            'reason'        => $reason,
+            'roles'         => array(),
+            'evidence'      => null,
+            'status_before' => null,
+        );
+
+        $inv = $this->Transaction_invoice->read($id, false);
+        if ($inv == []) {
+            $this->_p05_audit('DENIED_NOT_FOUND', $ctx, 404);
+            $this->REST_Return(404, 'Invoice with id ' . $id . ' does not exist!', array(), 'INVOICE_NOT_FOUND');
+            return null;
+        }
+        $row = $inv[0];
+        $ctx['status_before'] = array(
+            'is_delete'     => $row->is_delete,
+            'user_deleted'  => $row->user_deleted,
+            'date_deleted'  => $row->date_deleted,
+            'reason'        => $row->reason,
+            'var_3'         => $row->var_3,
+        );
+
+        if ((string) $row->institute_branch_id !== (string) $actor['branch']) {
+            $this->_p05_audit('DENIED_BRANCH', $ctx, 403);
+            $this->REST_Return(403, 'Anda tidak berwenang melakukan operasi ini.', array(), 'INVOICE_BRANCH_FORBIDDEN');
+            return null;
+        }
+
+        $ctx['roles'] = $this->_p05_roles($actor['user_id'], $actor['branch']);
+        if ($ctx['roles'] === array()) {
+            $this->_p05_audit('DENIED_ROLE', $ctx, 403);
+            $this->REST_Return(403, 'Anda tidak berwenang melakukan operasi ini.', array(), 'INVOICE_CANCEL_FORBIDDEN');
+            return null;
+        }
+
+        // Sudah dibatalkan: diperiksa setelah role supaya audit mencatat role pemanggil.
+        if ((string) $row->is_delete === '1') {
+            $this->_p05_audit('DENIED_ALREADY_CANCELLED', $ctx, 409);
+            $this->REST_Return(409, 'Invoice sudah dibatalkan.', array(), 'INVOICE_ALREADY_CANCELLED');
+            return null;
+        }
+
+        $evidence = $this->_p05_payment_evidence($id);
+        if ($evidence === null) {
+            $this->_p05_audit('DENIED_PAYMENT_UNVERIFIED', $ctx, 409);
+            $this->REST_Return(409, 'Status pembayaran invoice tidak dapat diverifikasi.', array(), 'PAYMENT_UNVERIFIED');
+            return null;
+        }
+        $ctx['evidence'] = $evidence;
+
+        if ($evidence['active_count'] > 0) {
+            $this->_p05_audit('DENIED_HAS_PAYMENT', $ctx, 409);
+            $this->REST_Return(409, 'Invoice yang sudah memiliki pembayaran tidak dapat dibatalkan.', array(
+                'invoice_id'     => $id,
+                'payment_count'  => $evidence['active_count'],
+                'payment_ids'    => $evidence['active_ids'],
+                'paid'           => $evidence['paid'],
+            ), 'INVOICE_HAS_PAYMENT');
+            return null;
+        }
+
+        return $ctx;
+    }
+
+    /* ===================== E-8 helpers ===================== */
+
+    /**
+     * Total nilai baris invoice untuk satu jenis transaksi.
+     * 12 = laboratorium, 15 = radiologi (lihat pemetaan type_transaction_id di file ini).
+     */
+    protected function _invoice_sum_by_type($invoice_id, $type_id) {
+        if ((int) $type_id === 12) {
+            $r = $this->db->query(
+                "SELECT IFNULL(SUM(li.var_1),0) AS amt
+                   FROM transaction_invoice_item tii
+                   INNER JOIN laboratory_request_item li ON li.id = tii.transaction_id
+                  WHERE tii.transaction_invoice_id = ? AND tii.type_transaction_id = 12
+                    AND IFNULL(tii.is_delete,0) = 0", array($invoice_id))->row();
+            return $r === null ? 0.0 : round((float) $r->amt, 2);
+        }
+        if ((int) $type_id === 15) {
+            $r = $this->db->query(
+                "SELECT IFNULL(SUM(ri.var_1),0) AS amt
+                   FROM transaction_invoice_item tii
+                   INNER JOIN radiology_request_item ri ON ri.id = tii.transaction_id
+                  WHERE tii.transaction_invoice_id = ? AND tii.type_transaction_id = 15
+                    AND IFNULL(tii.is_delete,0) = 0", array($invoice_id))->row();
+            return $r === null ? 0.0 : round((float) $r->amt, 2);
+        }
+        return 0.0;
+    }
+
+    /** Jurnal otomatis; 'error' => pemanggil rollback. */
+    protected function post_journal($type, $ref_id, $ref_no, $branch, $user_id, $amounts, $note = '') {
+        if (trim((string) $branch) === '') {
+            return array('status' => 'skipped', 'reason' => 'BRANCH_UNDEFINED', 'type' => $type);
+        }
+        $this->load->library('Journal');
+        return $this->journal->post($type, $ref_id, $ref_no, $branch, $user_id, $amounts, null, (string) $note);
+    }
+
+    /* ================= INAP CLOSING GABUNGAN + DISCHARGE =================
+     * Closing rawat inap = SATU invoice untuk semua komponen kunjungan:
+     *   kamar (transaction_bed, type 10) + obat (14) + lab (11) + radiologi (12)
+     *   + administrasi (13). Type id mengikuti yang benar-benar dikirim Front
+     *   Office (src/store/tr/payment.js), jadi TIDAK ada type_transaction baru.
+     *
+     * Discharge = bed dilepas HANYA setelah invoice lunas (_ic_paid_total).
+     *
+     * Skema nyata (bukan rancangan awal): tidak ada kamar_inap,
+     * set_harga_obat_ranap, reg_periksa, transaction_lab_request maupun
+     * transaction_rad_request. Kamar = transaction_bed; harga kamar =
+     * service_tariff_master (category INAP, 'SEWA KAMAR RUANGAN',
+     * class = service_class.name kamar).
+     */
+
+    /** POST v1/tr/inap-closing/calculate — preview closing, tidak menulis apa pun. */
+    public function calculate_inap_closing_post() {
+        $data = $this->json_post();
+        $ctx  = $this->_ic_ctx(isset($data['dt_postput']) ? $data['dt_postput'] : array());
+        if ($ctx === null) { return; }
+
+        $room  = $this->_ic_room_charge($ctx);
+        $out   = $this->_ic_outstanding($ctx);
+        $lines = array();
+        if ($room !== null && (float) $room['total'] > 0) {
+            $lines[] = array('type' => 10, 'id' => $room['tb_id'],
+                             'name' => 'Kamar ' . $room['bed_name'], 'days' => $room['days'],
+                             'unit_price' => $room['unit_price'], 'amount' => $room['total']);
+        }
+        foreach ($out['lines'] as $l) { $lines[] = $l; }
+
+        $total = 0.0;
+        foreach ($lines as $l) { $total += (float) $l['amount']; }
+
+        $this->REST_Return(200, 'SUCCESS', array(
+            'registration_id'             => $ctx['registration_id'],
+            'no_rawat'                    => $ctx['no_rawat'],
+            'patient_name'                => $ctx['patient_name'],
+            'registration_destination_id' => $ctx['rd_id'],
+            'room_charge'                 => $room,
+            'lines'                       => $lines,
+            'total'                       => round($total, 2),
+            'invoice_id'                  => $ctx['invoice_id'],
+            'invoice_code'                => $ctx['invoice_code'],
+            'is_checkout'                 => (string) $ctx['is_checkout'] === '1',
+        ));
+    }
+
+    /** POST v1/tr/inap-closing/submit — closing gabungan jadi SATU invoice. */
+    public function inap_discharge_close_post() {
+        $data = $this->json_post();
+        $dt   = isset($data['dt_postput']) ? $data['dt_postput'] : array();
+        $ctx  = $this->_ic_ctx($dt, true);
+        if ($ctx === null) { return; }
+
+        if ((string) $ctx['is_checkout'] === '1') {
+            $this->REST_Return(409, 'Kunjungan sudah checkout, tidak bisa closing lagi.',
+                array('registration_destination_id' => $ctx['rd_id']), 'VISIT_ALREADY_CHECKED_OUT');
+            return;
+        }
+
+        $room = $this->_ic_room_charge($ctx);
+        if ($room === null) {
+            $this->REST_Return(422, 'Tagihan kamar tidak ditemukan untuk kunjungan ini.',
+                array('registration_destination_id' => $ctx['rd_id']), 'ROOM_CHARGE_MISSING');
+            return;
+        }
+        if ((float) $room['unit_price'] <= 0) {
+            $this->REST_Return(422, 'Harga kamar tidak ditemukan (service_tariff_master INAP / costing).',
+                array('class' => $room['class_name'], 'bed' => $room['bed_name']), 'ROOM_PRICE_MISSING');
+            return;
+        }
+
+        $out = $this->_ic_outstanding($ctx);
+        if ((float) $room['total'] <= 0 && empty($out['lines'])) {
+            $this->REST_Return(409, 'Tidak ada komponen biaya untuk diclosing.',
+                array('registration_id' => $ctx['registration_id']), 'INAP_CLOSING_EMPTY');
+            return;
+        }
+
+        $user_id    = $ctx['user_id'];
+        $branch     = $ctx['branch'];
+        $cashier_id = isset($dt['cashier_id']) && trim((string) $dt['cashier_id']) !== ''
+            ? $this->security->xss_clean($dt['cashier_id']) : $user_id;
+
+        $this->db->trans_start();
+
+        $invoice_id = $ctx['invoice_id'];
+        $code       = $ctx['invoice_code'];
+        if (!$invoice_id) {
+            $this->load->library('transaction');
+            $this->load->model('Counter_queue_model', 'Counter_queue');
+            $cc = array('var_1' => 'RBS', 'var_2' => date('Y'), 'var_3' => date('m'), 'var_5' => date('Y-m'));
+            $n  = $this->transaction->counter($cc);
+            if ((string) $n['counter_queue'] === '0') {
+                $this->Counter_queue->replace(array(
+                    'var_1' => 'RBS', 'var_2' => date('Y'), 'var_3' => date('m'),
+                    'var_5' => date('Y-m'), 'counter_queue' => 0,
+                ));
+                $n = $this->transaction->counter($cc);
+            }
+            $code = date('d') . '/' . $cc['var_3'] . '/RBS/'
+                  . str_pad($n['counter_queue'], 5, '0', STR_PAD_LEFT) . '/' . $cc['var_2'];
+            $invoice_id = $this->Transaction_invoice->create(array(
+                'institute_branch_id' => $branch,
+                'registration_id'     => $ctx['registration_id'],
+                'code'                => $code,
+                'cashier_id'          => $cashier_id,
+                'is_delete'           => 0,
+                'var_1'               => 'INAP',
+                'var_2'               => '',
+                'var_3'               => '',
+                'date_added'          => date('Y-m-d H:i:s'),
+            ));
+        }
+
+        if (!$invoice_id) {
+            $this->db->trans_rollback();
+            $this->REST_Return(500, 'Gagal membuat invoice closing.', array(), 'INVOICE_CREATE_FAILED');
+            return;
+        }
+
+        $added = array();
+        if ((float) $room['total'] > 0 && $this->_ic_add_item($invoice_id, $room['tb_id'], 10, 11)) {
+            $this->db->where('id', $room['tb_id'])->update('transaction_bed', array(
+                'var_1'         => $room['unit_price'],
+                'var_2'         => $room['days'],
+                'var_3'         => $room['total'],
+                'checkout_date' => date('Y-m-d H:i:s'),
+            ));
+            $added[] = array('type' => 10, 'id' => $room['tb_id'],
+                             'name' => 'Kamar ' . $room['bed_name'], 'amount' => $room['total']);
+        }
+        foreach ($out['lines'] as $l) {
+            if ($this->_ic_add_item($invoice_id, $l['id'], $l['type'], $l['flag_status_id'])) {
+                $added[] = $l;
+            }
+        }
+
+        // Jurnal pendapatan sekali per isi invoice. ref_no deterministik dari
+        // signature isi -> replay panggilan yang sama jadi 'duplicate', bukan dobel.
+        $lab = 0.0; $rad = 0.0; $rest = 0.0; $sig_parts = array();
+        foreach ($added as $a) {
+            if ((int) $a['type'] === 11) { $lab += (float) $a['amount']; }
+            else if ((int) $a['type'] === 12) { $rad += (float) $a['amount']; }
+            else { $rest += (float) $a['amount']; }
+            $sig_parts[] = $a['type'] . ':' . $a['id'];
+        }
+        $sig = substr(md5($invoice_id . '|' . implode(',', $sig_parts)), 0, 12);
+        $jrn = array();
+        if ($rest > 0) {
+            $jrn['revenue'] = $this->post_journal('PIUTANG_CREATE', $invoice_id, 'INAP-CLOSE-' . $sig,
+                $branch, $user_id, array('receivable' => $rest, 'revenue' => $rest), 'closing=' . $code);
+        }
+        if ($lab > 0) {
+            $jrn['lab'] = $this->post_journal('LAB_REVENUE', $invoice_id, 'INAP-CLOSE-LAB-' . $sig,
+                $branch, $user_id, array('receivable' => $lab, 'revenue' => $lab), 'closing=' . $code);
+        }
+        if ($rad > 0) {
+            $jrn['radiology'] = $this->post_journal('RAD_REVENUE', $invoice_id, 'INAP-CLOSE-RAD-' . $sig,
+                $branch, $user_id, array('receivable' => $rad, 'revenue' => $rad), 'closing=' . $code);
+        }
+        foreach ($jrn as $j) {
+            if (isset($j['status']) && $j['status'] === 'error') {
+                $this->db->trans_rollback();
+                $this->REST_Return(500, 'Jurnal closing gagal (tidak balance).', $j, 'JOURNAL_FAILED');
+                return;
+            }
+        }
+
+        $this->db->trans_complete();
+        if ($this->db->trans_status() === false) {
+            $this->REST_Return(500, 'Closing gagal disimpan, rollback dilakukan.', array(), 'INAP_CLOSING_ROLLBACK');
+            return;
+        }
+
+        $total = 0.0;
+        foreach ($added as $a) { $total += (float) $a['amount']; }
+
+        $this->REST_Return(200, 'SUCCESS', array(
+            'invoice_id'          => $invoice_id,
+            'invoice_code'        => $code,
+            'registration_id'     => $ctx['registration_id'],
+            'no_rawat'            => $ctx['no_rawat'],
+            'room_charge'         => $room,
+            'transactions_added'  => count($added),
+            'lines'               => $added,
+            'total'               => round($total, 2),
+            'journal'             => $jrn,
+        ));
+    }
+
+    /** POST v1/tr/inap-closing/discharge — lepas bed hanya kalau invoice LUNAS. */
+    public function inap_discharge_release_post() {
+        $data = $this->json_post();
+        $dt   = isset($data['dt_postput']) ? $data['dt_postput'] : array();
+        $ctx  = $this->_ic_ctx($dt);
+        if ($ctx === null) { return; }
+
+        if ((string) $ctx['is_checkout'] === '1') {
+            $this->REST_Return(409, 'Kunjungan sudah checkout.',
+                array('registration_destination_id' => $ctx['rd_id']), 'VISIT_ALREADY_CHECKED_OUT');
+            return;
+        }
+        if (!$ctx['invoice_id']) {
+            $this->REST_Return(409, 'Belum ada invoice closing untuk kunjungan ini.',
+                array('registration_id' => $ctx['registration_id']), 'NOT_CLOSED');
+            return;
+        }
+
+        $total = $this->_ic_invoice_total($ctx['invoice_id']);
+        $paid  = $this->_ic_paid_total($ctx['registration_id']);
+        if ($total <= 0) {
+            $this->REST_Return(409, 'Invoice closing tidak punya nilai tagihan.',
+                array('invoice_id' => $ctx['invoice_id']), 'INVOICE_EMPTY');
+            return;
+        }
+        if (round($paid, 2) + 0.005 < round($total, 2)) {
+            $this->REST_Return(409, 'Tagihan belum lunas, bed tidak boleh dilepas.',
+                array('total' => round($total, 2), 'paid' => round($paid, 2),
+                      'sisa' => round($total - $paid, 2)), 'NOT_PAID');
+            return;
+        }
+
+        $exit_id = isset($dt['exit_id']) ? trim((string) $dt['exit_id']) : '';
+        if ($exit_id === '') {
+            $e = $this->db->query("SELECT id FROM `exit` WHERE IFNULL(is_delete,0) = 0 ORDER BY (name = 'Sembuh') DESC, name LIMIT 1")->row();
+            $exit_id = $e === null ? '' : $e->id;
+        }
+        $exit = $exit_id === '' ? null
+            : $this->db->query("SELECT id, name FROM `exit` WHERE id = ?", array($exit_id))->row();
+        if ($exit === null) {
+            $this->REST_Return(422, 'exit_id (alasan pulang) tidak ditemukan.', array(), 'EXIT_REQUIRED');
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $this->db->trans_start();
+
+        $this->db->where('id', $ctx['rd_id'])->update('registration_destination', array(
+            'exit_id'       => $exit->id,
+            'exit_reason'   => $exit->name,
+            'checkout_date' => $now,
+            'date_task_7'   => $now,
+            'is_checkout'   => 1,
+        ));
+
+        $bed_released = false;
+        if (!empty($ctx['bed_id'])) {
+            $other = $this->db->query(
+                "SELECT COUNT(*) AS n FROM registration_destination
+                  WHERE bed_id = ? AND id <> ? AND IFNULL(is_checkout,0) = 0 AND IFNULL(is_cancel,0) = 0",
+                array($ctx['bed_id'], $ctx['rd_id']))->row();
+            if ($other === null || (int) $other->n === 0) {
+                $this->db->where('id', $ctx['bed_id'])->update('bed', array('type_status_bed_id' => 1));
+                $bed_released = true;
+            }
+        }
+
+        $this->db->where('registration_destination_id', $ctx['rd_id'])
+                 ->where('IFNULL(checkout_date, \'\') =', '')
+                 ->update('transaction_bed', array('checkout_date' => $now));
+
+        $this->db->trans_complete();
+        if ($this->db->trans_status() === false) {
+            $this->REST_Return(500, 'Discharge gagal disimpan, rollback dilakukan.', array(), 'DISCHARGE_ROLLBACK');
+            return;
+        }
+
+        $this->REST_Return(200, 'SUCCESS', array(
+            'registration_destination_id' => $ctx['rd_id'],
+            'no_rawat'                    => $ctx['no_rawat'],
+            'bed_id'                      => $ctx['bed_id'],
+            'bed_released'                => $bed_released,
+            'exit_id'                     => $exit->id,
+            'exit_reason'                 => $exit->name,
+            'total'                       => round($total, 2),
+            'paid'                        => round($paid, 2),
+            'is_checkout'                 => true,
+        ));
+    }
+
+    /* ---------------- helper closing inap ---------------- */
+
+    /**
+     * Validasi token + registrasi + kunjungan aktif. Null => respons sudah dikirim.
+     * $require_open = true dipakai endpoint yang menulis (closing).
+     */
+    protected function _ic_ctx($dt_post, $require_open = false) {
+        $t = $this->authorization_token->validateToken();
+        if (empty($t) OR $t['status'] !== TRUE) {
+            $this->REST_Return(401, isset($t['message']) ? $t['message'] : 'Invalid Token.', array(), 'UNAUTHORIZED');
+            return null;
+        }
+        $user_id = $this->security->xss_clean($t['data']->id);
+        $branch  = $this->resolve_branch_id($this->security->xss_clean($t['data']->institute_branch_id));
+        if ($branch === '') {
+            $this->REST_Return(409, 'Branch scope tidak terdefinisi.', array(), 'BRANCH_SCOPE_UNDEFINED');
+            return null;
+        }
+
+        $registration_id = isset($dt_post['registration_id']) ? trim((string) $dt_post['registration_id']) : '';
+        $no_rawat        = isset($dt_post['no_rawat']) ? trim((string) $dt_post['no_rawat']) : '';
+        if ($registration_id === '' && $no_rawat === '') {
+            $this->REST_Return(422, 'registration_id atau no_rawat wajib diisi.', array(), 'REGISTRATION_REQUIRED');
+            return null;
+        }
+
+        $reg = $registration_id !== ''
+            ? $this->db->query(
+                "SELECT r.id, r.code, r.no_rawat, r.norm, r.type_register_id, r.institute_branch_id,
+                        r.is_cancel, COALESCE(NULLIF(TRIM(p.name),''), p.fullname) AS patient_name
+                   FROM registration r LEFT JOIN patient p ON p.norm = r.norm
+                  WHERE r.id = ?", array($registration_id))->row()
+            : $this->db->query(
+                "SELECT r.id, r.code, r.no_rawat, r.norm, r.type_register_id, r.institute_branch_id,
+                        r.is_cancel, COALESCE(NULLIF(TRIM(p.name),''), p.fullname) AS patient_name
+                   FROM registration r LEFT JOIN patient p ON p.norm = r.norm
+                  WHERE r.no_rawat = ? ORDER BY r.register_date DESC LIMIT 1", array($no_rawat))->row();
+
+        if ($reg === null || (string) $reg->institute_branch_id !== (string) $branch
+            || (string) $reg->is_cancel === '1') {
+            $this->REST_Return(404, 'Registrasi tidak ditemukan pada branch ini.', array(), 'REGISTRATION_NOT_FOUND');
+            return null;
+        }
+        if ((string) $reg->type_register_id !== '4') {
+            $this->REST_Return(422, 'Endpoint ini hanya untuk rawat inap.',
+                array('type_register_id' => $reg->type_register_id), 'NOT_INPATIENT');
+            return null;
+        }
+
+        $rd = $this->db->query(
+            "SELECT id, bed_id, checkin_date, checkout_date, is_checkout, is_cancel
+               FROM registration_destination
+              WHERE registration_id = ? AND IFNULL(is_cancel,0) = 0
+              ORDER BY IFNULL(is_checkout,0) ASC, checkin_date DESC LIMIT 1",
+            array($reg->id))->row();
+        if ($rd === null) {
+            $this->REST_Return(404, 'Kunjungan (registration_destination) tidak ditemukan.', array(), 'DESTINATION_NOT_FOUND');
+            return null;
+        }
+        if ($require_open && (string) $rd->is_checkout === '1') {
+            $this->REST_Return(409, 'Kunjungan sudah checkout.', array('registration_destination_id' => $rd->id),
+                'VISIT_ALREADY_CHECKED_OUT');
+            return null;
+        }
+
+        $inv = $this->db->query(
+            "SELECT id, code FROM transaction_invoice
+              WHERE registration_id = ? AND IFNULL(is_delete,0) = 0
+              ORDER BY date_added DESC LIMIT 1", array($reg->id))->row();
+
+        return array(
+            'user_id'         => $user_id,
+            'branch'          => $branch,
+            'registration_id' => $reg->id,
+            'no_rawat'        => $reg->no_rawat,
+            'norm'            => $reg->norm,
+            'patient_name'    => (string) $reg->patient_name,
+            'rd_id'           => $rd->id,
+            'bed_id'          => $rd->bed_id,
+            'checkin_date'    => $rd->checkin_date,
+            'checkout_date'   => $rd->checkout_date,
+            'is_checkout'     => $rd->is_checkout,
+            'invoice_id'      => $inv === null ? null : $inv->id,
+            'invoice_code'    => $inv === null ? null : $inv->code,
+        );
+    }
+
+    /**
+     * Biaya kamar: transaction_bed (dibuat saat registrasi inap) x harga kelas.
+     * Aturan hari = aturan yang sudah dipakai Registration_destination::checkout_put
+     * (masuk >= 18:00 tidak dihitung, keluar < 12:00 tidak dihitung), dengan
+     * is_non_prorate = 1 memaksa hitungan hari penuh.
+     */
+    protected function _ic_room_charge($ctx) {
+        $tb = $this->db->query(
+            "SELECT tb.id, tb.bed_id, tb.bed_name, tb.costing_id, tb.service_class_id,
+                    tb.checkin_date, tb.checkout_date, tb.is_non_prorate,
+                    sc.name AS class_name
+               FROM transaction_bed tb
+               LEFT JOIN service_class sc ON sc.id = tb.service_class_id
+              WHERE tb.registration_destination_id = ? AND IFNULL(tb.is_delete,0) = 0
+              ORDER BY tb.date_added ASC, tb.id ASC LIMIT 1", array($ctx['rd_id']))->row();
+        if ($tb === null) { return null; }
+
+        list($price, $source) = $this->_ic_room_price(
+            $tb->class_name, $tb->costing_id, $tb->service_class_id);
+
+        $in_ts  = strtotime($tb->checkin_date !== null && $tb->checkin_date !== ''
+            ? $tb->checkin_date : $ctx['checkin_date']);
+        $out_ts = strtotime($tb->checkout_date !== null && $tb->checkout_date !== ''
+            ? $tb->checkout_date : ($ctx['checkout_date'] !== null && $ctx['checkout_date'] !== ''
+                ? $ctx['checkout_date'] : date('Y-m-d H:i:s')));
+        if (!$in_ts) { $in_ts = $out_ts; }
+
+        $days_between = (int) floor((strtotime(date('Y-m-d', $out_ts)) - strtotime(date('Y-m-d', $in_ts))) / 86400);
+        $count_day_in  = ((int) date('H', $in_ts) >= 18) ? 0 : 1;
+        $count_day_out = ((int) date('H', $out_ts) < 12) ? 0 : 1;
+        $days = $count_day_in + $days_between + $count_day_out;
+        if ((string) $tb->is_non_prorate === '1') {
+            $days = max(1, (int) ceil(($out_ts - $in_ts) / 86400));
+        }
+        if ($days < 1) { $days = 1; }
+
+        return array(
+            'tb_id'        => $tb->id,
+            'bed_id'       => $tb->bed_id,
+            'bed_name'     => (string) $tb->bed_name,
+            'class_name'   => (string) $tb->class_name,
+            'checkin_date' => date('Y-m-d H:i:s', $in_ts),
+            'checkout_date'=> date('Y-m-d H:i:s', $out_ts),
+            'days'         => $days,
+            'unit_price'   => round((float) $price, 2),
+            'total'        => round((float) $price * $days, 2),
+            'price_source' => $source,
+        );
+    }
+
+    /** Harga kamar per hari: service_tariff_master INAP dulu, lalu costing_services_class. */
+    protected function _ic_room_price($class_name, $costing_id, $service_class_id) {
+        $cls = trim((string) $class_name);
+        if ($cls === 'VIP')  { $cls = 'Kelas VIP'; }
+        if ($cls === 'VVIP') { $cls = 'Kelas VVIP'; }
+        if ($cls !== '') {
+            $r = $this->db->query(
+                "SELECT grand_total FROM service_tariff_master
+                  WHERE category = 'INAP' AND service_name = 'SEWA KAMAR RUANGAN'
+                    AND class = ? AND IFNULL(is_active,1) = 1
+                  ORDER BY imported_at DESC LIMIT 1", array($cls))->row();
+            if ($r !== null && (float) $r->grand_total > 0) {
+                return array((float) $r->grand_total, 'service_tariff_master');
+            }
+        }
+        if (!empty($costing_id)) {
+            $r = $this->db->query(
+                "SELECT var_1 FROM costing_services_class
+                  WHERE costing_id = ? AND service_class_id = ? AND IFNULL(is_delete,0) = 0
+                  ORDER BY id LIMIT 1", array($costing_id, $service_class_id))->row();
+            if ($r !== null && (float) $r->var_1 > 0) {
+                return array((float) $r->var_1, 'costing_services_class');
+            }
+        }
+        return array(0.0, 'none');
+    }
+
+    /** Komponen biaya yang BELUM pernah masuk invoice untuk kunjungan ini. */
+    protected function _ic_outstanding($ctx) {
+        $rd  = $ctx['rd_id'];
+        $reg = $ctx['registration_id'];
+        $lines = array();
+
+        // Obat: resep inap yang sudah diserahkan (flag=1) dan belum pernah ditagih.
+        $rx = $this->db->query(
+            "SELECT pp.id,
+                    COALESCE(SUM((pi.qty - IFNULL(pi.qty_retur,0)) * IFNULL(pi.price_sale,0)), 0) AS amount,
+                    GROUP_CONCAT(DISTINCT pc.name SEPARATOR ', ') AS names
+               FROM pharmacy_prescription pp
+               LEFT JOIN pharmacy_prescription_item pi
+                      ON pi.pharmacy_prescription_id = pp.id AND IFNULL(pi.is_delete,0) = 0
+               LEFT JOIN pharmacy_catalog pc ON pc.id = pi.pharmacy_catalog_id
+              WHERE pp.registration_destination_id = ?
+                AND IFNULL(pp.is_delete,0) = 0 AND IFNULL(pp.flag,0) = 1
+                AND NOT EXISTS (SELECT 1 FROM transaction_invoice_item tii
+                                  JOIN transaction_invoice ti ON ti.id = tii.transaction_invoice_id
+                                 WHERE tii.transaction_id = pp.id AND tii.type_transaction_id = 14
+                                   AND IFNULL(ti.is_delete,0) = 0)
+              GROUP BY pp.id ORDER BY pp.date_added ASC", array($rd))->result();
+        foreach ($rx as $r) {
+            $lines[] = array('type' => 14, 'id' => $r->id, 'flag_status_id' => 2,
+                             'name' => 'Obat: ' . (string) $r->names,
+                             'amount' => round((float) $r->amount, 2));
+        }
+
+        // Laboratorium: item yang belum pernah ditagih (type 11).
+        $lab = $this->db->query(
+            "SELECT li.id, li.costing_name, li.var_1
+               FROM laboratory_request_item li
+               JOIN laboratory_request lr ON lr.id = li.laboratory_request_id
+              WHERE lr.registration_destination_id = ?
+                AND IFNULL(li.is_delete,0) = 0 AND IFNULL(lr.is_delete,0) = 0
+                AND IFNULL(li.var_1,0) > 0
+                AND NOT EXISTS (SELECT 1 FROM transaction_invoice_item tii
+                                  JOIN transaction_invoice ti ON ti.id = tii.transaction_invoice_id
+                                 WHERE tii.transaction_id = li.id AND tii.type_transaction_id IN (11,12)
+                                   AND IFNULL(ti.is_delete,0) = 0)
+              ORDER BY li.date_request ASC", array($rd))->result();
+        foreach ($lab as $r) {
+            $lines[] = array('type' => 11, 'id' => $r->id, 'flag_status_id' => 4,
+                             'name' => 'Lab: ' . (string) $r->costing_name,
+                             'amount' => round((float) $r->var_1, 2));
+        }
+
+        // Radiologi: item yang belum pernah ditagih (type 12).
+        $rad = $this->db->query(
+            "SELECT ri.id, ri.costing_name, ri.var_1
+               FROM radiology_request_item ri
+               JOIN radiology_request rr ON rr.id = ri.radiology_request_id
+              WHERE rr.registration_destination_id = ?
+                AND IFNULL(ri.is_delete,0) = 0 AND IFNULL(rr.is_delete,0) = 0
+                AND IFNULL(rr.is_cancel,0) = 0 AND IFNULL(ri.var_1,0) > 0
+                AND NOT EXISTS (SELECT 1 FROM transaction_invoice_item tii
+                                  JOIN transaction_invoice ti ON ti.id = tii.transaction_invoice_id
+                                 WHERE tii.transaction_id = ri.id AND tii.type_transaction_id IN (12,15)
+                                   AND IFNULL(ti.is_delete,0) = 0)
+              ORDER BY ri.date_request ASC", array($rd))->result();
+        foreach ($rad as $r) {
+            $lines[] = array('type' => 12, 'id' => $r->id, 'flag_status_id' => 5,
+                             'name' => 'Radiologi: ' . (string) $r->costing_name,
+                             'amount' => round((float) $r->var_1, 2));
+        }
+
+        // Administrasi: baris administrasi yang belum pernah ditagih (type 13).
+        $adm = $this->db->query(
+            "SELECT ta.id, ta.costing_name, ta.var_1
+               FROM transaction_administration ta
+              WHERE ta.registration_id = ? AND IFNULL(ta.var_1,0) > 0
+                AND NOT EXISTS (SELECT 1 FROM transaction_invoice_item tii
+                                  JOIN transaction_invoice ti ON ti.id = tii.transaction_invoice_id
+                                 WHERE tii.transaction_id = ta.id AND tii.type_transaction_id = 13
+                                   AND IFNULL(ti.is_delete,0) = 0)
+              ORDER BY ta.date_added ASC", array($reg))->result();
+        foreach ($adm as $r) {
+            $lines[] = array('type' => 13, 'id' => $r->id, 'flag_status_id' => 2,
+                             'name' => 'Administrasi: ' . (string) $r->costing_name,
+                             'amount' => round((float) $r->var_1, 2));
+        }
+
+        return array('lines' => $lines);
+    }
+
+    protected function _ic_add_item($invoice_id, $transaction_id, $type_id, $flag_status_id) {
+        $exists = $this->db->query(
+            "SELECT 1 AS x FROM transaction_invoice_item
+              WHERE transaction_invoice_id = ? AND transaction_id = ? AND flag_status_id = ?",
+            array($invoice_id, $transaction_id, $flag_status_id))->row();
+        if ($exists !== null) { return false; }
+        return $this->Transaction_invoice_item->replace(array(
+            'transaction_invoice_id' => $invoice_id,
+            'transaction_id'         => $transaction_id,
+            'flag_status_id'         => $flag_status_id,
+            'type_transaction_id'    => $type_id,
+        ));
+    }
+
+    /** Total tagihan invoice — ekspresi sama dengan Piutang::_pj_invoice_lines. */
+    protected function _ic_invoice_total($invoice_id) {
+        $rows = $this->db->query(
+            "SELECT COALESCE(li.var_1, ri.var_1, ta.var_1, td.var_1, tb.var_3,
+                             (pi.qty - IFNULL(pi.qty_retur,0)) * IFNULL(pi.price_sale,0), 0) AS amount
+               FROM transaction_invoice_item tii
+               LEFT JOIN laboratory_request_item li ON li.id = tii.transaction_id
+               LEFT JOIN radiology_request_item  ri ON ri.id = tii.transaction_id
+               LEFT JOIN transaction_administration ta ON ta.id = tii.transaction_id
+               LEFT JOIN transaction_doctor       td ON td.id = tii.transaction_id
+               LEFT JOIN transaction_bed          tb ON tb.id = tii.transaction_id
+               LEFT JOIN pharmacy_prescription_item pi
+                      ON pi.pharmacy_prescription_id = tii.transaction_id
+                     AND tii.type_transaction_id = 14 AND IFNULL(pi.is_delete,0) = 0
+              WHERE tii.transaction_invoice_id = ? AND IFNULL(tii.is_delete,0) = 0",
+            array($invoice_id))->result();
+        $total = 0.0;
+        foreach ($rows as $r) { $total += (float) $r->amount; }
+        return round($total, 2);
+    }
+
+    /** Uang yang sudah masuk (payment_item.var_3) untuk semua invoice registrasi ini. */
+    protected function _ic_paid_total($registration_id) {
+        $r = $this->db->query(
+            "SELECT IFNULL(SUM(pi.var_3),0) AS paid
+               FROM payment p
+               JOIN payment_item pi ON pi.payment_id = p.id
+               JOIN transaction_invoice ti ON ti.id = p.invoice_id
+              WHERE ti.registration_id = ? AND IFNULL(ti.is_delete,0) = 0
+                AND IFNULL(p.is_delete,0) = 0", array($registration_id))->row();
+        return $r === null ? 0.0 : round((float) $r->paid, 2);
     }
 }

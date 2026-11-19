@@ -859,6 +859,19 @@ class Catalog extends My_Controller {
         $this->$model->offset = $offset; 
 
         $name = $q_strings['name'] ?? null;
+
+        // Alkes (kategori "Alat Kesehatan") bukan obat: pemilih resep dokter memakai
+        // list_options tanpa filter, jadi caller yang butuh daftar obat saja mengirim
+        // exclude_alkes=1. Default TIDAK difilter supaya stok/kardex/consumable operasi
+        // tetap bisa mencari alkes.
+        if (isset($q_strings['exclude_alkes']) && (string) $q_strings['exclude_alkes'] === '1') {
+            $alkes = $this->db->query(
+                "SELECT id FROM category_catalog WHERE name = 'Alat Kesehatan' AND IFNULL(is_delete,0) = 0"
+            )->row();
+            if ($alkes !== null) {
+                $this->$model->whereNotInFields['a.category_catalog_id'] = array($alkes->id);
+            }
+        }
         
         $select = '
         a.id,

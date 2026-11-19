@@ -319,6 +319,25 @@ class Receipt extends My_Controller {
                         }
                     }
                 }
+
+                // E-5: jurnal penerimaan barang. Debit persediaan, kredit hutang dagang.
+                // Nilai dihitung dari baris penerimaan (qty x harga item), bukan dari
+                // payload client. Idempoten per nomor dokumen.
+                // Tabel nyata endpoint ini: receipts + receipt_items (bukan pharmacy_restock).
+                $rcv_val = $this->db->query(
+                    "SELECT IFNULL(SUM(ri.sum_item * ri.price_item),0) AS amt
+                       FROM receipt_items ri WHERE ri.receipt_id = ?",
+                    array($id))->row();
+                $rcv_total = $rcv_val === null ? 0.0 : round((float) $rcv_val->amt, 2);
+                $journal = $this->post_journal('STOCK_RECEIPT', $id, 'RCV-' . $code,
+                    $institute_branch_id, $user_id,
+                    array('stock' => $rcv_total, 'payable' => $rcv_total), 'no_document=' . $code);
+                if (isset($journal['status']) && $journal['status'] === 'error') {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Jurnal penerimaan gagal (tidak balance).', $journal, 'JOURNAL_FAILED');
+                    return;
+                }
+
                 $this->db->trans_complete();
                 /* End Transaction */
                 if ($this->db->trans_status() === false) {
@@ -1394,5 +1413,16 @@ class Receipt extends My_Controller {
             $this->REST_Return(401, $is_valid_token['message'] ,$response_data);
             return;
         }
+    }
+
+    /* ===================== E-5 helper ===================== */
+
+    /** Jurnal otomatis; 'error' => pemanggil rollback. */
+    protected function post_journal($type, $ref_id, $ref_no, $branch, $user_id, $amounts, $note = '') {
+        if (trim((string) $branch) === '') {
+            return array('status' => 'skipped', 'reason' => 'BRANCH_UNDEFINED', 'type' => $type);
+        }
+        $this->load->library('Journal');
+        return $this->journal->post($type, $ref_id, $ref_no, $branch, $user_id, $amounts, null, (string) $note);
     }
 }

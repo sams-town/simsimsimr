@@ -2,7 +2,11 @@
 use Restserver\Libraries\REST_Controller;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+require_once __DIR__ . '/Radiology_request_result_entry_trait.php';
+
 class Radiology_request extends My_Controller {
+    use Radiology_request_result_entry_trait;
+
     public function __construct() {
         parent::__construct();
         // Load Authorization Token Library
@@ -82,7 +86,8 @@ class Radiology_request extends My_Controller {
         $soap_id = $dt_post['soap_id'];
         $doctor_in_charge_id = $dt_post['doctor_in_charge_id'];
         $date_request = $dt_post['date_request'];
-        $clinical_indications = $dt_post['clinical_indications'];
+        // Opsional di payload FE; akses langsung -> notice "Undefined array key" (E2E-11).
+        $clinical_indications = $dt_post['clinical_indications'] ?? null;
         $radiology_request_items_arr = $dt_post['radiology_request_items'];
 
         $select = 'a.id';
@@ -131,6 +136,23 @@ class Radiology_request extends My_Controller {
 
             if ($soap == "") {
                 $this->REST_Return(404, 'there is no soap with id ' . $soap_id);
+                return;
+            }
+
+            // P0-3: order wajib menyimpan tujuan. Turunkan dari SOAP (FK soap.registration_destination_id)
+            // lalu validasi tujuannya benar-benar ada. SOAP tanpa tujuan = 422, bukan fallback diam.
+            $soap_row = $this->Soap->select($soap_id, 'a.registration_destination_id');
+            $registration_destination_id = ($soap_row != []) ? $soap_row[0]->registration_destination_id : null;
+
+            if ($registration_destination_id == null || $registration_destination_id == '') {
+                $this->REST_Return(422, 'soap_id ' . $soap_id . ' has no registration_destination_id', array('registration_destination_id' => 'soap has no destination'));
+                return;
+            }
+
+            $registration_destination = $this->Registration_destination->select($registration_destination_id, 'a.id');
+
+            if (count($registration_destination) == 0) {
+                $this->REST_Return(422, 'soap_id ' . $soap_id . ' references registration_destination ' . $registration_destination_id . ' that does not exist', array('registration_destination_id' => 'not found'));
                 return;
             }
         }
@@ -216,6 +238,7 @@ class Radiology_request extends My_Controller {
         $dt_radiology_request = array(
             'institute_branch_id'   => $institute_branch_id,
             'soap_id'               => $soap_id,
+            'registration_destination_id' => $registration_destination_id,
             'doctor_in_charge_id'   => $doctor_in_charge_id,
             'no_request'            => $no_request,
             'clinical_indications'  => $clinical_indications,
@@ -1219,7 +1242,7 @@ class Radiology_request extends My_Controller {
                         'id'              => $id,
                         'soap_id'         => $dt_put['soap_id'],
                         'date_request'    => $dt_put['date_request'],
-                        'clinical_indications' => $dt_put['clinical_indications'],
+                        'clinical_indications' => $dt_put['clinical_indications'] ?? null,
                     );
                     $this->$model->update($id, $dt_radiology_request);
 
@@ -1538,6 +1561,11 @@ class Radiology_request extends My_Controller {
                             $random_6 = substr(bin2hex($bytes), 0, 6);
                       
                             $url = $this->base64ToFile($result, $random_6 . '-' . $costing_name . '-' . $date . '-' . $norm . '-' . $patient_name . '.' . $extension);
+
+                            if ($url === false) {
+                                $this->REST_Return(500, 'failed to save radiology image file');
+                                return;
+                            }
                             
                             $dt_radiology_request_item['url'] = $url;
                         } 
@@ -1568,11 +1596,12 @@ class Radiology_request extends My_Controller {
 
     private function base64ToFile ($p = 0, $filename = '') {
         define('UPLOAD_DIR', 'assets/document/usg/');
+        if (!is_dir(UPLOAD_DIR)) { @mkdir(UPLOAD_DIR, 0775, true); }
         $data         = base64_decode($p);
         $file_name    = $filename; // You can change it to anything
         $file         = UPLOAD_DIR . $file_name;
         $success      = file_put_contents($file, $data);
-        return $file;
+        return $success === false ? false : $file;
     }
 
     public function history_get($p = 0){
@@ -2019,16 +2048,30 @@ class Radiology_request extends My_Controller {
         $sheet->setCellValue('F2', "Tgl.Permintaan"); 
         $sheet->setCellValue('G2', "Kategori"); 
         $sheet->setCellValue('J2', "Nama Pemeriksaan"); 
+        // P0-2: satu item pemeriksaan = satu baris = satu tarif. Sebelumnya grain query
+        // adalah `radiology_request_item_image` (GROUP BY bb.id, INNER JOIN) sehingga satu
+        // item dengan N image muncul N kali dan tarifnya terhitung N kali; item tanpa image
+        // hilang sama sekali. Image sekarang hanya lampiran: LEFT JOIN + MIN(bb.id) untuk URL
+        // expertise, tidak mengalikan tarif.
+        // Filter tanggal sebelumnya literal '2025-09-01'..'2025-09-31'; 31 September tidak
+        // valid sehingga CAST menjadi NULL dan laporan selalu 0 baris. Sekarang dari query
+        // string, default bulan berjalan.
+        $date_start = isset($q_strings['date_start']) && $q_strings['date_start'] != ''
+            ? $q_strings['date_start'] : date('Y-m-01');
+        $date_end = isset($q_strings['date_end']) && $q_strings['date_end'] != ''
+            ? $q_strings['date_end'] : date('Y-m-t');
+
         $response_data_rad = $this->db->query("
-        SELECT `si`.`registration_destination_id`, `b`.`costing_name`,`b`.`var_1` as `tarif`,`b`.`var_2` as `qty`,`b`.`var_1` as `total` , `c`.`desc`, `cs`.`costing_id`, `cs`.`bride_department`, `cs`.`bride_department_sub`, `a`.`date_request`, `bb`.`id` as `result`,  `bb`.`radiology_request_item_id`, `b`.`radiology_request_id`
+        SELECT `si`.`registration_destination_id`, `b`.`costing_name`,`b`.`var_1` as `tarif`,`b`.`var_2` as `qty`,`b`.`var_1` as `total` , `c`.`desc`, `cs`.`costing_id`, `cs`.`bride_department`, `cs`.`bride_department_sub`, `a`.`date_request`, MIN(`bb`.`id`) as `result`,  `b`.`id` as `radiology_request_item_id`, `b`.`radiology_request_id`
         FROM `radiology_request` as `a` 
         LEFT JOIN `radiology_request_item` `b` ON `a`.`id` = `b`.`radiology_request_id` 
-        INNER JOIN `radiology_request_item_image` `bb` ON `b`.`id` = `bb`.`radiology_request_item_id` 
+        LEFT JOIN `radiology_request_item_image` `bb` ON `b`.`id` = `bb`.`radiology_request_item_id` AND `bb`.`status` = 2 AND `bb`.`is_delete` = 0
         LEFT JOIN costing c ON b.costing_id = c.id
         LEFT JOIN costing_services_class cs ON c.id = cs.costing_id
         LEFT JOIN soap si ON a.soap_id = si.id
-        WHERE `a`.`date_request` >= '2025-09-01 00:00:00' AND `a`.`date_request` <= '2025-09-31 23:59:59' 
-        AND `a`.`is_delete` = 0 AND `a`.`status` = 2 AND `bb`.`status` = 2 AND `b`.`is_delete` = 0 AND `bb`.`is_delete` = 0 GROUP BY `bb`.`id` ORDER BY `a`.`date_request` ASC")->result();
+        WHERE `a`.`date_request` >= ? AND `a`.`date_request` <= ?
+        AND `a`.`is_delete` = 0 AND `a`.`status` = 2 AND `b`.`is_delete` = 0 GROUP BY `b`.`id` ORDER BY `a`.`date_request` ASC",
+        array($date_start . ' 00:00:00', $date_end . ' 23:59:59'))->result();
         // $sheet->setCellValue('A'.$numrow, $output[$i]->norm);
         // $sheet->setCellValue('B'.$numrow, $output[$i]->nama_pasien);
         // $sheet->setCellValue('C'.$numrow, $output[$i]->insurance.' '.$output[$i]->penjamin);

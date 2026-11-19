@@ -704,6 +704,27 @@ class Opname extends My_Controller {
                         'date_created' => date('Y-m-d H:i:s'),
                     );
                     $this->PharmacyAssetsCard->create($dt_opnameAssetsCard);
+
+                    // E-5: jurnal selisih opname. Nilai = (fisik - administrasi) x HNA.
+                    // Selisih kurang => debit HPP / credit persediaan; selisih lebih => kebalikan.
+                    // Idempoten: ref_no memuat nilai selisih, jadi replay koreksi yang sama
+                    // tidak menambah jurnal, tetapi koreksi berbeda tetap tercatat.
+                    $delta = round((float) $datatostok->accumulation - (float) $datatostok->sum_adm, 2);
+                    $val   = round($delta * (float) $datatostok->hna, 2);
+                    if (abs($val) > 0.004) {
+                        $sign = $val > 0 ? 'G' : 'L';
+                        $amt  = abs($val);
+                        $ref  = 'OPN-' . $id . '-' . $sign . str_replace('.', '_', number_format($amt, 2, '.', ''));
+                        $type = $val > 0 ? 'STOCK_OPNAME_GAIN' : 'STOCK_OPNAME_LOSS';
+                        $journal = $this->post_journal($type, $id, $ref,
+                            $institute_branch_id, $user_id,
+                            array('stock' => $amt, 'hpp' => $amt), 'opname_item=' . $id);
+                        if (isset($journal['status']) && $journal['status'] === 'error') {
+                            $this->db->trans_rollback();
+                            $this->REST_Return(500, 'Jurnal opname gagal (tidak balance).', $journal, 'JOURNAL_FAILED');
+                            return;
+                        }
+                    }
                 }
                 $this->db->trans_complete();
                 /* End Transaction */
@@ -1186,5 +1207,14 @@ class Opname extends My_Controller {
         // }
     }
 
-    
+    /* ===================== E-5 helper ===================== */
+
+    /** Jurnal otomatis; 'error' => pemanggil rollback. */
+    protected function post_journal($type, $ref_id, $ref_no, $branch, $user_id, $amounts, $note = '') {
+        if (trim((string) $branch) === '') {
+            return array('status' => 'skipped', 'reason' => 'BRANCH_UNDEFINED', 'type' => $type);
+        }
+        $this->load->library('Journal');
+        return $this->journal->post($type, $ref_id, $ref_no, $branch, $user_id, $amounts, null, (string) $note);
+    }
 }

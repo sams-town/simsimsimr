@@ -114,6 +114,122 @@ class Registration_destination extends My_Controller {
         );
     }
 
+    /* ================= CHECKOUT GUARD (CG) =================
+     *
+     * Sumber kebenaran status kunjungan = `registration_destination`, TIDAK ada
+     * kolom baru yang dibuat. Bukti checkout (dibuktikan dari penulis yang ada):
+     *   - `checkout_put`         menulis exit_id + date_task_7 + is_checkout=1
+     *   - `checkout_v2_put`      menulis exit_id + checkout_date (is_checkout=0, lihat laporan)
+     *   - `Registration::checkout`/transfer menulis checkout_date + exit_id + is_checkout=1
+     *   - pembatalan antrol    menulis date_cancel + is_cancel=1 + is_checkout=1
+     * Jadi is_checkout=1 SENDIRIAN bukan bukti: 41 baris produksi is_checkout=1 tanpa
+     * timestamp apa pun. State tanpa bukti => UNKNOWN => fail closed (409).
+     */
+
+    /** @return array|null state, proof, row; null bila kunjungan tidak ada */
+    protected function _cg_state($registration_destination_id) {
+        $row = $this->db->select('id, is_checkout, is_cancel, checkout_date, date_task_7, date_cancel, exit_id')
+            ->from('registration_destination')
+            ->where('id', $registration_destination_id)
+            ->limit(1)
+            ->get()->row();
+        if (!$row) return null;
+
+        if ((string) $row->is_cancel === '1') {
+            return array('state' => 'CANCELLED', 'proof' => 'is_cancel/date_cancel', 'row' => $row);
+        }
+        if ((string) $row->is_checkout !== '1') {
+            return array('state' => 'ACTIVE', 'proof' => null, 'row' => $row);
+        }
+        foreach (array('checkout_date', 'date_task_7', 'date_cancel') as $col) {
+            if (!empty($row->$col)) {
+                return array('state' => 'CHECKED_OUT', 'proof' => $col, 'row' => $row);
+            }
+        }
+        if (!empty($row->exit_id)) {
+            return array('state' => 'CHECKED_OUT', 'proof' => 'exit_id', 'row' => $row);
+        }
+        return array('state' => 'UNKNOWN', 'proof' => null, 'row' => $row);
+    }
+
+    /** Audit ke log_activity (tabel & kolom yang sudah ada; tidak ada tabel baru). */
+    protected function _cg_audit($result, $rd_id, $user_id, $operation, $detail, $http) {
+        $b = random_bytes(16);
+        $b[6] = chr((ord($b[6]) & 0x0f) | 0x40);
+        $b[8] = chr((ord($b[8]) & 0x3f) | 0x80);
+        $row = array(
+            'id'            => vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4)),
+            'noregistrasi'  => null,
+            'user_id'       => $user_id,
+            'user_name'     => isset($this->s1_actor['username']) ? $this->s1_actor['username'] : null,
+            'category_id'   => 0,
+            'description'   => json_encode(array(
+                'request_id'     => isset($this->debug_uniq) ? $this->debug_uniq : null,
+                'endpoint'       => 'mr/registration_destination',
+                'operation'      => $operation,
+                'registration_destination_id' => $rd_id,
+                'state'          => isset($detail['state']) ? $detail['state'] : null,
+                'proof'          => isset($detail['proof']) ? $detail['proof'] : null,
+                'result'         => $result,
+                'http_status'    => $http,
+            )),
+            'related_id'    => $rd_id,
+            'related_table' => 'registration_destination',
+            'created_at'    => date('Y-m-d H:i:s'),
+        );
+        return (bool) $this->db->insert('log_activity', $row);
+    }
+
+    /** Kunjungan harus AKTIF (belum checkout, belum batal) dan state-nya terbukti. */
+    protected function _cg_require_active($rd_id, $user_id, $operation) {
+        $s = $this->_cg_state($rd_id);
+        if ($s === null) {
+            $this->REST_Return(404, 'there is no registration_destination with id ' . $rd_id, array(), 'VISIT_NOT_FOUND');
+            return false;
+        }
+        if ($s['state'] === 'ACTIVE') {
+            $this->_cg_audit('ALLOW', $rd_id, $user_id, $operation, $s, 200);
+            return true;
+        }
+        $map = array(
+            'CHECKED_OUT' => array('Kunjungan sudah checkout.', 'VISIT_ALREADY_CHECKED_OUT'),
+            'CANCELLED'   => array('Kunjungan sudah dibatalkan.', 'VISIT_CANCELLED'),
+            'UNKNOWN'     => array('Status kunjungan tidak dapat diverifikasi.', 'VISIT_STATE_UNKNOWN'),
+        );
+        $m = isset($map[$s['state']]) ? $map[$s['state']] : $map['UNKNOWN'];
+        $this->_cg_audit('DENY_' . $s['state'], $rd_id, $user_id, $operation, $s, 409);
+        $this->REST_Return(409, $m[0], array(
+            'registration_destination_id' => $rd_id,
+            'state' => $s['state'],
+        ), $m[1]);
+        return false;
+    }
+
+    /** Kunjungan harus TERBUKTI sudah checkout (dipakai untuk koreksi tanggal checkout). */
+    protected function _cg_require_checked_out($rd_id, $user_id, $operation) {
+        $s = $this->_cg_state($rd_id);
+        if ($s === null) {
+            $this->REST_Return(404, 'there is no registration_destination with id ' . $rd_id, array(), 'VISIT_NOT_FOUND');
+            return false;
+        }
+        if ($s['state'] === 'CHECKED_OUT') {
+            $this->_cg_audit('ALLOW', $rd_id, $user_id, $operation, $s, 200);
+            return true;
+        }
+        $map = array(
+            'ACTIVE'    => array('Kunjungan belum checkout.', 'VISIT_NOT_CHECKED_OUT'),
+            'CANCELLED' => array('Kunjungan sudah dibatalkan.', 'VISIT_CANCELLED'),
+            'UNKNOWN'   => array('Status kunjungan tidak dapat diverifikasi.', 'VISIT_STATE_UNKNOWN'),
+        );
+        $m = isset($map[$s['state']]) ? $map[$s['state']] : $map['UNKNOWN'];
+        $this->_cg_audit('DENY_' . $s['state'], $rd_id, $user_id, $operation, $s, 409);
+        $this->REST_Return(409, $m[0], array(
+            'registration_destination_id' => $rd_id,
+            'state' => $s['state'],
+        ), $m[1]);
+        return false;
+    }
+
     /**
      * Registration_destination API
      * --------------------
@@ -2552,6 +2668,11 @@ class Registration_destination extends My_Controller {
             return;
         }
 
+        // CG: operasi checkout hanya untuk kunjungan AKTIF dengan state terbukti.
+        if (!$this->_cg_require_active($registration_destination_id, $user_id, 'checkout')) {
+            return;
+        }
+
         $select = 'a.id, a.bed_id, a.checkin_date, r.norm, a.nurse_id';
         $where = array();
         $join = array(
@@ -2806,6 +2927,11 @@ class Registration_destination extends My_Controller {
     
         if ($registration_destination_id === 0 || $registration_destination_id === "0") {
             $this->REST_Return(400, 'registration_destination_id is required');
+            return;
+        }
+
+        // CG: operasi checkout hanya untuk kunjungan AKTIF dengan state terbukti.
+        if (!$this->_cg_require_active($registration_destination_id, $user_id, 'checkout_request')) {
             return;
         }
 
@@ -3230,6 +3356,11 @@ class Registration_destination extends My_Controller {
             $this->REST_Return(400, 'registration_destination_id is required');
             return;
         }
+
+        // CG: operasi checkout hanya untuk kunjungan AKTIF dengan state terbukti.
+        if (!$this->_cg_require_active($registration_destination_id, $user_id, 'checkout_v2')) {
+            return;
+        }
         
         $select = 'a.id,a.registration_id,a.health_facility_item_id';
         $registration_destination = $this->$model->select($registration_destination_id, $select);
@@ -3334,6 +3465,11 @@ class Registration_destination extends My_Controller {
             $this->REST_Return(400, 'registration_destination_id is required');
             return;
         }
+
+        // CG: operasi checkout hanya untuk kunjungan AKTIF dengan state terbukti.
+        if (!$this->_cg_require_active($registration_destination_id, $user_id, 'checkout_doctor')) {
+            return;
+        }
         
         $select = 'a.id,a.registration_id';
         $registration_destination = $this->$model->select($registration_destination_id, $select);
@@ -3436,6 +3572,11 @@ class Registration_destination extends My_Controller {
     
         if ($registration_destination_id === 0 || $registration_destination_id === "0") {
             $this->REST_Return(400, 'registration_destination_id is required');
+            return;
+        }
+
+        // CG: koreksi tanggal checkout hanya untuk kunjungan yang terbukti sudah checkout.
+        if (!$this->_cg_require_checked_out($registration_destination_id, $user_id, 'change_checkout_date')) {
             return;
         }
 

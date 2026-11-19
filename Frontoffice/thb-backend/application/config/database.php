@@ -74,10 +74,13 @@ $active_group = 'default';
 $query_builder = TRUE;
 if(ENVIRONMENT == 'production' || ENVIRONMENT == 'production_debug') {
 	// $hostname = '202.154.191.66';
-	$hostname = 'localhost';
+	// ponytail: dipindah dari localhost/thb_staging (DB tak ada di container ini) ke simrs_db/thb_dummy per diagnosis 2026-10-29; upgrade path: DB FO resmi terpisah
+	$hostname = 'simrs_db';
 	$username = 'root';
 	$password = 'alda';
-	$database = 'thb_staging';
+	// 4C-03C: tree uji snapshot harga memakai sandbox skema 4C-03B (thb_khanza).
+	// Tree regresi work/backend tetap thb_dummy dan tidak diubah.
+	$database = 'thb_khanza';
 } else if (ENVIRONMENT == 'staging') {
 	$hostname = '192.168.100.3:3308';
 	$username = 'root';

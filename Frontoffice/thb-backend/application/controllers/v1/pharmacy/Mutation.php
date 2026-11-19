@@ -125,7 +125,30 @@ class Mutation extends My_Controller {
                     $this->MutationItem->replace($dt_mutation_item);
 
                 }
-                    
+
+                // E-5: jurnal mutasi persediaan antar depo. Nilai pindah antar akun
+                // persediaan (net nol), jejaknya tetap tercatat. Dihitung dari baris
+                // mutasi (value_send x HNA). Endpoint ini tidak menyimpan hna_item,
+                // jadi HNA diambil dari baris mutasi bila ada, kalau tidak dari
+                // pharmacy_catalog_price (harga beli terakhir) — bukan dari payload client.
+                $mut_val = $this->db->query(
+                    "SELECT IFNULL(SUM(mi.value_send * COALESCE(NULLIF(mi.hna_item,0),
+                        (SELECT p.price_purchase FROM pharmacy_catalog_price p
+                          WHERE p.pharmacy_catalog_id = mi.pharmacy_catalog_id
+                            AND IFNULL(p.is_active,1) = 1
+                          ORDER BY p.valid_from DESC LIMIT 1), 0)),0) AS amt
+                       FROM pharmacy_mutation_item mi WHERE mi.pharmacy_mutation_id = ?",
+                    array($id))->row();
+                $mut_total = $mut_val === null ? 0.0 : round((float) $mut_val->amt, 2);
+                $journal = $this->post_journal('STOCK_MUTATION', $id, 'MUT-' . $code,
+                    $institute_branch_id, $user_id,
+                    array('stock_in' => $mut_total, 'stock_out' => $mut_total), 'no_document=' . $code);
+                if (isset($journal['status']) && $journal['status'] === 'error') {
+                    $this->db->trans_rollback();
+                    $this->REST_Return(500, 'Jurnal mutasi gagal (tidak balance).', $journal, 'JOURNAL_FAILED');
+                    return;
+                }
+
                 $this->db->trans_complete();
                 /* End Transaction */
                 if ($this->db->trans_status() === false) {
@@ -457,5 +480,16 @@ class Mutation extends My_Controller {
             $this->REST_Return(401, $validateToken['message'] ,$response_data);
             return;
         }
+    }
+
+    /* ===================== E-5 helper ===================== */
+
+    /** Jurnal otomatis; 'error' => pemanggil rollback. */
+    protected function post_journal($type, $ref_id, $ref_no, $branch, $user_id, $amounts, $note = '') {
+        if (trim((string) $branch) === '') {
+            return array('status' => 'skipped', 'reason' => 'BRANCH_UNDEFINED', 'type' => $type);
+        }
+        $this->load->library('Journal');
+        return $this->journal->post($type, $ref_id, $ref_no, $branch, $user_id, $amounts, null, (string) $note);
     }
 }
